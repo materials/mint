@@ -1,0 +1,10 @@
+2013.08.29
+* Linked to blas/lapack
+
+2013.04.30
+* Major source code update
+* Key points:
+  - Improvement of primitive containers
+  - Faster math routines
+  - Updates to algorithms throughout the code with improved stability
+
