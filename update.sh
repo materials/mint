@@ -81,44 +81,33 @@ function updateMakefile
 {
 	
 	# Makefile parameters and defaults
-	makeParams=("CC" "g++" "OPT" "\-O3" "CFLAGS" "\-c \-g" "LFLAGS" "\-g" "BLAS" "\-lblas" "LAPACK" "\-llapack" \
+	makeParams=("CC" "g++" "OPT" "\-O3" "COMP" "\-c \-g" "LINK" "\-g" "BLAS" "\-lblas" "LAPACK" "\-llapack" \
 			 "DEFINE" "" "MPIRUN" "mpirun \-np")
 	
 	# Get current values if previous makefile exists
 	if [ -e $backupDir/Makefile ]; then
-			
+		echo "Saving previous Makefile settings."
+		i=0; j=1
+		while [ $i -lt ${#makeParams[@]} ]; do
+			vars=(`grep ^${makeParams[$i]} $backupDir/Makefile | sed 's/:/ /' | sed 's/=/ /'`)
+			if [ ${#vars[@]} -gt 0 ]; then
+				makeParams[$j]=`echo ${vars[@]:1} | sed 's/\-/\\\-/g'`
+			fi
+			i=`expr $i + 2`; j=`expr $j + 2`
+		done
+	
+	# No Makefile existed
+	else
+		echo "Using default Makefile settings. Check these before compiling!"
 	fi
 	
-	
-#	i=0; j=1
-#	while [[ $i -lt ${#makeParams[@]} ]]; do
-#		sed 's/#'"${makeParams[$i]}"'#/'"${makeParams[$j]}"'/' < Makefile > _temp_Makefile
-#		mv _temp_Makefile Makefile
-#		i=`expr $i + 2`; j=`expr $j + 2`
-#	done
-#	
-#	# Get current value
-#	vals=()
-#	while read line; do
-#		vars=(`echo $line | sed 's/:/ /' | sed 's/=/ /'`)
-#		if [[ ${#vars[@]} -gt 0 ]]; then
-#			if [[ ${vars[0]} == ${makeParams[$i]} ]]; then
-#				vals=(${vars[@]})
-#				break
-#			fi
-#		fi
-#	done < $oldVersion"/Makefile"
-	
-	# Value was not found
-#	if [[ ${#vals[@]} -eq 0 ]]; then
-#		sed 's/#'"${makeParams[$i]}"'#/'"${makeParams[$j]}"'/' < Makefile > temp
-	
-	# Value was found
-#	else
-#		line=`echo ${vals[@]:1} | sed 's/\-/\\\-/g'`
-#		sed 's/#'"${makeParams[$i]}"'#/'"$line"'/' < Makefile > temp
-#	fi
-
+	# Set values in Makefile
+	i=0; j=1
+	while [ $i -lt ${#makeParams[@]} ]; do
+		sed 's/#'"${makeDef[$i]}"'#/'"${makeDef[$j]}"'/' < Makefile > temp
+		mv temp Makefile
+		i=`expr $i + 2`; j=`expr $j + 2`
+	done
 }
 
 

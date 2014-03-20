@@ -9,7 +9,7 @@
 ##--------------------------------------------------------------------##
 ##                                                                    ##
 ##   Contact: Kyle Michel (kylemichel@gmail.com)                      ##
-##			  Logan Ward (LoganWard2012@u.northwestern.edu)           ##
+##            Logan Ward (LoganWard2012@u.northwestern.edu)           ##
 ##                                                                    ##
 ##--------------------------------------------------------------------##
 ##                                                                    ##
