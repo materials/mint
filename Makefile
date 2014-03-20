@@ -38,17 +38,17 @@
 
 # C++ compiler and optimization level
 # If you are compiling with MPI support then the compiler must be MPI compatible!
-CC  := g++
-OPT := -O3
+CC  := #CC#
+OPT := #OPT#
 
 
 
 # Any other compiler and linker flags
 # Mint requires linking to blas/lapack libraries
-COMP   := -c -g
-LINK   := -g
-BLAS   := -lblas
-LAPACK := -llapack
+COMP   := #COMP#
+LINK   := #LINK#
+BLAS   := #BLAS#
+LAPACK := #LAPACK#
 
 
 
@@ -56,14 +56,14 @@ LAPACK := -llapack
 # Possible values:
 #    MPI - enable mpi support (compiler must be MPI compatible!)
 #    MKL - using MKL libraries (do not add this definition if MKL is not used)
-DEFINE := 
+DEFINE := #DEFINE#
 
 
 
 # String used to launch an MPI program for current system (mpirun, aprun, etc)
 # If number of processors is not determined automatically, then use e.g. "mpirun -np"
 # This only matters if you will be launching external mpi programs from within program
-MPIRUN := "mpirun -np"
+MPIRUN := #MPIRUN#
 
 
 

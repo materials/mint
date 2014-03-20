@@ -104,7 +104,7 @@ function updateMakefile
 	# Set values in Makefile
 	i=0; j=1
 	while [ $i -lt ${#makeParams[@]} ]; do
-		sed 's/#'"${makeDef[$i]}"'#/'"${makeDef[$j]}"'/' < Makefile > temp
+		sed 's/#'"${makeParams[$i]}"'#/'"${makeParams[$j]}"'/' < Makefile > temp
 		mv temp Makefile
 		i=`expr $i + 2`; j=`expr $j + 2`
 	done
