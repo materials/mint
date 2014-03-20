@@ -1,5 +1,144 @@
 #!/bin/bash
 
+
+
+# Name of directory to copy old files
+backupDir="backup"
+
+
+
+# Function to exit the script if something went wrong
+function exitFunction
+{
+	echo ""
+	echo "====================================="
+	echo ""
+	echo "Update failed because "$1"."
+	echo ""
+	echo "Your old files are safe though and located in the \""$backupDir"\" directory that has been created."
+	echo ""
+	echo "You can download the source code manually in either of the following formats:"
+	echo "    Tarball: https://github.com/materials/mint/tarball/master"
+	echo "    Archive: https://github.com/materials/mint/archive/master.zip"
+	echo ""
+	exit
+}
+
+
+
+# Function to make a backup copy of files
+function backupFiles
+{
+	echo "Creating \""$backupDir"\" directory and moving all files to it."
+	origFiles=`ls`
+	mkdir $backupDir
+	for cur in $origFiles; do
+		if [ $cur == "mint" ]; then
+			cp $cur $backupDir
+			echo "    A copy of the \"mint\" executable was left in the current directory."
+		else
+			mv $cur $backupDir
+		fi
+	done
+}
+
+
+
+# Function to get tarball from github
+function getNewCode
+{
+	echo "Downloading source code and other files from GitHub."
+	wget --no-check-certificate -q https://github.com/materials/mint/tarball/master 2> /dev/null || \
+		curl -LOks https://github.com/materials/mint/tarball/master > /dev/null || \
+		exitFunction "tarball could not be downloaded from GitHub. Make sure that either \"wget\" or \"curl\" is available"
+	if [ ! -e master ]; then
+		exitFunction "source code was not downloaded correctly"
+	fi
+}
+
+
+
+# Extract code from tarball
+function extractNewCode
+{
+	echo "Extracting new files from the tarball that was downloaded."
+	tar -xzf master || exitFunction "tarball extraction was not successful"
+	if [ -e master ]; then
+		rm -f master
+	fi
+	newDir="materials-mint"*
+	if [ ${#newDir[@]} -eq 0 ]; then
+		exitFunction " extracted directory was not found"
+	fi
+	mv $newDir/* .
+	rm -fr $newDir
+}
+
+
+
+# Copy parameters from old makefile into new one
+function updateMakefile
+{
+	
+	# Makefile parameters and defaults
+	makeParams=("CC" "g++" "OPT" "\-O3" "CFLAGS" "\-c \-g" "LFLAGS" "\-g" "BLAS" "\-lblas" "LAPACK" "\-llapack" \
+			 "DEFINE" "" "MPIRUN" "mpirun \-np")
+	
+	# Get current values if previous makefile exists
+	if [ -e $backupDir/Makefile ]; then
+			
+	fi
+	
+	
+#	i=0; j=1
+#	while [[ $i -lt ${#makeParams[@]} ]]; do
+#		sed 's/#'"${makeParams[$i]}"'#/'"${makeParams[$j]}"'/' < Makefile > _temp_Makefile
+#		mv _temp_Makefile Makefile
+#		i=`expr $i + 2`; j=`expr $j + 2`
+#	done
+#	
+#	# Get current value
+#	vals=()
+#	while read line; do
+#		vars=(`echo $line | sed 's/:/ /' | sed 's/=/ /'`)
+#		if [[ ${#vars[@]} -gt 0 ]]; then
+#			if [[ ${vars[0]} == ${makeParams[$i]} ]]; then
+#				vals=(${vars[@]})
+#				break
+#			fi
+#		fi
+#	done < $oldVersion"/Makefile"
+	
+	# Value was not found
+#	if [[ ${#vals[@]} -eq 0 ]]; then
+#		sed 's/#'"${makeParams[$i]}"'#/'"${makeParams[$j]}"'/' < Makefile > temp
+	
+	# Value was found
+#	else
+#		line=`echo ${vals[@]:1} | sed 's/\-/\\\-/g'`
+#		sed 's/#'"${makeParams[$i]}"'#/'"$line"'/' < Makefile > temp
+#	fi
+
+}
+
+
+
+# Run update
+backupFiles
+getNewCode
+extractNewCode
+updateMakefile
+
+
+exit
+
+
+
+
+
+
+
+
 # Get external version
 externVersion=(`wget -qO- palestrina.northwestern.edu/mint/version`)
 if [[ ${#externVersion[@]} -lt 4 ]]; then
