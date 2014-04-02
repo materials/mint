@@ -811,7 +811,7 @@ void PointGroup::setRedToConv(const ISO& reducedCell, const Symmetry& symmetry)
 	}
 	
 	// Convert centering vectors to conventional cell
-	OList<Vector3D > centVecs (latticePoints.length());
+	OList<Vector3D> centVecs (latticePoints.length());
 	for (i = 0; i < latticePoints.length(); ++i)
 	{
 		centVecs[i] = Q * latticePoints[i];
@@ -896,9 +896,7 @@ void PointGroup::setRedToConv(const ISO& reducedCell, const Symmetry& symmetry)
 	// Make sure that unique axis is correct in monoclinic cell
 	if (_laueGroup == 2)
 	{
-		int uniqueAxis = Symmetry::getUniqueAxis(_redToConv * reducedCell.basis().vectors(), LS_MONOCLINIC);
-		if (uniqueAxis == 0)
-			uniqueAxis = Symmetry::getConventionalCellUniqueSymmetryAxis(convRotations, LS_MONOCLINIC);
+		int uniqueAxis = Symmetry::getConventionalCellUniqueSymmetryAxis(convRotations, LS_MONOCLINIC);
 		if (uniqueAxis == 0)
 			_redToConv *= Matrix3D(0, 0, 1, 1, 0, 0, 0, 1, 0);
 		else if (uniqueAxis == 2)

@@ -1551,7 +1551,7 @@ void Help::settings()
 	Output::newline(); Output::print("General: From analysis of structures in the Inorganic Crystal Structure Database");
 	Output::newline(); Output::print("    it was found that atoms tend to occupy Wyckoff site combinations so as to");
 	Output::newline(); Output::print("    minimize the number of symmetrically-unique atoms in the structure. For");
-	Output::newline(); Output::print("    example, assume that a structure has three Wyckoff sites, two with");
+	Output::newline(); Output::print("    example, assume that a space group has three Wyckoff sites, two with");
 	Output::newline(); Output::print("    multiplicity 1 and one with multiplicity 2. If two atoms were placed in the");
 	Output::newline(); Output::print("    structure, then based on this analysis, they would overwhelmingly prefer");
 	Output::newline(); Output::print("    to occupy the site with multiplicity 2, rather than some combination of");
@@ -1566,7 +1566,7 @@ void Help::settings()
 	Output::newline(); Output::print("    these two extremes. If it is too low, then the simulation may take much");
 	Output::newline(); Output::print("    longer to converge. It it is too high, then it can be difficult or even");
 	Output::newline(); Output::print("    impossible to find structures that differ significantly from those in the");
-	Output::newline(); Output::print("    ICSD.");
+	Output::newline(); Output::print("    ICSD, at least with respect to the Wyckoff site occupancies.");
 	Output::newline();
 	Output::newline(); Output::print("Values: Any floating point number between 0 (no biasing) and 1 (full biasing)");
 	Output::newline();

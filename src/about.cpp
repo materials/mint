@@ -53,7 +53,7 @@ void About::print()
 		Output::print("unknown date at unknown time");
 	#endif
 	Output::newline();
-	Output::print("MPI: ");
+	Output::print("MPI support: ");
 	#ifdef MINT_MPI
 		Output::print("on");
 	#else

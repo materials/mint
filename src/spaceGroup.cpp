@@ -1232,14 +1232,14 @@ int SpaceGroup::generatorsToNumber(int numOps, const List<int>& gens, const OLis
 
 
 /* bool SpaceGroup::compGen(int numOps, const Matrix3D& conv, const List<int>& gens,
- *		const OList<Vector3D >& translations, int numSGOps, int gr1, int gt1, int gr2, int gt2, int gr3,
+ *		const OList<Vector3D>& translations, int numSGOps, int gr1, int gt1, int gr2, int gt2, int gr3,
  *		int gt3, int gr4, int gt4, LatticeSystem system, LatticeCentering centering)
  *
  * Compare generators of space group and current structure
  */
 
 bool SpaceGroup::compGen(int numOps, const Matrix3D& conv, const List<int>& gens, \
-	const OList<Vector3D >& translations, int numSGOps, int gr1, int gt1, int gr2, int gt2, int gr3, \
+	const OList<Vector3D>& translations, int numSGOps, int gr1, int gt1, int gr2, int gt2, int gr3, \
 	int gt3, int gr4, int gt4, LatticeSystem system, LatticeCentering centering)
 {
 	
@@ -1312,7 +1312,7 @@ bool SpaceGroup::compGen(int numOps, const Matrix3D& conv, const List<int>& gens
 	// Make sure that each operator is in space group
 	int i, j;
 	bool found;
-	OList<Vector3D > symTrans (sgTransGen.length());
+	OList<Vector3D> symTrans (sgTransGen.length());
 	for (i = 0; i < sgRotGen.length(); ++i)
 	{
 		found = false;

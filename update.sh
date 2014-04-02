@@ -76,6 +76,27 @@ function extractNewCode
 
 
 
+# Get dlib package
+function getDLIB
+{
+	if [ ! -e dlib ]; then
+		
+		# Download the package
+		echo "Downloading dlib package."
+		wget -O dlib.tar.bz2 --no-check-certificate -q http://sourceforge.net/projects/dclib/files/latest/download 2> /dev/null || \
+			curl -Lks http://sourceforge.net/projects/dclib/files/latest/download 1> dlib.tar.bz2 2> /dev/null || \
+			exitFunction "dlib package could not be downloaded"
+		
+		# Unzip the directory and delete extra files
+		mkdir dlib dlibTemp
+		tar -xjf dlib.tar.bz2 -C dlibTemp
+		mv dlibTemp/*/dlib/* dlib
+		rm -fr dlibTemp dlib.tar.bz2
+	fi
+}
+
+
+
 # Copy parameters from old makefile into new one
 function updateMakefile
 {
@@ -118,5 +139,7 @@ function updateMakefile
 backupFiles
 getNewCode
 extractNewCode
+getDLIB
 updateMakefile
-echo "Finished successfully. It should be safe to delete the directory \""$backupDir"\"."
+echo "Update finished successfully. It should be safe to delete the directory \""$backupDir"\"."
+echo "Check \"Makefile\" and run \"make\" once you're ready to compile."

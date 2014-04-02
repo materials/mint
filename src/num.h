@@ -1,21 +1,8 @@
-/* Copyright 2011-2014 Kyle Michel, Logan Ward
+/* num.h -- Math functions
  *
+ * Copyright (C) 2011-2013 by Northwestern University, All Rights Reserved
+ * 
  * Contact: Kyle Michel (kylemichel@gmail.com)
- *			Logan Ward (LoganWard2012@u.northwestern.edu)
- *
- *
- * This file is part of Mint.
- *
- * Mint is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General
- * Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * Mint is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License along with Mint.  If not, see
- * <http://www.gnu.org/licenses/>.
  */
 
 
@@ -475,7 +462,6 @@ public:
 	// General functions
 	bool operator== (const Matrix3D& rhs) const;
 	bool operator!= (const Matrix3D& rhs) const;
-	bool isInteger(double tol) const;
 	
 	// Assignment functions
 	Matrix3D& operator= (const Matrix3D& rhs);
@@ -518,11 +504,12 @@ public:
 
 
 
-// Functor definition
 template <class Tclass>
 class Functor
 {
-	
+
+    const Vector* _params;
+    
 	// Variables
 	Tclass* _objPtr;
 	double (*_funPtr)(double);
@@ -543,14 +530,15 @@ public:
 	Functor (Tclass* objPtr, double (Tclass::*objFunPtr)(double));
 	Functor (double (*funPtr)(const Vector&));
 	Functor (Tclass* objPtr, double (Tclass::*funPtr)(const Vector&));
-	Functor (double (*funPtr)(const Vector&, double));
-	Functor (Tclass* objPtr, double (Tclass::*funPtr)(const Vector&, double));
+	Functor (double (*funPtr)(const Vector&, double), const Vector* params = 0);
+	Functor (Tclass* objPtr, double (Tclass::*funPtr)(const Vector&, double), const Vector* params = 0);
 	
 	// Access functions
 	double operator() (double arg);
 	double operator() (const Vector& params);
 	double operator() (const Vector& params, double arg);
 };
+
 
 
 
@@ -3373,22 +3361,6 @@ inline bool Matrix3D::operator!= (const Matrix3D& rhs) const
 
 
 
-/* inline bool Matrix3D::isInteger(double tol) const
- *
- * Return whether matrix contains all integer values up to tol
- */
-inline bool Matrix3D::isInteger(double tol) const
-{
-	for (int i = 0; i < 9; ++i)
-	{
-		if (Num<double>::abs(_matrix[i] - Num<double>::round(_matrix[i], 1)) > tol)
-			return false;
-	}
-	return true;
-}
-
-
-
 /* inline Matrix3D& Matrix3D::operator= (const Matrix3D& rhs)
  *
  * Assignment operator for Matrix3D object
@@ -3992,6 +3964,7 @@ inline Matrix3D Matrix3D::rowEchelon(int* swaps, Matrix3D* operations, bool inte
 template <class Tclass>
 inline void Functor<Tclass>::initialize()
 {
+    _params = 0;
 	_objPtr = 0;
 	_funPtr = 0;
 	_objFunPtr = 0;
@@ -4045,16 +4018,18 @@ inline Functor<Tclass>::Functor(Tclass* objPtr, double (Tclass::*funPtr)(const V
 }
 
 template <class Tclass>
-inline Functor<Tclass>::Functor(double (*funPtr)(const Vector&, double))
+inline Functor<Tclass>::Functor(double (*funPtr)(const Vector&, double), const Vector* params)
 {
 	initialize();
+        if (params != 0) _params = params;
 	_funPtrVecArg = funPtr;
 }
 
 template <class Tclass>
-inline Functor<Tclass>::Functor(Tclass* objPtr, double (Tclass::*funPtr)(const Vector&, double))
+inline Functor<Tclass>::Functor(Tclass* objPtr, double (Tclass::*funPtr)(const Vector&, double), const Vector* params)
 {
 	initialize();
+        if (params != 0) _params = params;
 	_objPtr = objPtr;
 	_objFunPtrVecArg = funPtr;
 }
@@ -4069,7 +4044,10 @@ inline Functor<Tclass>::Functor(Tclass* objPtr, double (Tclass::*funPtr)(const V
 template <class Tclass>
 inline double Functor<Tclass>::operator() (double arg)
 {
-	return (_funPtr == 0) ? (*_objPtr.*_objFunPtr)(arg) : (*_funPtr)(arg);
+    if (_params != 0)
+	return (_funPtr == 0) ? (*_objPtr.*_objFunPtrVecArg)(*_params, arg) : (*_funPtrVecArg)(*_params, arg);
+    else
+        return (_funPtr == 0) ? (*_objPtr.*_objFunPtr)(arg) : (*_funPtr)(arg);
 }
 
 template <class Tclass>
@@ -4614,7 +4592,8 @@ inline T Num<T>::integrate(Functor<Tclass>& fun, T min, T max, IntegrationMethod
 	bool first = true;
 	double tol = 1e-4;
 	Matrix points;
-	for (int order = 6; order <= 48; order += 3)
+        int order;
+	for (order = 6; order <= 48; order += 3)
 	{
 		
 		// Save previous result
@@ -4637,7 +4616,7 @@ inline T Num<T>::integrate(Functor<Tclass>& fun, T min, T max, IntegrationMethod
 		else if (Num<T>::abs(curInt - prevInt) / curInt < tol)
 			break;
 	}
-	
+        
 	// Return integral
 	return curInt;
 }
