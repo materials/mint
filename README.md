@@ -5,21 +5,14 @@ Installation
 ----
 
 1. Get a copy of "update.sh" onto your local machine
-
-- Method 1
-
-* Copy code from "update.sh" at https://github.com/materials/mint to your local machine
-* Run on your local machine "chmod u+x update.sh"
-
-- Method 2
-
-* Download all files in the repository using the "Download ZIP" link at https://github.com/materials/mint
-* Unzip the files on your local machine
-
+  - Method 1
+    * Copy code from "update.sh" at https://github.com/materials/mint to your local machine
+    * Run on your local machine "chmod u+x update.sh"
+  - Method 2
+    * Download all files in the repository using the "Download ZIP" link at https://github.com/materials/mint
+    * Unzip the files on your local machine
 2. Run on your local machine "./update.sh"
-
 3. Edit the Makefile with your settings and run "make"
-
 4. In the future, just run "./update.sh" anytime that you want to update to a new version
 
 Getting Started
