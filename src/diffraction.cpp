@@ -919,8 +919,8 @@ void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& inte
 
         for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
                 // Call the real set function
-                set(intensityCopy, twoThetaCopy);
-        }
+                set(twoThetaCopy, intensityCopy);
+}
 
 /**
  * Given a list of angles and intensities, determine locations and intensities of 
