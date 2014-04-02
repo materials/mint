@@ -113,7 +113,9 @@ function updateMakefile
 		while [ $i -lt ${#makeParams[@]} ]; do
 			vars=(`grep ^${makeParams[$i]} $backupDir/Makefile | sed 's/:/ /' | sed 's/=/ /'`)
 			if [ ${#vars[@]} -gt 1 ]; then
-				if [ ${vars[1]:0:1} != '#' ]; then
+				if [ ${#vars[@]} -eq 1 ]; then
+					makeParams[$j]=''
+				elif [ ${vars[1]} != '#'${makeParams[$i]}'#' ]; then
 					makeParams[$j]=`echo ${vars[@]:1} | sed 's/\-/\\\-/g'`
 				fi
 			fi
