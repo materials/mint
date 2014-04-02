@@ -1,8 +1,21 @@
-/* num.h -- Math functions
+/* Copyright 2011-2014 Kyle Michel, Logan Ward
  *
- * Copyright (C) 2011-2013 by Northwestern University, All Rights Reserved
- * 
  * Contact: Kyle Michel (kylemichel@gmail.com)
+ *			Logan Ward (LoganWard2012@u.northwestern.edu)
+ *
+ *
+ * This file is part of Mint.
+ *
+ * Mint is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General
+ * Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Mint is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with Mint.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 
@@ -462,6 +475,7 @@ public:
 	// General functions
 	bool operator== (const Matrix3D& rhs) const;
 	bool operator!= (const Matrix3D& rhs) const;
+	bool isInteger(double tol) const;
 	
 	// Assignment functions
 	Matrix3D& operator= (const Matrix3D& rhs);
@@ -3357,6 +3371,22 @@ inline bool Matrix3D::operator== (const Matrix3D& rhs) const
 inline bool Matrix3D::operator!= (const Matrix3D& rhs) const
 {
 	return !(*this == rhs);
+}
+
+
+
+/* inline bool Matrix3D::isInteger(double tol) const
+ *
+ * Return whether matrix contains all integer values up to tol
+ */
+inline bool Matrix3D::isInteger(double tol) const
+{
+        for (int i = 0; i < 9; ++i)
+        {
+                if (Num<double>::abs(_matrix[i] - Num<double>::round(_matrix[i], 1)) > tol)
+                        return false;
+        }
+        return true;
 }
 
 

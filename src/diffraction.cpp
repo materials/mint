@@ -1,8 +1,21 @@
-/* diffraction.cpp -- x-ray and neutron diffraction
+/* Copyright 2011-2014 Kyle Michel, Logan Ward
  *
- * Copyright (C) 2011-2013 by Northwestern University, All Rights Reserved
- * 
  * Contact: Kyle Michel (kylemichel@gmail.com)
+ *			Logan Ward (LoganWard2012@u.northwestern.edu)
+ *
+ *
+ * This file is part of Mint.
+ *
+ * Mint is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General
+ * Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Mint is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with Mint.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include "multi.h"
@@ -12,7 +25,7 @@
 #include "random.h"
 #include "launcher.h"
 #include "timer.h"
-#include "numerical_integration.h"
+#include "dlib/numerical_integration.h"
 #include <cstdlib>
 #include <vector>
 #include <deque>
@@ -904,7 +917,7 @@ void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& inte
             vector<double> intensityCopy(intensity.length());
             iter = intensity.begin();
 
-        for (int i = 0; i < intensity.length(); i++, iter) intensityCopy[i] = *iter;
+        for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
                 // Call the real set function
                 set(intensityCopy, twoThetaCopy);
         }

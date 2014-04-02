@@ -77,8 +77,9 @@ MPIRUN := #MPIRUN#
 VERSION := "2014.03.19.1"
 
 # Directories
-SRCD := src
-OBJD := obj
+SRCD  := src
+OBJD  := obj
+VPATH  = $(SRCD):dlib
 
 # Setup
 EXE   := mint
@@ -86,8 +87,7 @@ FDEF  := $(addprefix -DMINT_,$(DEFINE))
 FMPI  := -DMPIRUN=\"$(MPIRUN)\"
 FVERS := -DVERSION=\"$(VERSION)\"
 FTIME := -DCOMP=\""`date +'%B %d, %Y at %r %Z'`"\"
-FALL  := $(COMP) $(OPT) $(FDEF)
-VPATH  = $(SRCD):dlib
+FALL  := $(COMP) $(OPT) $(FDEF) -I.
 
 # Build everything
 all : touchAbout $(EXE)
