@@ -20,7 +20,7 @@
 #include <vector>
 #include <set>
 #include <valarray>
-#include "dlib/optimization.h"
+#include "optimization.h"
 
 // Set == 1 to print out diffraction pattern at each stage
 #define LW_EXCESSIVE_PRINTING 0

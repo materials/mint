@@ -87,12 +87,12 @@ FMPI  := -DMPIRUN=\"$(MPIRUN)\"
 FVERS := -DVERSION=\"$(VERSION)\"
 FTIME := -DCOMP=\""`date +'%B %d, %Y at %r %Z'`"\"
 FALL  := $(COMP) $(OPT) $(FDEF)
-VPATH := $(SRCD)
+VPATH  = $(SRCD):dlib
 
 # Build everything
 all : touchAbout $(EXE)
 touchAbout :
-	@touch about.cpp
+	@touch $(SRCD)/about.cpp
 
 # Builds for object files
 $(OBJD)/about.o : about.cpp about.h output.h num.h list.h text.h constants.h 
