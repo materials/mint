@@ -87,7 +87,7 @@ FMPI  := -DMPIRUN=\"$(MPIRUN)\"
 FVERS := -DVERSION=\"$(VERSION)\"
 FTIME := -DCOMP=\""`date +'%B %d, %Y at %r %Z'`"\"
 FALL  := $(COMP) $(OPT) $(FDEF)
-VPATH := $(SRCD):dlib
+VPATH := $(SRCD):.
 
 # Build everything
 all : touchAbout $(EXE)
