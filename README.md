@@ -4,23 +4,21 @@ Materials Interface (Mint)
 Installation
 ----
 
-**Method 1** (*preferred*)
-- Copy code from "update.sh" to your local machine
-- Type on your local machine "chmod u+x update.sh"
+1. Get a copy of "update.sh" onto your local machine
+- Method 1
+..* Copy code from "update.sh" at https://github.com/materials/mint to your local machine
+..* Run on your local machine "chmod u+x update.sh"
+- Method 2
+..* Download all files in the repository using the "Download ZIP" link at https://github.com/materials/mint
+..* Unzip the files on your local machine
 - Run on your local machine "./update.sh"
-- Edit the Makefile with your settings and run "make"
-- In the future, just run "./update.sh" anytime that you want to update to a new version
-
-**Method 2**
-- Download all files in the repository using the "Download ZIP" link at https://github.com/materials/mint
-- Unzip the files on your local machine
 - Edit the Makefile with your settings and run "make"
 - In the future, just run "./update.sh" anytime that you want to update to a new version
 
 Getting Started
 ----
 
-Once installed, run "mint -h" for help getting started. In general, a single call to mint will have the form
+Once installed, run "mint -h" for more detailed help when getting started. In general, a single call to mint will have the form
 
     mint _input_files_ -function_1 args_1 -function_2 args_2 ...
 
