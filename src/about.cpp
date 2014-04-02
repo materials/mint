@@ -1,4 +1,4 @@
-/* Copyright 2011-2014 Kyle Michel, Logan Ward
+/* Copyright 2011-2014 Kyle Michel, Logan Ward, Christopher Wolverton
  *
  * Contact: Kyle Michel (kylemichel@gmail.com)
  *			Logan Ward (LoganWard2012@u.northwestern.edu)
@@ -62,7 +62,7 @@ void About::print()
 	
 	Output::newline();
 	Output::newline();
-	Output::newline(); Output::print("Copyright 2011-2014 Kyle Michel, Logan Ward");
+	Output::newline(); Output::print("Copyright 2011-2014 Kyle Michel, Logan Ward, Christopher Wolverton, Christopher Wolverton");
 	Output::newline();
 	Output::newline(); Output::print("Mint is free software: you can redistribute it and/or modify it under the");
 	Output::newline(); Output::print("terms of the GNU Lesser General Public License as published by the Free");
@@ -82,3 +82,4 @@ void About::print()
 		
 	Output::method(origMethod);
  }
+

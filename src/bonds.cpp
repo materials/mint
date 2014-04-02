@@ -1,4 +1,4 @@
-/* Copyright 2011-2014 Kyle Michel, Logan Ward
+/* Copyright 2011-2014 Kyle Michel, Logan Ward, Christopher Wolverton
  *
  * Contact: Kyle Michel (kylemichel@gmail.com)
  *			 Logan Ward (LoganWard2012@u.northwestern.edu)

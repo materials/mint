@@ -13,7 +13,8 @@
 #                                                                    #
 #====================================================================#
 #                                                                    #
-#   Copyright 2011-2014 Kyle Michel, Logan Ward                      #
+#   Copyright 2011-2014 Kyle Michel, Logan Ward,                     #
+#       Christopher Wolverton                                        #
 #                                                                    #
 #                                                                    #
 #   This file is part of Mint.                                       #
