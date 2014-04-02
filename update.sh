@@ -79,7 +79,7 @@ function extractNewCode
 # Get dlib package
 function getDLIB
 {
-	if [ ! -e dlib ]; then
+	if [ ! -d dlib ]; then
 		
 		# Download the package
 		echo "Downloading dlib package."
