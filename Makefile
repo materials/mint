@@ -86,7 +86,7 @@ FDEF  := $(addprefix -DMINT_,$(DEFINE))
 FMPI  := -DMPIRUN=\"$(MPIRUN)\"
 FVERS := -DVERSION=\"$(VERSION)\"
 FTIME := -DCOMP=\""`date +'%B %d, %Y at %r %Z'`"\"
-FALL  := $(COMP) $(OPT) $(FDEF)
+FALL  := $(COMP) $(OPT) $(FDEF) -Idlib
 
 # Build everything
 all : touchAbout $(EXE)
@@ -111,7 +111,7 @@ $(OBJD)/crystalMaker.o : $(SRCD)/crystalMaker.cpp $(SRCD)/crystalMaker.h $(SRCD)
 	$(CC) $(FALL) $(SRCD)/crystalMaker.cpp -o $@
 $(OBJD)/diffraction.o : $(SRCD)/diffraction.cpp $(SRCD)/multi.h $(SRCD)/diffraction.h $(SRCD)/language.h $(SRCD)/output.h $(SRCD)/text.h $(SRCD)/num.h $(SRCD)/iso.h $(SRCD)/elements.h $(SRCD)/symmetry.h $(SRCD)/fileSystem.h $(SRCD)/list.h $(SRCD)/constants.h 
 	@mkdir -p $(@D)
-	$(CC) $(FALL) -Idlib $(SRCD)/diffraction.cpp -o $@
+	$(CC) $(FALL) $(SRCD)/diffraction.cpp -o $@
 $(OBJD)/elements.o : $(SRCD)/elements.cpp $(SRCD)/elements.h $(SRCD)/output.h $(SRCD)/text.h $(SRCD)/num.h $(SRCD)/list.h $(SRCD)/constants.h 
 	@mkdir -p $(@D)
 	$(CC) $(FALL) $(SRCD)/elements.cpp -o $@
