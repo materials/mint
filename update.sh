@@ -31,15 +31,16 @@ function backupFiles
 {
 	echo "Creating \""$backupDir"\" directory and moving all files to it."
 	origFiles=`ls`
-	mkdir $backupDir
+	mkdir TEMPBACKUP
 	for cur in $origFiles; do
 		if [ $cur == "mint" ]; then
-			cp $cur $backupDir
+			cp $cur TEMPBACKUP
 			echo "    A copy of the \"mint\" executable was left in the current directory."
-		else
-			mv $cur $backupDir
+		elif [ $cur != "dlib" ]; then
+			mv $cur TEMPBACKUP
 		fi
 	done
+	mv TEMPBACKUP $backupDir
 }
 
 
@@ -103,7 +104,7 @@ function updateMakefile
 	
 	# Makefile parameters and defaults
 	makeParams=("CC" "g++" "OPT" "\-O3" "COMP" "\-c \-g" "LINK" "\-g" "BLAS" "\-lblas" "LAPACK" "\-llapack" \
-			 "DEFINE" "" "MPIRUN" "mpirun \-np")
+			 "DEFINE" "" "MPIRUN" "\"mpirun \-np\"")
 	
 	# Get current values if previous makefile exists
 	if [ -e $backupDir/Makefile ]; then
