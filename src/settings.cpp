@@ -403,7 +403,7 @@ Settings::Helper::Helper()
 	Settings::_settings[(int)KMC_JUMPSPERATOM].setup(100.0, "kmcjumpsperatom");
 	
 	// KMC_CONVERGENCE
-	Settings::_settings[(int)KMC_CONVERGENCE].setup(0.01, "kmcconverge");
+	Settings::_settings[(int)KMC_CONVERGENCE].setup(.5, "kmcconverge");
 }
 
 

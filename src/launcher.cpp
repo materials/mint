@@ -3763,7 +3763,7 @@ void Launcher::kmc(Storage& data, const Function& function)
 		{
 			
 			// Set the run properties
-			kmc.convergence(Settings::value<double>(KMC_CONVERGENCE) / 100.0);
+			kmc.convergence(Settings::value<double>(KMC_CONVERGENCE));
 			kmc.jumpsPerAtom(Settings::value<double>(KMC_JUMPSPERATOM));
 			
 			// Run the simulation

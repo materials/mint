@@ -1454,90 +1454,128 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 	Output::increase();
 	
 	// Variables to store information during the run
-	double avgD = 0.0;
-	double avgLocalD = 0.0;
-	double avgDsquared = 0.0;
-	double totalTime = 0;
-	Vector3D D (0.0);
-	Vector3D localD (0.0);
-	Vector3D totalVecSquared (0.0);
+	double avgD;
+	double avgLocalD;
+	double avgDsquared;
+	double totalTime;
+	Vector3D D;
+	Vector3D localD;
+	Vector3D totalVecSquared;
+	
+	// Total variables
+	double netAvgD = 0;
+	double netAvgDsquared = 0;
+	Vector3D netD (0.0);
 	
 	// Loop until converged
 	int i;
 	double ran;
-	int numJumps = 0;
+	int numJumps;
+	int numSimulations = 0;
 	Tracer* curTracer;
-	Vector3D prevVec = 0.0;
+	Vector3D prevVec;
 	const int jumpsBeforeCheck = _jumpsPerAtom * numNodes;
 	while (1)
 	{
 		
-		// Make a jump
-		curTracer = 0;
-		ran = random.decimal(0, curNode->rates().last());
-		for (i = 0; i < curNode->rates().length(); ++i)
+		// Reset variables for new simulation
+		avgD = 0;
+		avgLocalD = 0;
+		avgDsquared = 0;
+		totalTime = 0;
+		D = 0.0;
+		localD = 0.0;
+		totalVecSquared = 0.0;
+		numJumps = 0;
+		prevVec = 0.0;
+		
+		// Loop until current simulation is converged
+		while (1)
 		{
-			if (ran < curNode->rates()[i])
+			
+			// Make a jump
+			curTracer = 0;
+			ran = random.decimal(0, curNode->rates().last());
+			for (i = 0; i < curNode->rates().length(); ++i)
 			{
-				
-				// Save the tracer motion
-				if (curNode->tracer())
+				if (ran < curNode->rates()[i])
 				{
-					curTracer = curNode->tracer();
-					prevVec = curTracer->vector();
-					curTracer->add(curNode->vectors()[i]);
-					curNode->endNodes()[i]->tracer() = curTracer;
-					curNode->tracer() = 0;
-				}
-				else
-				{
-					curTracer = curNode->endNodes()[i]->tracer();
-					prevVec = curTracer->vector();
-					curTracer->subtract(curNode->vectors()[i]);
-					curNode->tracer() = curTracer;
-					curNode->endNodes()[i]->tracer() = 0;
-				}
 				
-				// Update time
-				while ((ran = random.decimal(0, 1)) == 0.0) {}
-				totalTime += -log(ran) / curNode->rates().last();
+					// Save the tracer motion
+					if (curNode->tracer())
+					{
+						curTracer = curNode->tracer();
+						prevVec = curTracer->vector();
+						curTracer->add(curNode->vectors()[i]);
+						curNode->endNodes()[i]->tracer() = curTracer;
+						curNode->tracer() = 0;
+					}
+					else
+					{
+						curTracer = curNode->endNodes()[i]->tracer();
+						prevVec = curTracer->vector();
+						curTracer->subtract(curNode->vectors()[i]);
+						curNode->tracer() = curTracer;
+						curNode->endNodes()[i]->tracer() = 0;
+					}
 				
-				// Update node
-				curNode = curNode->endNodes()[i];
-				break;
+					// Update time
+					while ((ran = random.decimal(0, 1)) == 0.0) {}
+					totalTime += -log(ran) / curNode->rates().last();
+				
+					// Update node
+					curNode = curNode->endNodes()[i];
+					break;
+				}
+			}
+		
+			// Skip if something went wrong
+			if (curTracer == 0)
+				continue;
+		
+			// Update the cumulative total squared displacement
+			for (i = 0; i < 3; ++i)
+			{
+				totalVecSquared[i] -= prevVec[i]*prevVec[i];
+				totalVecSquared[i] += curTracer->vector()[i]*curTracer->vector()[i];
+			}
+		
+			// Get the diffusivity tensor for current time step
+			localD  = totalVecSquared;
+			localD /= 2.0;
+			localD /= totalTime;
+			localD /= tracers.length();
+			for (i = 0; i < 3; ++i)
+				localD[i] = Num<double>::abs(localD[i]);
+		
+			// Update the total diffusivity
+			for (i = 0; i < 3; ++i)
+				D[i] = (numJumps * D[i] + localD[i]) / (numJumps + 1);
+			avgD = (D[0] + D[1] + D[2]) / 3.0;
+		
+			// Update the squared diffusivity
+			avgLocalD = (localD[0] + localD[1] + localD[2]) / 3.0;
+			avgDsquared = (numJumps * avgDsquared + avgLocalD * avgLocalD) / (numJumps + 1);
+		
+			// Check for convergence if needed
+			if (++numJumps >= jumpsBeforeCheck)
+			{
+				if (sqrt((avgDsquared - avgD*avgD) / numJumps) / avgD < _convergence)
+					break;
 			}
 		}
 		
-		// Skip if something went wrong
-		if (curTracer == 0)
-			continue;
-		
-		// Update the cumulative total squared displacement
+		// Update variables
 		for (i = 0; i < 3; ++i)
-		{
-			totalVecSquared[i] -= prevVec[i]*prevVec[i];
-			totalVecSquared[i] += curTracer->vector()[i]*curTracer->vector()[i];
-		}
-		
-		// Get the diffusivity tensor for current time step
-		localD  = totalVecSquared;
-		localD /= 2.0;
-		localD /= totalTime;
-		localD /= tracers.length();
-		
-		// Update the total diffusivity
-		for (i = 0; i < 3; ++i)
-			D[i] = (numJumps * D[i] + localD[i]) / (numJumps + 1);
-		avgD = (D[0] + D[1] + D[2]) / 3.0;
-		
-		// Update the squared diffusivity
-		avgLocalD = (localD[0] + localD[1] + localD[2]) / 3.0;
-		avgDsquared = (numJumps * avgDsquared + avgLocalD * avgLocalD) / (numJumps + 1);
+			netD[i] = (numSimulations * netD[i] + D[i]) / (numSimulations + 1);
+		netAvgD = (netD[0] + netD[1] + netD[2]) / 3.0;
+		avgLocalD = (D[0] + D[1] + D[2]) / 3.0;
+		netAvgDsquared = (numSimulations * netAvgDsquared + avgLocalD * avgLocalD) / (numSimulations + 1);
 		
 		// Check for convergence if needed
-		if (++numJumps >= jumpsBeforeCheck)
+		if (++numSimulations >= 1000)
 		{
-			if (sqrt((avgDsquared - avgD*avgD) / numJumps) / avgD < _convergence)
+			if (sqrt((netAvgDsquared - netAvgD*netAvgD) / numSimulations) / netAvgD < _convergence)
 				break;
 		}
 	}
@@ -1547,17 +1585,17 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 	
 	// Convert from A^2 to cm^2
 	for (i = 0; i < 3; ++i)
-		D[i] /= 1e16;
-	avgD = (D[0] + D[1] + D[2]) / 3.0;
+		netD[i] /= 1e16;
+	netAvgD = (netD[0] + netD[1] + netD[2]) / 3.0;
 	
 	// Print the result
 	Output::newline();
 	Output::print("Average diffusivity: ");
-	Output::printSci(avgD, 4);
+	Output::printSci(netAvgD, 4);
 	Output::print(" cm^2/s");
 	
 	// Return the diffusivity
-	return D;
+	return netD;
 }
 
 

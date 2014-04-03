@@ -62,7 +62,7 @@ void About::print()
 	
 	Output::newline();
 	Output::newline();
-	Output::newline(); Output::print("Copyright 2011-2014 Kyle Michel, Logan Ward, Christopher Wolverton, Christopher Wolverton");
+	Output::newline(); Output::print("Copyright 2011-2014 Kyle Michel, Logan Ward, Christopher Wolverton");
 	Output::newline();
 	Output::newline(); Output::print("Mint is free software: you can redistribute it and/or modify it under the");
 	Output::newline(); Output::print("terms of the GNU Lesser General Public License as published by the Free");
