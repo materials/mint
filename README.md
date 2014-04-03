@@ -13,7 +13,7 @@ Installation
     * Unzip the files on your local machine - one of these files will be update.sh
 2. Run on your local machine "./update.sh"
 3. Edit the Makefile with your settings and run "make"
-4. In the future, just run "./update.sh" anytime that you want to update to a new version
+4. In the future, just run "./update.sh" and then "make" anytime that you want to update to a new version
 
 Getting Started
 ----
