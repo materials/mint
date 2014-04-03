@@ -1,4 +1,4 @@
-Materials Interface (Mint)
+Mint (Materials Interface)
 ====
 
 Installation
