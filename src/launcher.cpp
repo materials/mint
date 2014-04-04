@@ -4341,9 +4341,6 @@ void Launcher::interstitial(Storage& data, const Function& function)
 		Output::print(element.symbol());
 	}
 	
-	// Update the symmetry
-	updateSymmetry(data);
-	
 	// Loop over structures
 	OList<Interstitial> interstitial(data.iso().length());
 	for (i = 0; i < data.iso().length(); i++)
@@ -4359,9 +4356,8 @@ void Launcher::interstitial(Storage& data, const Function& function)
 		}
 		
 		// Get sites
-		interstitial[i].evaluate(data.iso()[i], data.symmetry()[i], density, \
-			Settings::value<double>(CLUSTERTOL), scale);
-	//	interstitial[i].voronoi(data.iso()[i], data.symmetry()[i], Settings::value<double>(CLUSTERTOL));
+		interstitial[i].evaluate(data.iso()[i], density, Settings::value<double>(CLUSTERTOL), scale);
+	//	interstitial[i].voronoi(data.iso()[i], Settings::value<double>(CLUSTERTOL));
 		
 		// Output if there is more than one structure
 		if (data.iso().length() > 1)

@@ -28,12 +28,12 @@
 
 
 
-/* void Interstitial::evaluate(const ISO& iso, const Symmetry& symmetry, int numPointsPerAtom, double tol, double scale)
+/* void Interstitial::evaluate(const ISO& unitCell, int numPointsPerAtom, double tol, double scale)
  *
  * Find interstitial sites in a structure
  */
 
-void Interstitial::evaluate(const ISO& iso, const Symmetry& symmetry, int numPointsPerAtom, double tol, double scale)
+void Interstitial::evaluate(const ISO& unitCell, int numPointsPerAtom, double tol, double scale)
 {
 	
 	// Clear space
@@ -53,6 +53,13 @@ void Interstitial::evaluate(const ISO& iso, const Symmetry& symmetry, int numPoi
 	// Constants used in generating points on sphere around each atom
 	double phiScale = Constants::pi * (3 - sqrt(5));
 	double yScale = 2.0 / numPointsPerAtom;
+	
+	// Get the primitive reduced cell and its symmetry
+	ISO iso = unitCell;
+	Matrix3D unitToPrim = iso.primitiveTransformation(tol);
+	Matrix3D primToRed = Basis::reducedTransformation(unitToPrim * unitCell.basis().vectors());
+	iso.transform(primToRed * unitToPrim, tol);
+	Symmetry symmetry(iso, tol);
 	
 	// Loop over unique atoms in the structure
 	int i, j, k;
@@ -203,8 +210,12 @@ void Interstitial::evaluate(const ISO& iso, const Symmetry& symmetry, int numPoi
 	
 	// Save unique points
 	_sites.length(uniquePoints.length());
+	Matrix3D trans = (primToRed * unitToPrim).inverse().transpose();
 	for (i = 0, it = uniquePoints.begin(); it != uniquePoints.end(); ++i, ++it)
-		_sites[i] = *it;
+	{
+		_sites[i] = trans * *it;
+		ISO::moveIntoCell(_sites[i]);
+	}
 	
 	// Output
 	Output::newline();
@@ -432,12 +443,12 @@ Vector3D Interstitial::getStep(const ISO& iso, const Vector3D& point, Vector3D& 
 
 
 
-/* void Interstitial::voronoi(const ISO& iso, const Symmetry& symmetry, double tol)
+/* void Interstitial::voronoi(const ISO& unitCell, double tol)
  *
  * Search for interstitial sites using vertices of the Voronoi volumes around each atom 
  */
 
-void Interstitial::voronoi(const ISO& iso, const Symmetry& symmetry, double tol)
+void Interstitial::voronoi(const ISO& unitCell, double tol)
 {	
 	
 	// Clear space
@@ -447,6 +458,13 @@ void Interstitial::voronoi(const ISO& iso, const Symmetry& symmetry, double tol)
 	Output::newline();
 	Output::print("Searching for interstitial sites using Voronoi method");
 	Output::increase();
+	
+	// Get the primitive reduced cell and its symmetry
+	ISO iso = unitCell;
+	Matrix3D unitToPrim = iso.primitiveTransformation(tol);
+	Matrix3D primToRed = Basis::reducedTransformation(unitToPrim * unitCell.basis().vectors());
+	iso.transform(primToRed * unitToPrim, tol);
+	Symmetry symmetry(iso, tol);
 	
 	// Set up image iterator
 	ImageIterator images;
@@ -568,8 +586,12 @@ void Interstitial::voronoi(const ISO& iso, const Symmetry& symmetry, double tol)
 	
 	// Save unique points
 	_sites.length(uniquePoints.length());
+	Matrix3D trans = (primToRed * unitToPrim).inverse().transpose();
 	for (i = 0, it = uniquePoints.begin(); it != uniquePoints.end(); ++i, ++it)
+	{
 		_sites[i] = *it;
+		ISO::moveIntoCell(_sites[i]);
+	}
 	
 	// Output
 	Output::newline();

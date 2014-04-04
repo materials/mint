@@ -1521,7 +1521,7 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 				
 					// Update time
 					while ((ran = random.decimal(0, 1)) == 0.0) {}
-					totalTime += -log(ran) / curNode->rates().last();
+					totalTime -= log(ran) / curNode->rates().last();
 				
 					// Update node
 					curNode = curNode->endNodes()[i];

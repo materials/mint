@@ -760,7 +760,7 @@ void Help::functions()
 	Output::newline(); Output::print("    will be larger than this max distance.");
 	Output::newline();
 	Output::newline(); Output::print("Arguments:");
-	Output::newline(); Output::print("    Element of list of elements to select atoms in group");
+	Output::newline(); Output::print("    List of elements in the group");
 	Output::newline(); Output::print("    Number to set the distance from the first atom when searching for groups");
 	Output::newline(); Output::print("    \"Jumps\" to search for jumps between sites");
 	Output::newline(); Output::print("    \"Interstitial\" to search for atoms that are marked as interstitials");
@@ -996,8 +996,8 @@ void Help::functions()
 	Output::newline(); Output::print("    Step 1: \"mint str -kmc Al\"      Set up self-diffusion on Al sites");
 	Output::newline(); Output::print("            \"mint str -kmc Al int\"  Set up diffusion on interstitial Al sites");
 	Output::newline(); Output::print("            \"mint str -kmc Al vasp\" Print all structure files in vasp format");
-	Output::newline(); Output::print("    Step 2: \"mint kmc.setup -kmc\"  Generate kmc.in file from kmc.setup");
-	Output::newline(); Output::print("    Step 3: \"mint kmc.in -kmc\"     Perform kmc simulation using kmc.in");
+	Output::newline(); Output::print("    Step 2: \"mint kmc.setup -kmc\"   Generate kmc.in file from kmc.setup");
+	Output::newline(); Output::print("    Step 3: \"mint kmc.in -kmc\"      Perform kmc simulation using kmc.in");
 	
 	// Reset output method
 	Output::method(origMethod);
@@ -1624,11 +1624,11 @@ void Help::settings()
 	Output::newline(); Output::print("================================================================================");
 	Output::newline();
 	Output::newline(); Output::print("General: Convergence criterion for a KMC simulation to be considered complete.");
-	Output::newline(); Output::print("    The simulation is terminated once it has reached this criterion.");
+	Output::newline(); Output::print("    The simulation is terminated once the standard error is below this value.");
 	Output::newline();
-	Output::newline(); Output::print("Values: Any floating point number");
+	Output::newline(); Output::print("Values: Any floating point number (in units of percent)");
 	Output::newline();
-	Output::newline(); Output::print("Default: 0.01");
+	Output::newline(); Output::print("Default: 0.5");
 	
 	// Reset output method
 	Output::method(origMethod);

@@ -241,7 +241,7 @@ public:
 inline KMC::KMC()
 {
 	_runComplement = false;
-	_convergence = 1;
+	_convergence = 0.5;
 	_jumpsPerAtom = 100.0;
 }
 
