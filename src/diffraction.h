@@ -212,7 +212,7 @@ private:
 	// =========================================
 		
 		// Analyze a raw pattern
-                void set(const vector<double>& twoTheta, const vector<double>& intensity);
+                void set(vector<double>& twoTheta, vector<double>& intensity);
 		void smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity, \
                         const int numPerSide = 2, const double power = 0.25);
 		void removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity);

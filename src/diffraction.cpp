@@ -911,15 +911,16 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
 void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& intensity) {
     // Copy over two theta
     vector<double> twoThetaCopy(twoTheta.length());
-            Linked<double>::iterator iter = twoTheta.begin();
+    Linked<double>::iterator iter = twoTheta.begin();
     for (int i = 0; i < twoTheta.length(); i++, iter++) twoThetaCopy[i] = *iter;
-            // Copy over intensity
-            vector<double> intensityCopy(intensity.length());
-            iter = intensity.begin();
 
-        for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
-                // Call the real set function
-                set(twoThetaCopy, intensityCopy);
+    // Copy over intensity
+    vector<double> intensityCopy(intensity.length());
+    iter = intensity.begin();
+    for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
+
+    // Call the real set function
+    set(twoThetaCopy, intensityCopy);
 }
 
 /**
@@ -936,29 +937,49 @@ void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& inte
  * In either case, this object will contain the angles and integrated intensities of 
  *  each provided diffraction peak at the end of of the operation 
  * 
- * @param twoTheta [in] List of angles at which diffracted intensity is measured
- * @param intensity [in] Intensity measured at each angle
+ * @param twoTheta [in, out] List of angles at which diffracted intensity is measured. Returned in sorted order
+ * @param intensity [in] Intensity measured at each angle. Sorted in same order as twoTheta
  */
-void Diffraction::set(const vector<double>& twoTheta, const vector<double>& intensity) {
+void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
     // Clear space
     clear();
+
+    // Ensure that arrays are sorted in the ascending order.
+    //  LW 8Apr14: Requires copying to pair vector and back, ick! It might be reasonable to 
+    //             treat twoTheta and Intensity as a pair always. Consider for later
+    vector<pair<double,double> > twoThetaIntensityPairs(twoTheta.size());
+    for (int i=0; i<twoTheta.size(); i++) {
+	pair<double,double> newPoint(twoTheta[i], intensity[i]);
+	twoThetaIntensityPairs[i] = newPoint;
+    }
+    sort(twoThetaIntensityPairs.begin(), twoThetaIntensityPairs.end());
+    for (int i=0; i<twoTheta.size(); i++) {
+         twoTheta[i] = twoThetaIntensityPairs[i].first;
+         intensity[i] = twoThetaIntensityPairs[i].second;
+    }
+    twoThetaIntensityPairs.clear();
+
 
     // Loop over two theta values and get max and min distances between them
     double curDif;
     double minDif = 0;
     double maxDif = 0;
     if (twoTheta.size() >= 2)
-            minDif = maxDif = twoTheta[1] - twoTheta[0];
+        minDif = maxDif = twoTheta[1] - twoTheta[0];
         for (int i = 1; i < twoTheta.size(); i++) {
             curDif = twoTheta[i] - twoTheta[i - 1];
             if (curDif < minDif)
-                    minDif = curDif;
+                 minDif = curDif;
             else if (curDif > maxDif)
-                    maxDif = curDif;
-            }
+                 maxDif = curDif;
+        }
 
     // Save peaks if data is already processed
     if ((maxDif > 1.1 * minDif) || (maxDif == 0)) {
+        // Talk about what we are doing here
+	Output::newline();
+	Output::print("Importing an already-processed pattern");
+
         // Mark the type of pattern 
         _type = PT_EXP_INT;
         _diffractionPeaks.reserve(twoTheta.size());
@@ -1233,6 +1254,8 @@ double Diffraction::getCurrentRFactor(Rmethod method) {
     
     // ---> Part #5: Calculate derivative of R factor with respect to each refinement parameter
     // This is only necessary for calculated patterns
+    // LW 8Apr14: MARKED FOR DELETION. I don't think we are going to use analytical derivatives, 
+    //            numerical ones seem to work well enough. See discussion in runRefinement().
     if (_type == PT_CALCULATED) {
         // Zero all derivatives (assume they have already been allocated)
         _BFactorDerivs =  0.0;
@@ -1385,7 +1408,7 @@ void Diffraction::set(const Text& text) {
             // Found a data line
         else if ((Language::isNumber(text[i][0])) && (Language::isNumber(text[i][1]))) {
             rawTwoTheta.push_back(atof(text[i][0].array()));
-                    rawIntensity.push_back(atof(text[i][1].array()));
+            rawIntensity.push_back(atof(text[i][1].array()));
         }
     }
 
