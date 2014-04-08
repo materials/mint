@@ -777,7 +777,7 @@ CIF::Tag CIF::getTag(const Word& word)
 	if (word == "_cell_angle_gamma")				return cell_angle_gamma;
 	if (word == "_space_group_IT_number")			return space_group_IT_number;
 	if (word == "_space_group_symop_operation_xyz")	return space_group_symop_operation_xyz;
-	if (word == "symmetry_space_group_name_H-M")	return symmetry_space_group_name_H_M;
+	if (word == "_symmetry_space_group_name_H-M")	return symmetry_space_group_name_H_M;
 	if (word == "_symmetry_Int_Tables_number")		return symmetry_Int_Tables_number;
 	if (word == "_symmetry_equiv_pos_as_xyz")		return symmetry_equiv_pos_as_xyz;
 	if (word == "_chemical_formula_sum")			return chemical_formula_sum;
