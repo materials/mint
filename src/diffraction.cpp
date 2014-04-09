@@ -826,66 +826,66 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
     double scatteringFactor;
     double thermFactorDeriv = 0;
     Atom* curAtom;
-    for (i = 0; i < symmetry.orbits().length(); ++i) {
+	for (i = 0; i < symmetry.orbits().length(); ++i) {
 
-        // Get scaling factors for current atom
-        curAtom = symmetry.orbits()[i].atoms()[0];
-        scatteringFactor = atomicScatteringFactor(i, angle);
-        thermFactor = (_sourcePattern->_method == DM_SIMPLE) ? 1 : thermalFactor(angle, BFactors[i]);
-        if (Bderivs.size() > 0)
-                thermFactorDeriv = (_sourcePattern->_method == DM_SIMPLE) ? 0 : thermalFactorDeriv(angle, BFactors[i]);
+		// Get scaling factors for current atom
+		curAtom = symmetry.orbits()[i].atoms()[0];
+		scatteringFactor = atomicScatteringFactor(i, angle);
+		thermFactor = (_sourcePattern->_method == DM_SIMPLE) ? 1 : thermalFactor(angle, BFactors[i]);
+		if (Bderivs.size() > 0)
+			thermFactorDeriv = (_sourcePattern->_method == DM_SIMPLE) ? 0 : thermalFactorDeriv(angle, BFactors[i]);
 
-                // Loop over equivalent atoms
-            for (j = 0; j < symmetry.orbits()[i].atoms().length(); ++j) {
+		// Loop over equivalent atoms
+		for (j = 0; j < symmetry.orbits()[i].atoms().length(); ++j) {
 
-                // Calculate contribution from current atom
-                curAtom = symmetry.orbits()[i].atoms()[j];
-                        dot = 2 * Constants::pi * (hkl * curAtom->fractional());
-                        sinTerm = sin(dot);
-                        cosTerm = cos(dot);
+			// Calculate contribution from current atom
+			curAtom = symmetry.orbits()[i].atoms()[j];
+			dot = 2 * Constants::pi * (hkl * curAtom->fractional());
+			sinTerm = sin(dot);
+			cosTerm = cos(dot);
 
-                        // Add contribution
-                        pre = scatteringFactor * thermFactor * curAtom->occupancy();
-                        real += pre * cosTerm;
-                        imag += pre * sinTerm;
+			// Add contribution
+			pre = scatteringFactor * thermFactor * curAtom->occupancy();
+			real += pre * cosTerm;
+			imag += pre * sinTerm;
 
-                        // Add the B factor derivative if passed
-                if (Bderivs.size() > 0) {
-                    preBderiv = scatteringFactor * thermFactorDeriv * curAtom->occupancy();
-                    realBderivs[i] += preBderiv * cosTerm;
-                    imagBderivs[i] += preBderiv * sinTerm;
-                }
+			// Add the B factor derivative if passed
+			if (Bderivs.size() > 0) {
+				preBderiv = scatteringFactor * thermFactorDeriv * curAtom->occupancy();
+				realBderivs[i] += preBderiv * cosTerm;
+				imagBderivs[i] += preBderiv * sinTerm;
+			}
 
-                // Add position derivatives if passed
-                if ((j == 0) && (posDerivs.size() > 0)) {
-                    for (k = 0; k < 3; ++k) {
-                        prePosDeriv = pre * 2 * Constants::pi * hkl[k] * symmetry.orbits()[i].atoms().length();
-                                realPosDerivs[3 * i + k] += prePosDeriv * sinTerm;
-                                imagPosDerivs[3 * i + k] += prePosDeriv * cosTerm;
-                    }
-                }
-            }
-    }
+			// Add position derivatives if passed
+			if ((j == 0) && (posDerivs.size() > 0)) {
+				for (k = 0; k < 3; ++k) {
+					prePosDeriv = pre * 2 * Constants::pi * hkl[k] * symmetry.orbits()[i].atoms().length();
+					realPosDerivs[3 * i + k] += prePosDeriv * sinTerm;
+					imagPosDerivs[3 * i + k] += prePosDeriv * cosTerm;
+				}
+			}
+		}
+	}
 
-    // Save B factor derivatives
-    for (i = 0; i < Bderivs.size(); ++i)
-        Bderivs[i] = 2 * (real * realBderivs[i] + imag * imagBderivs[i]);
+	// Save B factor derivatives
+	for (i = 0; i < Bderivs.size(); ++i)
+		Bderivs[i] = 2 * (real * realBderivs[i] + imag * imagBderivs[i]);
 
-            // Save position derivatives
-    if (posDerivs.size() > 0) {
-        Vector3D tempDeriv;
-        for (i = 0; i < posDerivs.size(); ++i)
-        posDerivs[i] = 2 * (-real * realPosDerivs[i] + imag * imagPosDerivs[i]);
-        for (i = 0; i < symmetry.orbits().length(); ++i) {
-            for (j = 0; j < 3; ++j)
-                tempDeriv[j] = posDerivs[3 * i + j];
-            tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
-            if (symmetry.orbits()[i].anyAtomsFixed())
-                tempDeriv = 0.0;
-            for (j = 0; j < 3; ++j)
-                posDerivs[3 * i + j] = tempDeriv[j];
-        }
-    }
+	// Save position derivatives
+	if (posDerivs.size() > 0) {
+		Vector3D tempDeriv;
+		for (i = 0; i < posDerivs.size(); ++i)
+			posDerivs[i] = 2 * (-real * realPosDerivs[i] + imag * imagPosDerivs[i]);
+		for (i = 0; i < symmetry.orbits().length(); ++i) {
+			for (j = 0; j < 3; ++j)
+				tempDeriv[j] = posDerivs[3 * i + j];
+			tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
+			if (symmetry.orbits()[i].anyAtomsFixed())
+				tempDeriv = 0.0;
+			for (j = 0; j < 3; ++j)
+				posDerivs[3 * i + j] = tempDeriv[j];
+		}
+	}
 
     // Return the square of the magnitude
     return real * real + imag*imag;
@@ -909,18 +909,18 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
  * @param intensity [in] Intensity measured at each angle
  */
 void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& intensity) {
-    // Copy over two theta
-    vector<double> twoThetaCopy(twoTheta.length());
-    Linked<double>::iterator iter = twoTheta.begin();
-    for (int i = 0; i < twoTheta.length(); i++, iter++) twoThetaCopy[i] = *iter;
+	// Copy over two theta
+	vector<double> twoThetaCopy(twoTheta.length());
+	Linked<double>::iterator iter = twoTheta.begin();
+	for (int i = 0; i < twoTheta.length(); i++, iter++) twoThetaCopy[i] = *iter;
 
-    // Copy over intensity
-    vector<double> intensityCopy(intensity.length());
-    iter = intensity.begin();
-    for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
+	// Copy over intensity
+	vector<double> intensityCopy(intensity.length());
+	iter = intensity.begin();
+	for (int i = 0; i < intensity.length(); i++, iter++) intensityCopy[i] = *iter;
 
-    // Call the real set function
-    set(twoThetaCopy, intensityCopy);
+	// Call the real set function
+	set(twoThetaCopy, intensityCopy);
 }
 
 /**
@@ -960,80 +960,80 @@ void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
     twoThetaIntensityPairs.clear();
 
 
-    // Loop over two theta values and get max and min distances between them
-    double curDif;
-    double minDif = 0;
-    double maxDif = 0;
-    if (twoTheta.size() >= 2)
-        minDif = maxDif = twoTheta[1] - twoTheta[0];
-        for (int i = 1; i < twoTheta.size(); i++) {
-            curDif = twoTheta[i] - twoTheta[i - 1];
-            if (curDif < minDif)
-                 minDif = curDif;
-            else if (curDif > maxDif)
-                 maxDif = curDif;
-        }
+	// Loop over two theta values and get max and min distances between them
+	double curDif;
+	double minDif = 0;
+	double maxDif = 0;
+	if (twoTheta.size() >= 2)
+		minDif = maxDif = twoTheta[1] - twoTheta[0];
+	for (int i = 1; i < twoTheta.size(); i++) {
+		curDif = twoTheta[i] - twoTheta[i - 1];
+		if (curDif < minDif)
+			minDif = curDif;
+		else if (curDif > maxDif)
+			maxDif = curDif;
+	}
 
-    // Save peaks if data is already processed
-    if ((maxDif > 1.1 * minDif) || (maxDif == 0)) {
-        // Talk about what we are doing here
-	Output::newline();
-	Output::print("Importing an already-processed pattern");
+	// Save peaks if data is already processed
+	if ((maxDif > 1.1 * minDif) || (maxDif == 0)) {
+		// Talk about what we are doing here
+		Output::newline();
+		Output::print("Importing an already-processed pattern");
 
-        // Mark the type of pattern 
-        _type = PT_EXP_INT;
-        _diffractionPeaks.reserve(twoTheta.size());
+		// Mark the type of pattern 
+		_type = PT_EXP_INT;
+		_diffractionPeaks.reserve(twoTheta.size());
 
-        for (int i = 0; i < twoTheta.size(); ++i) {
-            Diffraction::Peak newPeak(twoTheta[i], intensity[i]);
-            _diffractionPeaks.push_back(newPeak);
-        }
-        
-        // Ensure peaks are in sorted order
-        std::sort(_diffractionPeaks.begin(), _diffractionPeaks.end());
-        
-        // Save min and max two theta
-        _minTwoTheta = _diffractionPeaks[0].getAngle() - _resolution;
-        _maxTwoTheta = _diffractionPeaks.back().getAngle() + _resolution / 2;
-    } else { // Save peaks after processing
+		for (int i = 0; i < twoTheta.size(); ++i) {
+			Diffraction::Peak newPeak(twoTheta[i], intensity[i]);
+			_diffractionPeaks.push_back(newPeak);
+		}
 
-        // Output
-        Output::newline();
-        Output::print("Processing raw diffraction pattern");
-        Output::increase();
+		// Ensure peaks are in sorted order
+		std::sort(_diffractionPeaks.begin(), _diffractionPeaks.end());
 
-        // Store raw pattern
-        _continuousTwoTheta.resize(twoTheta.size());
-        _continuousIntensity.resize(twoTheta.size());
-        for (int i=0; i<_continuousTwoTheta.size(); i++) {
-            _continuousTwoTheta[i] = twoTheta[i];
-            _continuousIntensity[i] = intensity[i];
-        }
-        
-        // Make a copy of the data to process
-        vector<double> twoThetaCopy(twoTheta);
-        vector<double> intensityCopy(intensity);
-        _minTwoTheta = *std::min_element(twoTheta.begin(), twoTheta.end());
-        _maxTwoTheta = *std::max_element(twoTheta.begin(), twoTheta.end());
+		// Save min and max two theta
+		_minTwoTheta = _diffractionPeaks[0].getAngle() - _resolution;
+		_maxTwoTheta = _diffractionPeaks.back().getAngle() + _resolution / 2;
+	} else { // Save peaks after processing
 
-        // Prepare data for peak fitting
-        smoothData(twoThetaCopy, intensityCopy);
+		// Output
+		Output::newline();
+		Output::print("Processing raw diffraction pattern");
+		Output::increase();
 
-        if (LW_EXCESSIVE_PRINTING == 1)
-                savePattern("xray-smoothed.out", twoThetaCopy, intensityCopy);
-        removeBackground(twoThetaCopy, intensityCopy);
+		// Store raw pattern
+		_continuousTwoTheta.resize(twoTheta.size());
+		_continuousIntensity.resize(twoTheta.size());
+		for (int i = 0; i < _continuousTwoTheta.size(); i++) {
+			_continuousTwoTheta[i] = twoTheta[i];
+			_continuousIntensity[i] = intensity[i];
+		}
 
-        // Get peaks
-        vector<vector<double> > peakTwoTheta;
-        vector<vector<double> > peakIntensity;
-        locatePeaks(peakTwoTheta, peakIntensity, twoThetaCopy, intensityCopy);
-        fitPeaks(peakTwoTheta, peakIntensity);
+		// Make a copy of the data to process
+		vector<double> twoThetaCopy(twoTheta);
+		vector<double> intensityCopy(intensity);
+		_minTwoTheta = *std::min_element(twoTheta.begin(), twoTheta.end());
+		_maxTwoTheta = *std::max_element(twoTheta.begin(), twoTheta.end());
 
-        // Output
-        Output::decrease();
-    }
-    
-    extractIntensities();
+		// Prepare data for peak fitting
+		smoothData(twoThetaCopy, intensityCopy);
+
+		if (LW_EXCESSIVE_PRINTING == 1)
+			savePattern("xray-smoothed.out", twoThetaCopy, intensityCopy);
+		removeBackground(twoThetaCopy, intensityCopy);
+
+		// Get peaks
+		vector<vector<double> > peakTwoTheta;
+		vector<vector<double> > peakIntensity;
+		locatePeaks(peakTwoTheta, peakIntensity, twoThetaCopy, intensityCopy);
+		fitPeaks(peakTwoTheta, peakIntensity);
+
+		// Output
+		Output::decrease();
+	}
+
+	extractIntensities();
 }
 
 /**
