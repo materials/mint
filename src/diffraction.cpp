@@ -644,6 +644,7 @@ void Diffraction::calculatePeakLocations() {
     Output::newline();
     Output::print("Total number of peaks: ");
     Output::print(_diffractionPeaks.size());
+	Output::decrease();
 }
 
 /**
