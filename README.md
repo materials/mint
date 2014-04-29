@@ -367,30 +367,35 @@ Transform a cell. The new lattice vectors are equal to Lnew = M*Lorig
 
 ### -rotate
 
-General: Rotate fractional positions of atoms in the cell. For a rotation
+######General:
+Rotate fractional positions of atoms in the cell. For a rotation
     matrix R, the position of an atom after rotation is R*x0 where x0 is its
     original position.
 
-Arguments:
-    Nine numbers (r1 to r9) to set the rotation matrix
-            | r1 r2 r3 |
-        R = | r4 r5 r6 |
-            | r7 r8 r9 |
+######Arguments:
+-Nine numbers (r1 to r9) to set the rotation matrix
+~~~~ 
+        | r1 r2 r3 |
+    R = | r4 r5 r6 |
+        | r7 r8 r9 |
+~~~~
 
-Examples:
+######Examples:
     "-rotate 1 1 0 1 0 0 0 0 1" rotate positions with corresponding matrix
 
 
 
 ### -shift
 
-General: Shift atom positions by a set amount.
+######General: 
+Shift atom positions by a set amount.
 
-Arguments: (all numbers are given as fractions of lattice vectors)
-    One number (n) to shift by the vector n, n, n
-    Three numbers (n1 to n3) to shift by the vector n1, n2, n3
+######Arguments: 
+- (all numbers are given as fractions of lattice vectors)
+- One number (n) to shift by the vector n, n, n
+- Three numbers (n1 to n3) to shift by the vector n1, n2, n3
 
-Examples:
+######Examples:
     "-shift 0.5"     shift positions by the vector 0.5, 0.5, 0.5
     "-shift 0.5 0 0" shift positions by the vector 0.5, 0.0, 0.0
 
@@ -398,38 +403,44 @@ Examples:
 
 ### -reduced
 
-General: Perform Niggli reduction of current cell. Note that this DOES NOT
+######General: 
+Perform Niggli reduction of current cell. Note that this DOES NOT
     convert to the primitive cell first; for a reduced primitive cell, run
     -primitive -reduced.
 
-Arguments: none
+######Arguments: 
+- none
 
 
 
 ### -primitive
 
-General: Convert to the primitive form of the current cell. Note that the
+######General: 
+Convert to the primitive form of the current cell. Note that the
     primitive cell is not unique; a unique primitive cell can be obtained by
     reducing (-reduced) the primitive cell.
 
-Arguments: none
+######Arguments: 
+- none
 
 
 
 ### -conventional
 
-General: Convert current structure to conventional cell. The space group of the
+######General: 
+Convert current structure to conventional cell. The space group of the
     structure is first determined and the appropriate transformation and origin
     shift are applied to convert the structure so that the symmetry operations
     agree with those in the International Tables of Crystallography.
 
-Arguments: none
+######Arguments: 
+- none
 
 
 
 ### -ideal
 
-General: Convert current structure to its most ideal form. The most ideal form
+######General: Convert current structure to its most ideal form. The most ideal form
     is defined as the unit cell that maximizes the minimum image distance under
     periodic boundary conditions while preserving a set number of atoms or,
     equivalently, a set volume. The transformation that is found also ensures
@@ -438,13 +449,13 @@ General: Convert current structure to its most ideal form. The most ideal form
     for high-symmetry structures, which may lead to cell sizes that are very
     different than what is targeted.
 
-Arguments:
-    None to convert current cell to its most ideal form without changing size
-    Integer number to set the minimum number of atoms in the ideal cell
-    "max" or "most" to change to setting the maximum number of atoms
-    "dis" and a number (Ang) to set ideal cell by the minimum image distance
+######Arguments:
+- None to convert current cell to its most ideal form without changing size
+- Integer number to set the minimum number of atoms in the ideal cell
+- "max" or "most" to change to setting the maximum number of atoms
+- "dis" and a number (Ang) to set ideal cell by the minimum image distance
 
-Examples:
+######Examples:
     "-ideal"         to convert to ideal cell without changing size
     "-ideal 100"     to convert to ideal cell with at least 100 atoms
     "-ideal max 100" to convert to ideal cell with at most 100 atoms
@@ -454,7 +465,8 @@ Examples:
 
 ### -symmetry
 
-General: Print the symmetry of the current unit cell. A list of unique symmetry
+######General: 
+Print the symmetry of the current unit cell. A list of unique symmetry
     operations are printed first; there should be as many operations in this
     list as there are operations in the primitive cell of the structure. A
     second list is printed of centering vectors. For a primitive cell, this
@@ -466,12 +478,13 @@ General: Print the symmetry of the current unit cell. A list of unique symmetry
     cell, which may not necessarily be the conventional one. To obtain the
     conventional cell symmetry, run -conventional -symmetry.
 
-Arguments:
-    "matrix" to print operations in matrix form
+######Arguments:
+- "matrix" to print operations in matrix form
 
-Defaults: Without arguments operations are printed in Jones-Faithful notation
+######Defaults: 
+Without arguments operations are printed in Jones-Faithful notation
 
-Expample:
+######Expample:
     "-symmetry"        to print operations in Jones-Faithful notation
     "-symmetry matrix" to print operations in matrix form
 
@@ -479,15 +492,16 @@ Expample:
 
 ### -point
 
-General: Print the point group of the structure, a list of all point groups,
+######General: 
+Print the point group of the structure, a list of all point groups,
     or information about a point group.
 
-Arguments:
-    No arguments and no supplied structure to print a list of all point groups
-    No arguments and a structure to print the point group of the structure
-    Point group name (no spaces) for information about that point group
+######Arguments:
+- No arguments and no supplied structure to print a list of all point groups
+- No arguments and a structure to print the point group of the structure
+- Point group name (no spaces) for information about that point group
 
-Examples:
+######Examples:
     "mint -point"               print a list of all point groups
     "mint structureFile -point" get point group of structure in structureFile
     "mint -point mmm 6"         get information about point groups mmm and 6
@@ -496,15 +510,15 @@ Examples:
 
 ### -space
 
-General: Print the space group of the structure, a list of all space groups,
+######General: Print the space group of the structure, a list of all space groups,
     or information about a space group.
 
-Arguments:
-    No arguments and no supplied structure to print a list of all space groups
-    No arguments and a structure to print the space group of the structure
-    Space group name (no spaces) for information about that space group
+######Arguments:
+- No arguments and no supplied structure to print a list of all space groups
+- No arguments and a structure to print the space group of the structure
+- Space group name (no spaces) for information about that space group
 
-Examples:
+######Examples:
     "mint -space"               print a list of all space groups
     "mint structureFile -space" get space group of structure in structureFile
     "mint -space P3 C2"         get information about space groups P3 and C2
@@ -513,31 +527,31 @@ Examples:
 
 ### -about
 
-General: Print the following information about the structure:
-      * Point group
-      * Space group
-      * Unit cell volume
-      * Unit cell basis vectors
-      * Unit cell lengths and angles
-      * Symmetry operations
-      * All atomic positions grouped by equivalence under structure symmetry
+######General: 
+Print the following information about the structure:
+- Point group
+- Space group
+- Unit cell volume
+- Unit cell basis vectors
+- Unit cell lengths and angles
+- Symmetry operations
+- All atomic positions grouped by equivalence under structure symmetry
 
-    If the keyword "atom" is passed, then the following information for each
-    selected atom is printed:
-      * Atom number and element
-      * Fractional and cartesian coordinates
-      * Site symmetry operations
-      * List of atoms in the same orbit
+If the keyword "atom" is passed, then the following information for each selected atom is printed:
+- Atom number and element
+- Fractional and cartesian coordinates
+- Site symmetry operations
+- List of atoms in the same orbit
 
-Arguments:
-    No arguments to print information about the structure
-    "atom" to print information about selected atoms
-    Integer to print information about atom with that index
-    Element to print information about all atoms of set element
-    Element and integer to print information about instance of set element
-    Three decimal values to print information about atom at set position
+######Arguments:
+- No arguments to print information about the structure
+- "atom" to print information about selected atoms
+- Integer to print information about atom with that index
+- Element to print information about all atoms of set element
+- Element and integer to print information about instance of set element
+- Three decimal values to print information about atom at set position
 
-Examples:
+######Examples:
     "-about"                  print information about the structure
     "-about atom 1 2"         print information about atoms 1 and 2
     "-about atom Al"          print information about all Al atoms
@@ -548,7 +562,8 @@ Examples:
 
 ### -refine
 
-General: Refine the lattice vectors and atomic positions so that a set of
+######General: 
+Refine the lattice vectors and atomic positions so that a set of
     symmetry operations that are satisfied only to some tolerance are made
     exact. A wide tolerance (e.g. 0.1 angstroms or higher, set with -tolerance)
     may be needed for structures that are slightly disordered. Once the
@@ -557,18 +572,19 @@ General: Refine the lattice vectors and atomic positions so that a set of
     positions are refined essentially by averaging over sites that are
     equivalent to one another under these symmetries.
 
-    If a diffraction pattern has been supplied as input, the refinement
+If a diffraction pattern has been supplied as input, the refinement
     has a different purpose. In this case, the atomic coordinates are relaxed
     so as to minimize the difference between the calculated and supplied
     patterns.
 
-Arguments:
-    "atoms" or "positions" to refine positions only
-    "basis" or "lattice" to refine lattice parameters only
+######Arguments:
+- "atoms" or "positions" to refine positions only
+- "basis" or "lattice" to refine lattice parameters only
 
-Default: Without arguments, positions and lattice parameters are both refined
+######Default: 
+Without arguments, positions and lattice parameters are both refined
 
-Examples:
+######Examples:
     "-refine"       refine atomic positions and lattice vectors
     "-refine atoms" refine atomic positions only
     "-refine basis" refine lattice vectors only
@@ -577,18 +593,20 @@ Examples:
 
 ### -perturb
 
-General: Randomly adjust the atomic positions and/or lattice vectors.
+######General: 
+Randomly adjust the atomic positions and/or lattice vectors.
 
-Arguments:
-    One number to perturb by this amount in random direction (units: angstroms)
-    Two numbers for random amount within their range (units: angstroms)
-    "basis" or "lattice" to perturb lattice vectors only
-    "atoms", "coordinates", or "positions" to perturb positions only
-    "symmetry" to preserve any symmetries that exist in the structure
+######Arguments:
+- One number to perturb by this amount in random direction (units: angstroms)
+- Two numbers for random amount within their range (units: angstroms)
+- "basis" or "lattice" to perturb lattice vectors only
+- "atoms", "coordinates", or "positions" to perturb positions only
+- "symmetry" to preserve any symmetries that exist in the structure
 
-Defaults: displacement amount of 0.25 angstroms
+######Defaults: 
+displacement amount of 0.25 angstroms
 
-Examples:
+######Examples:
     "-perturb"          perturb atoms and basis vectors by default
     "-perturb atoms"    perturb atoms only
     "-perturb basis"    perturb lattice vectors only
@@ -600,7 +618,8 @@ Examples:
 
 ### -unique / -equivalent
 
-General: Search for unique atoms, groups of atoms, or transitions between atomic
+######General: 
+Search for unique atoms, groups of atoms, or transitions between atomic
     sites in a structure. -unique prints only the unique groups that are found.
     -equivalent prints the unique groups and all equivalent groups for each.
     If searching for unique atoms or groups (not transitions), a copy is made
@@ -610,17 +629,17 @@ General: Search for unique atoms, groups of atoms, or transitions between atomic
     determine those jumps that are likely the most important, but none of them
     will be larger than this max distance.
 
-Arguments:
-    List of elements in the group
-    Number to set the distance from the first atom when searching for groups
-    "Jumps" to search for jumps between sites
-    "Interstitial" to search for atoms that are marked as interstitials
+######Arguments:
+- List of elements in the group
+- Number to set the distance from the first atom when searching for groups
+- "Jumps" to search for jumps between sites
+- "Interstitial" to search for atoms that are marked as interstitials
 
-Defaults:
-    Distance from first atom for a group is 2 Ang
-    Max distance for a jump is 7 Ang
+######Defaults:
+- Distance from first atom for a group is 2 Ang
+- Max distance for a jump is 7 Ang
 
-Examples:
+######Examples:
     "-unique Al"       find all unique Al atoms in a structure
     "-equiv Al"        find unique Al atoms all equivalent atoms to each
     "-unique Al H 2"   find all Al-H pairs within 2 ang
@@ -632,7 +651,8 @@ Examples:
 
 ### -interstitial
 
-General: Search for interstitial sites in a structure. This algorithm works by
+######General: 
+Search for interstitial sites in a structure. This algorithm works by
     placing an exponential decay (Exp[-r/a]) at each atomic site and searching
     for minima in the resulting function. For each unique site that is found, a
     copy of the structure is made and an atom of the set element is placed at
@@ -640,18 +660,18 @@ General: Search for interstitial sites in a structure. This algorithm works by
     command. These sites are purely geometric and should be refined using a
     more accurate metric (e.g. pair potential or DFT).
 
-Arguments:
-    Element (symbol or name) to set the element to place at unique sites
-    Integer to set number of start points (per atom) when searching for minima
-    Float to set decay rate for exponentials (a in Exp[-r/a])
-    "Expand" to generate all symmetrically equivalent sites
+######Arguments:
+- Element (symbol or name) to set the element to place at unique sites
+- Integer to set number of start points (per atom) when searching for minima
+- Float to set decay rate for exponentials (a in Exp[-r/a])
+- "Expand" to generate all symmetrically equivalent sites
 
-Defaults:
-    Hydrogen is placed at unique sites
-    25 starting points per atom
-    Decay rate of 0.25
+######Defaults:
+- Hydrogen is placed at unique sites
+- 25 starting points per atom
+- Decay rate of 0.25
 
-Examples:
+######Examples:
     "-int"           search for interstitial sites
     "-int expand"    search for interstitial sites and populate all equivalent
     "-int Li"        place Li at interstitial sites
@@ -663,40 +683,46 @@ Examples:
 
 ### -energy
 
-General: Calculate the energy of a structure under a supplied potential. Both
+######General: 
+Calculate the energy of a structure under a supplied potential. Both
     the total energy of the unit cell and the energy per atom are returned.
 
-Arguments: none
+######Arguments: 
+- none
 
 
 
 ### -forces
 
-General: Calculate the forces on atoms in a structure under a supplied
+######General: 
+Calculate the forces on atoms in a structure under a supplied
     potential.
 
-Arguments: none
+######Arguments: 
+none
 
 
 
 ### -diffraction
 
-General: Calculate the powder xray diffraction pattern for a structure. If a
+######General: 
+Calculate the powder xray diffraction pattern for a structure. If a
     diffraction pattern was supplied as input, the r-factor will be calculated
     by optimizing the scaling between calculated and reference patterns, as well
     as the atomic displacement factors for the atoms in the structure (see
     -refine to optimize atomic positions).
 
-Arguments: additional xray patterns to compare to reference
-    "broaden" to print a broadened diffraction pattern
-    "wavelength" and number to set the xray wavelength
-    "fwhm" and number to set the FWHM for broadening (or use variance)
-    "variance" and number to set the variance for broadending (or use fwhm)
-    "resolution" and number to set resolution for printing broadened points
-    "minimum" and number to set the minimum two-theta value to calculate
-    "maximum" and number to set the maximum two-theta value to calculate
+######Arguments: 
+- additional xray patterns to compare to reference
+- "broaden" to print a broadened diffraction pattern
+- "wavelength" and number to set the xray wavelength
+- "fwhm" and number to set the FWHM for broadening (or use variance)
+- "variance" and number to set the variance for broadending (or use fwhm)
+- "resolution" and number to set resolution for printing broadened points
+- "minimum" and number to set the minimum two-theta value to calculate
+- "maximum" and number to set the maximum two-theta value to calculate
 
-Examples:
+######Examples:
     "mint str -xray"        get diffraction pattern for structure in str
     "mint x.in str -xray"   get diffraction pattern and compare to x.in
     "mint x.in -xray x2.in" compare patterns in x.in and x2.in
@@ -711,7 +737,8 @@ Examples:
 
 ### -optimize
 
-General: Run global optimization for a structure. Any free parameters will be
+######General: 
+Run global optimization for a structure. Any free parameters will be
     changed while any that are fixed will be preserved. Multiple optimization
     metrics can be supplied, and all will be used to rank structures during
     crossover operations, but only one of these metrics is used to determine
@@ -721,9 +748,9 @@ General: Run global optimization for a structure. Any free parameters will be
     during crossover, but the structure with the overall lowest energy is taken
     as the "best" structure.
 
-Arguments:
-    "energy" or "potential" to optimize the energy
-    "xray" or "diffraction" to optimize the r-factor
+######Arguments:
+- "energy" or "potential" to optimize the energy
+- "xray" or "diffraction" to optimize the r-factor
 
 Examples:
     "mint str xray.in -opt"             optimize r-factor
@@ -735,36 +762,30 @@ Examples:
 
 ### -compare
 
-General: Compare structures to determine if they are cells derived from the
+######General: 
+Compare structures to determine if they are cells derived from the
     same lattice. Comparisons are made in the following ways:
 
-        Test 1: Are elements the same in both structures?
-        Action: Convert both cells to primitive form
-        Test 2: Are the number of atoms of each element the same in both
-                primitive cells?
-        Test 3: (optional) Are the primitive cell volumes the same?
-        Action: Convert both primitive cells to reduced form
-        Test 4: Are the internal angles of both reduced cells the same? If not,
-                convert reduced cell two from all acute angles to all obtuse
-                angles (or vice versa) and compare angles again.
-        Test 5: Are all ratios of reduced cell vector lengths the same? eg Is
-                it true that a1/b1 = a2/b2 where a1 is the length of the a
-                lattice vector in reduced cell 1?
-        Test 6: Is there a rotation and translation that when applied to
-                reduced cell 2, maps the positions onto those of reduced
-                cell 1? Possible rotations are determined using a modified
-                version of the Le Page algorithm to determine lattice symmetry.
+- Test 1: Are elements the same in both structures?  
+- Action: Convert both cells to primitive form
+- Test 2: Are the number of atoms of each element the same in both primitive cells?
+- Test 3: (optional) Are the primitive cell volumes the same?
+- Action: Convert both primitive cells to reduced form
+- Test 4: Are the internal angles of both reduced cells the same? If not, convert reduced cell two from all acute angles to all obtuse angles (or vice versa) and compare angles again.
+- Test 5: Are all ratios of reduced cell vector lengths the same? eg Is it true that a1/b1 = a2/b2 where a1 is the length of the a lattice vector in reduced cell 1?
+- Test 6: Is there a rotation and translation that when applied to reduced cell 2, maps the positions onto those of reduced cell 1? Possible rotations are determined using a modified version of the Le Page algorithm to determine lattice symmetry.
 
-    Two structures are considered the same only if they pass all tests. It may
+Two structures are considered the same only if they pass all tests. It may
     be necessary to increase the tolerance (-tol) to identify similar structures
     that are slightly different.
 
-Arguments:
-    "volume" to compare the volumes of the primitive cells
+######Arguments:
+- "volume" to compare the volumes of the primitive cells
 
-Default: Volumes are not compared
+######Default: 
+Volumes are not compared
 
-Examples:
+######Examples:
     "mint str1 str2 -compare"     compare structures in str1 and str2
     "mint str1 str2 -compare vol" compare structures + volume in str1 and str2
 
@@ -772,7 +793,8 @@ Examples:
 
 ### -kmc
 
-General: Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
+######General: 
+Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
     diffusion. These simulations are initialized over two steps and run in
     a third. In the first step, the sub-lattice on which diffusion occurs is
     defined and the user performs relaxations of defects at symmetrically
@@ -782,7 +804,7 @@ General: Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
     prefactor and activation energy are calculated assuming Arrhenius behavior
     of the diffusivity.
 
-    In the first step, the user supplies a structure and declares on which
+In the first step, the user supplies a structure and declares on which
     sub-lattice diffusion takes place. The program will then print a file called
     "kmc.setup" and a series of directories. The first several lines of this
     file will begin with the word "SITE". Each site corresponds to one of the
@@ -790,7 +812,7 @@ General: Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
     each of these directories. Then edit the kmc.setup file so that each site
     line points to these unrelaxed and relaxed structures.
 
-    In the second step, the user supplies their modified kmc.setup file and the
+In the second step, the user supplies their modified kmc.setup file and the
     program generates a second file, "kmc.in", and another set of directories.
     Following the "SITE" lines in kmc.in are a series of lines that begin with
     "JUMP". Each jump line corresponds to one of the directories that was
@@ -805,31 +827,33 @@ General: Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
     and, optionally, the name of a file containing phonon frequencies of the
     structure in its transition state.
 
-    In the final step, the user supplies their modified kmc.in file and the
+In the final step, the user supplies their modified kmc.in file and the
     program runs the KMC simulation. Simulations are performed at a series of
     temperatures and a fit of the Arrhenius equation (D = D0*exp[-Q/kt]) is
     applied to the resulting diffusivities; the values of the pre-exponential
     factor, D0, and the activation energy, Q, are printed to standard out.
     Diffusivities from each simulation are printed to files.
 
-    In order to run diffusion for interstitial atoms, the initial structure in
+In order to run diffusion for interstitial atoms, the initial structure in
     step 1 must be given in mint structure format, with the interstitial sites
     labeled as such.
 
-Arguments:
-    Step 1: Element to specify the sub-lattice on which diffusion is calculated
-            "interstitial" to specify that diffusion is on intersitial sites
-            One of the formats in "-print" to set the output file format
-    Step 2: None
-    Step 3: None
+######Arguments:
+- Step 1: 
+  * Element to specify the sub-lattice on which diffusion is calculated
+  * "interstitial" to specify that diffusion is on intersitial sites
+  * One of the formats in "-print" to set the output file format
+- Step 2: None
+- Step 3: None
 
-Default:
-    Step 1: Diffusion is on parent structure sites (ie not interstitials)
-            Structures are printed in the same format as the input one
-    Step 2: N/A
-    Step 3: N/A
+######Default:
+- Step 1:
+  * Diffusion is on parent structure sites (ie not interstitials)
+  * Structures are printed in the same format as the input one
+- Step 2: N/A
+- Step 3: N/A
 
-Examples:
+######Examples:
     Step 1: "mint str -kmc Al"      Set up self-diffusion on Al sites
             "mint str -kmc Al int"  Set up diffusion on interstitial Al sites
             "mint str -kmc Al vasp" Print all structure files in vasp format
