@@ -120,11 +120,11 @@ General: Print help information.
 
 ### -n / -np
 
-###### General:
+######General:
 Set the number of processors to use when launching an external mpi job. This is only used if the launching function (MPIRUN in the makefile) contains -n or -np. Otherwise it is ignored since the launching function determines the number of available processors on its own.
 
 ######Arguments: 
-Any integer number to set the number of processors to use
+- Any integer number to set the number of processors to use
 
 ######Default: 
 1
@@ -136,17 +136,20 @@ Any integer number to set the number of processors to use
 
 ### -display / -output
 
-General: Set the level of runtime display to show. Level 1 is the most broad
+######General: 
+Set the level of runtime display to show. Level 1 is the most broad
     while the detail increases with level. This controls ordinary output only; 
     warnings and errors are always printed.
 
-Arguments: Any integer number to set the max level that is displayed (0 is off)
-    "all" or "everything" to show all output
-    "none", "nothing", or "off" to show no output
+######Arguments: 
+- Any integer number to set the max level that is displayed (0 is off)
+- "all" or "everything" to show all output
+- "none", "nothing", or "off" to show no output
 
-Default: All runtime display is shown
+######Default: 
+All runtime display is shown
 
-Examples:
+######Examples:
     "-display 3"   show the first three levels of runtime output
     "-display off" show no output (except warnings/errors)
 
