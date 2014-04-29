@@ -373,7 +373,7 @@ Rotate fractional positions of atoms in the cell. For a rotation
     original position.
 
 ######Arguments:
--Nine numbers (r1 to r9) to set the rotation matrix
+- Nine numbers (r1 to r9) to set the rotation matrix
 ~~~~ 
         | r1 r2 r3 |
     R = | r4 r5 r6 |
