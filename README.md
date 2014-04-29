@@ -440,7 +440,8 @@ Convert current structure to conventional cell. The space group of the
 
 ### -ideal
 
-######General: Convert current structure to its most ideal form. The most ideal form
+######General: 
+Convert current structure to its most ideal form. The most ideal form
     is defined as the unit cell that maximizes the minimum image distance under
     periodic boundary conditions while preserving a set number of atoms or,
     equivalently, a set volume. The transformation that is found also ensures
@@ -510,7 +511,8 @@ Print the point group of the structure, a list of all point groups,
 
 ### -space
 
-######General: Print the space group of the structure, a list of all space groups,
+######General: 
+Print the space group of the structure, a list of all space groups,
     or information about a space group.
 
 ######Arguments:
@@ -641,7 +643,7 @@ Search for unique atoms, groups of atoms, or transitions between atomic
 
 ######Examples:
     "-unique Al"       find all unique Al atoms in a structure
-    "-equiv Al"        find unique Al atoms all equivalent atoms to each
+    "-equiv Al"        find unique Al atoms and equivalent atoms to each
     "-unique Al H 2"   find all Al-H pairs within 2 ang
     "-unique Al H H 2" find Al-H-H with neither H more than 2 ang from Al
     "-unique Al jumps" find all jumps between Al sites
@@ -904,100 +906,122 @@ List of settings and brief descriptions (detailed descriptions follow):
 
 ### numprocs
 
-General: Mint has the ability to launch external programs such as VASP and
+######General: 
+Mint has the ability to launch external programs such as VASP and
     Quantum Espresso, which may be MPI-enabled. This setting controls the number
     of processors that are allocated to the external job. In this way, Mint can
     be launched on a single core, but still call external programs running on
     many processors. This setting can be controlled from the command line
     using the -n/-np function.
 
-Values: Any integer
+######Values: 
+Any integer
 
-Default: 1
+######Default: 
+1
 
 
 
 ### displaylevel
 
-General: By default, no runtime output is shown, only results. However, there
+######General: 
+By default, no runtime output is shown, only results. However, there
     is a large amount of information that can be printed by increasing the
     value of this setting. Level 1 output is very general where higher levels
     become more specific. This setting can be controlled from the command line
     with the -display function.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 0
+######Default: 
+0
 
 
 
 ### displaytab
 
-General: Each successive level of runtime output is indented by a set tab value.
+######General: 
+Each successive level of runtime output is indented by a set tab value.
     This setting controls the number of spaces that define this tab. This is a
     purely aesthetic setting.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 4
+######Default: 
+4
 
 
 
 ### timeshow
 
-General: The time to complete a single call to Mint can be displayed at the
+######General: 
+The time to complete a single call to Mint can be displayed at the
     end if a run with this setting. This can also be controlled from the command
     line using the -time function.
 
-Values: True (to show the time)
-        False (not to show the time)
+######Values: 
+- True (to show the time)
+- False (not to show the time)
 
-Default: False (time is not shown)
+######Default: 
+False (time is not shown)
 
 
 
 ### timeprec
 
-General: Precision to use when printing the time to complete a run. This setting
+######General: 
+Precision to use when printing the time to complete a run. This setting
     controls the number of places that are shown after the decimal. This can
     also be controlled from the command line using the -time function.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 4
+######Default: 
+4
 
 
 
 ### formattime
 
-General: Control whether time is printed as the total number of seconds to
+######General: 
+Control whether time is printed as the total number of seconds to
     complete a single run, or formatted into days/hours/minutes/seconds.
 
-Values: True (to convert to days/hours/minutes/seconds)
-        False (to print as the total number of seconds)
+######Values: 
+- True (to convert to days/hours/minutes/seconds)
+- False (to print as the total number of seconds)
 
-Default: True (time is converted to days/hours/minutes/seconds)
+######Default: 
+True (time is converted to days/hours/minutes/seconds)
 
 
 
 ### tolerance
 
-General: Global tolerance used to test floating point values for equality. Two
+######General: 
+Global tolerance used to test floating point values for equality. Two
     numbers are taken as equal if the absolute difference between them is less
     than this value. Vectors are taken as equal if the length of the vector that
     connects their tips is less than this value. All values are converted to the
     cartesian coordinate system before testing for equality. This setting can
     be controlled from the command line using the -tol function.
 
-Values: Any floating point number (in units of Angstroms where applicable)
+######Values: 
+Any floating point number (in units of Angstroms where applicable)
 
-Default: 1e-4
+######Default: 
+1e-4
 
 
 
 ### clustertol
 
-General: In several functions, Mint expands positions of atoms from the
+######General: 
+In several functions, Mint expands positions of atoms from the
     assymetric unit using the symmetries of the crystal. For atoms not lying on
     a general position, a single coordinate can be generated more than one time.
     This setting controls the tolerance for atoms generated using symmetry to be
@@ -1005,102 +1029,122 @@ General: In several functions, Mint expands positions of atoms from the
     symmetry is less than this value, then they are considered the same atom
     and their positions averaged.
 
-Values: Any floating point number (in units of Angstroms)
+######Values: 
+Any floating point number (in units of Angstroms)
 
-Default: 0.2
+######Default: 
+0.2
 
 
 
 ### usestdout
 
-General: Control whether structures are printed to stdout or to a file. This
+######General: 
+Control whether structures are printed to stdout or to a file. This
     can be controlled from the command line using the -print function.
 
-Values: True (print structures to stdout)
-        False (print structures to file)
+######Values: 
+- True (print structures to stdout)
+- False (print structures to file)
 
-Default: False (structures are printed to file)
+######Default: 
+False (structures are printed to file)
 
 
 
 ### coordinates
 
-General: Control whether positions in a crystal are printed using fractional
+######General: 
+Control whether positions in a crystal are printed using fractional
     (direct) or cartesian coordinates. This can be controlled from the command
     line using the -print function. Some structure formats only allow
     fractional coordinates (but not cartesian), while others the opposite. For
     such formats, this setting is ignored and the correct coordinates are used.
 
-Values: "Fractional" or "cartesian"
+######Values: 
+"Fractional" or "cartesian"
 
-Default: Fractional
+######Default: 
+Fractional
 
 
 
 ### strformat
 
-General: Set the format used when printing a structure. This setting can be
+######General: 
+Set the format used when printing a structure. This setting can be
     controlled from the command line using the -print function.
 
-Values:
-    "mint" or ".mint" for mint
-    "vasp", "vasp5", "vasp 5", ".vasp", or ".vasp5" for vasp 5
-    "vasp 4", "vasp4", or ".vasp4" for vasp 4
-    "cif" or ".cif" for cif
-    "crystalmaker", "cm", "cmtx", or ".cmtx" for crystal maker
-    "findsym", ".findsym", "fs", or ".fs" for findsym
-    "quantum", "espresso", "qe", or ".qe" for quantum espresso
+######Values:
+- "mint" or ".mint" for mint
+- "vasp", "vasp5", "vasp 5", ".vasp", or ".vasp5" for vasp 5
+- "vasp 4", "vasp4", or ".vasp4" for vasp 4
+- "cif" or ".cif" for cif
+- "crystalmaker", "cm", "cmtx", or ".cmtx" for crystal maker
+- "findsym", ".findsym", "fs", or ".fs" for findsym
+- "quantum", "espresso", "qe", or ".qe" for quantum espresso
 
-Default: Same as input file
+######Default: 
+Same as input file
 
 
 
 ### overwrite
 
-General: Control whether structure files can be overwritten. Mint names output
+######General: 
+Control whether structure files can be overwritten. Mint names output
     files based on the name of the supplied file, but can alter the name so
     that it does not overwrite the original when printed. For example, if a
     structure is supplied in the file STR, then when printed, Mint will name
     the file STR_1 (or the first STR_N that is not taken, with N as an integer).
 
-Values: True (to allow original files to be overwritten)
-        False (to create a unique name each time that a file is printed)
+######Values: 
+- True (to allow original files to be overwritten)
+- False (to create a unique name each time that a file is printed)
 
-Default: False (a unique name is generated each time that a file is printed)
+######Default: 
+False (a unique name is generated each time that a file is printed)
 
 
 
 ### addextension
 
-General: Add an extension to structure file names when printing them. The
+######General: 
+Add an extension to structure file names when printing them. The
     extension used will depened on the format of the file. For example, files
     printed to the VASP format will use the .vasp extension.
 
-Values: True (add an extension to structure file names)
-        False (do not add an extension to structure file names)
+######Values: 
+- True (add an extension to structure file names)
+- False (do not add an extension to structure file names)
 
-Default: True (extensions are added to structure file names)
+######Default: 
+True (extensions are added to structure file names)
 
 
 
 ### randstrmaxloops
 
-General: Control the number of attempts to create a "good" structure when
+######General: 
+Control the number of attempts to create a "good" structure when
     generated randomly. A structure is considered "good" if no two atoms
     are separated by a distance less than the minimum desired bond length (see
     the randstrminbond setting). If randstrmaxloops loops are made and no
     "good" structure has been generated, then the best structure up to that
     point is taken.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 100
+######Default: 
+100
 
 
 
 ### randstrminbond
 
-General: Control the minimum bond length when generating random structures.
+######General: 
+Control the minimum bond length when generating random structures.
     The ideal bond length between two atoms, d_ideal, is taken as the sum of
     their average covalent radii (http://en.wikipedia.org/wiki/Covalent_radius).
     The minimum bond length between two atoms is then defined as
@@ -1108,57 +1152,69 @@ General: Control the minimum bond length when generating random structures.
     minimum fraction of the ideal bond length that is allowed. This setting is
     tied to the randstrmaxloops setting.
 
-Values: Any floating point number
+######Values: 
+Any floating point number
 
-Default: 0.5 (minimum distance is half the ideal distance)
+######Default: 
+0.5 (minimum distance is half the ideal distance)
 
 
 
 ### gaoptnumsim
 
-General: Control the number of unique simulations to perform during GA-based
+######General: 
+Control the number of unique simulations to perform during GA-based
     structure prediction/solution. For each unique simulation, a new random
     initial population is generated. The best structure is taken as the one
     that optimizes the set metric (see gaoptmetric setting) best over all
     simulations. In other words, this controls the number of restarts that are
     performed during GA-based structure prediction.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 1 (only one unique simulation is performed)
+######Default: 
+1 (only one unique simulation is performed)
 
 
 
 ### gaoptpopsize
 
-General: Set the number of structures in the population during GA-based
+######General: 
+Set the number of structures in the population during GA-based
     structure prediction/solution. This number is kept constant throughout the
     simulation.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 10
+######Default: 
+10
 
 
 
 ### gaoptcellmutprob
 
-General: Probability of making a change to the unit cell parameters during
+######General: 
+Probability of making a change to the unit cell parameters during
     GA-based structure prediction/solution. The unit cell is modified with this
     probability for each child generated during crossover at every generation
     of the GA. Modifications include changes the cell lengths and internal
     angles (where allowed by symmetry). This setting is ignored if the unit
     cell parameters are fixed for the structure.
 
-Values: Floating point number between 0 (no mutations) and 1 (always mutate)
+######Values: 
+Floating point number between 0 (no mutations) and 1 (always mutate)
 
-Default: 0.1 (probability of a mutation is 1/10)
+######Default: 
+0.1 (probability of a mutation is 1/10)
 
 
 
 ### gaoptposmutprob
 
-General: Probability of making a change to the positions of atoms in the unit
+######General: 
+Probability of making a change to the positions of atoms in the unit
     cell during GA-based structure prediction/solution. Positions in a cell are
     modified with this probability for each child generated during crossover at
     every generation of the GA. All positions in the cell are changed along a
@@ -1166,30 +1222,36 @@ General: Probability of making a change to the positions of atoms in the unit
     from 0.1 to 0.5 Angstroms. Symmetry is always preserved during mutation
     and atoms that are fixed are not moved.
 
-Values: Floating point number between 0 (no mutations) and 1 (always mutate)
+######Values: 
+Floating point number between 0 (no mutations) and 1 (always mutate)
 
-Default: 0.1 (probability of a mutation is 1/10)
+######Default: 
+0.1 (probability of a mutation is 1/10)
 
 
 
 ### gaoptwyckmutprob
 
-General: Probability of changing which Wyckoff sites are occupied in the
+######General: 
+Probability of changing which Wyckoff sites are occupied in the
     structure during GA-based structure prediction/solution. Wyckoff site
     occupations are modified with this probability for each child generated
     during crossover at every generation of the GA. When an atom changes Wyckoff
     sites, the position of the atom is randomly generated so that it obeys its
     new site symmetry.
 
-Values: Floating point number between 0 (no mutations) and 1 (always mutate)
+######Values: 
+Floating point number between 0 (no mutations) and 1 (always mutate)
 
-Default: 0.1 (probability of a mutation is 1/10)
+######Default: 0.1 
+(probability of a mutation is 1/10)
 
 
 
 ### gaoptmetric
 
-General: Metric to optimize during GA-based structure prediction/solution. While
+######General: 
+Metric to optimize during GA-based structure prediction/solution. While
     multiple metrics can be used to guide the search, this setting controls
     which of them is used to determine the "best" structure. For example, an
     optimization supplied with a potential function and diffraction pattern to
@@ -1198,67 +1260,81 @@ General: Metric to optimize during GA-based structure prediction/solution. While
     which metric is passed to this setting). This can also be controlled from
     the command line using the -optimize function.
 
-Values:
-    "energy" or "potential" to optimize the energy
-    "xray" or "diffraction" to optimize the r-factor
+######Values:
+- "energy" or "potential" to optimize the energy
+- "xray" or "diffraction" to optimize the r-factor
 
-Default: Energy if it is supplied, otherwise r-factor
+######Default: 
+Energy if it is supplied, otherwise r-factor
 
 
 
 ### gaoptconverge
 
-General: Number of generations without a change for a GA-based structure
+######General: 
+Number of generations without a change for a GA-based structure
     prediction/solution calculation to be considered converged. In other words,
     if no new "best" structure is found after gaoptconverge generations, the
     simulation terminates.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 10
+######Default: 
+10
 
 
 
 ### gaoptmaxgens
 
-General: Maximum number of generations allowed during GA-based structure
+######General: 
+Maximum number of generations allowed during GA-based structure
     prediction/solution calculation. If the simulation has not converged after
     this many generations, then it terminates and the best structure to that
     point is returned.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 1000
+######Default: 
+1000
 
 
 
 ### gaoptnumtokeep
 
-General: Number of structures to keep from one generation to the next during
+######General: 
+Number of structures to keep from one generation to the next during
     a GA-based structure prediction/solution calculation. These structures are
     unchanged going to the next generation (i.e. no mutations are applied).
     Only the best gaoptnumtokeep structures are kept from the generation.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 0
+######Default: 
+0
 
 
 
 ### gaoptselection
 
-General: Selection method for choosing structures to mate during GA-based
+######General: 
+Selection method for choosing structures to mate during GA-based
     structure prediction/solution calculations.
 
-Values: "Roulette" or "tournament"
+######Values: 
+"Roulette" or "tournament"
 
-Default: Tournament
+######Default: 
+Tournament
 
 
 
 ### gaoptenergytol
 
-General: Tolerance used to decide whether an energy is lower than another during
+######General: 
+Tolerance used to decide whether an energy is lower than another during
     a GA-based structure prediction/solution calculation. For example, if the
     "best" structure has an energy of 4.00001 eV/atom, it is rather
     insignificant if a second structure has an energy of exactly 4.0 eV/atom -
@@ -1266,15 +1342,18 @@ General: Tolerance used to decide whether an energy is lower than another during
     convergence of simulations by preventing "best" structure updates when
     energy differences are negligibly small.
 
-Values: Any floating point number (in units of eV/atom)
+######Values: 
+Any floating point number (in units of eV/atom)
 
-Default: 0.001
+######Default: 
+0.001
 
 
 
 ### gaoptdifftol
 
-General: Tolerance used to decide whether an R-factor is lower than another
+######General: 
+Tolerance used to decide whether an R-factor is lower than another
     during a GA-based structure prediction/solution calculation. For example,
     if the "best" structure has an R-factor for 0.020001, it is rather
     insignificant if a second structure has an R-factor of exactly 0.02 - for
@@ -1282,15 +1361,18 @@ General: Tolerance used to decide whether an R-factor is lower than another
     convergence of simulations by preventing "best" structure updates when
     R-factor differences are negligibly small.
 
-Values: Any floating point number
+######Values: 
+Any floating point number
 
-Default: 1e-4
+######Default: 
+1e-4
 
 
 
 ### gaoptscreenmethod
 
-General: Set the screening method used when generating children during a
+######General: 
+Set the screening method used when generating children during a
     GA-based structure prediction/solution calculation. For example, if the
     screening method is set to "energy" and gaoptscreennum to 10, then for
     each mating operation, ten candidates are generated for each child and the
@@ -1300,40 +1382,45 @@ General: Set the screening method used when generating children during a
     accepted. Screens are used to improve simulation times by selecting
     children nearest to a minimum so that local relaxations occur more rapidly.
 
-    This is distinct from the number of children in a simulation. For example,
+This is distinct from the number of children in a simulation. For example,
     in a simulation with 10 structures in the population and gaoptscreennum
     set to 5, for each of the 10 children in a new generation, 5 candidates are
     produced and the one that best optimizes the metric defined by
     gaoptscreenmethod is accepted as the child. The selected children are
     relaxed locally using whichever metric is being optimized in the simulation.
 
-    In order for a screen to be applied, gaoptscreenmethod must be set and
+In order for a screen to be applied, gaoptscreenmethod must be set and
     gaoptscreennum must have a non-zero value. If one or neither of these are
     true, then a screen is not used.
 
-Values: 
-    "energy" or "potential" to screen using the energy
-    "xray" or "diffraction" to screen using the r-factor
+######Values: 
+- "energy" or "potential" to screen using the energy
+- "xray" or "diffraction" to screen using the r-factor
 
-Default: None (no screen is applied)
+######Default: 
+None (no screen is applied)
 
 
 
 ### gaoptscreennum
 
-General: Set the number of candidates to generate and screen for each child
+######General: 
+Set the number of candidates to generate and screen for each child
     in each generation of a GA-based structure prediction/solution calculation.
     See gaoptscreenmethod for more details.
 
-Values: Any integer number
+######Values: 
+Any integer number
 
-Default: 0 (no screen is applied)
+######Default: 
+0 (no screen is applied)
 
 
 
 ### wyckoffbias
 
-General: From analysis of structures in the Inorganic Crystal Structure Database
+######General: 
+From analysis of structures in the Inorganic Crystal Structure Database
     it was found that atoms tend to occupy Wyckoff site combinations so as to
     minimize the number of symmetrically-unique atoms in the structure. For
     example, assume that a space group has three Wyckoff sites, two with
@@ -1342,7 +1429,7 @@ General: From analysis of structures in the Inorganic Crystal Structure Database
     to occupy the site with multiplicity 2, rather than some combination of
     two sites with multiplicity 1.
 
-    The exact statistics from this analysis are hard-coded into Mint and used
+The exact statistics from this analysis are hard-coded into Mint and used
     to determine which Wyckoff sites are selected when randomly placing atoms
     into a structure with a set space group. This setting controls the extent
     to which these statistics are used. If set to 0, then no biasing is applied
@@ -1353,56 +1440,70 @@ General: From analysis of structures in the Inorganic Crystal Structure Database
     impossible to find structures that differ significantly from those in the
     ICSD, at least with respect to the Wyckoff site occupancies.
 
-Values: Any floating point number between 0 (no biasing) and 1 (full biasing)
+######Values: 
+Any floating point number between 0 (no biasing) and 1 (full biasing)
 
-Default: 0.5
+######Default: 
+0.5
 
 
 
 ### minimagedis
 
-General: Several functions within Mint generate supercells of structures. This
+######General: 
+Several functions within Mint generate supercells of structures. This
     setting controls the size of the supercell by controlling the minimum image
     distance that is allowed in the structure under periodic boundary
     conditions. A larger minimum image distance will always lead to a cell
     that is at least as large to, if not larger than, a cell with a smaller
     minimum image distance.
 
-Values: Any floating point number (in units of Angstroms)
+######Values: 
+Any floating point number (in units of Angstroms)
 
-Default: 8.0
+######Default: 
+8.0
 
 
 
 ### maxjumpdistance
 
-General: Maximum jumps distance allowed when generating jumps between atomic
+######General: 
+Maximum jumps distance allowed when generating jumps between atomic
     sites in a structure.
 
-Values: Any floating point number (in units of Angstroms)
+######Values: 
+Any floating point number (in units of Angstroms)
 
-Default: 7.0
+######Default: 
+7.0
 
 
 
 ### kmcjumpsperatom
 
-General: Number of jumps to perform in a KMC simulation. This setting in given
+######General: 
+Number of jumps to perform in a KMC simulation. This setting in given
     as a function of the number of atoms in a structure so the actual number
     of jumps will depend on the simulation cell size. A larger number will
     lead to smaller errors in calculated diffusivities.
 
-Values: Any integer number (in units of jumps/atom)
+######Values: 
+Any integer number (in units of jumps/atom)
 
-Default: 100
+######Default: 
+100
 
 
 
 ### kmcconverge
 
-General: Convergence criterion for a KMC simulation to be considered complete.
+######General: 
+Convergence criterion for a KMC simulation to be considered complete.
     The simulation is terminated once the standard error is below this value.
 
-Values: Any floating point number (in units of percent)
+######Values: 
+Any floating point number (in units of percent)
 
-Default: 0.5
+######Default: 
+0.5
