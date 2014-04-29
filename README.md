@@ -120,16 +120,16 @@ General: Print help information.
 
 ### -n / -np
 
-General: Set the number of processors to use when launching an external mpi
-    job. This is only used if the launching function (MPIRUN in the makefile)
-    contains -n or -np. Otherwise it is ignored since the launching function
-    determines the number of available processors on its own.
+#### General:
+Set the number of processors to use when launching an external mpi job. This is only used if the launching function (MPIRUN in the makefile) contains -n or -np. Otherwise it is ignored since the launching function determines the number of available processors on its own.
 
-Arguments: Any integer number to set the number of processors to use
+####Arguments: 
+Any integer number to set the number of processors to use
 
-Default: 1
+####Default: 
+1
 
-Examples:
+####Examples:
     "-np 2" to launch external mpi programs on 2 processors
 
 
