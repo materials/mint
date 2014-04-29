@@ -157,15 +157,18 @@ All runtime display is shown
 
 ### -time
 
-General: Show the total time to complete all functions.
+######General: 
+Show the total time to complete all functions.
 
-Arguments: Any integer number sets the number of places to show after decimal
-    "seconds" to print as seconds only, not hours/minutes/seconds
+######Arguments: 
+- Any integer number sets the number of places to show after decimal
+- "seconds" to print as seconds only, not hours/minutes/seconds
 
-Default: four places after the decimal
-    Time is formatted into hours/minutes/seconds
+###### Default: 
+- four places after the decimal
+- Time is formatted into hours/minutes/seconds
 
-Examples:
+######Examples:
     "-time"     print the time to finish the run
     "-time 2"   print the time with two places after decimal
     "-time sec" print, for example, 90 seconds, not 1 minute, 30 seconds
@@ -174,43 +177,48 @@ Examples:
 
 ### -tolerance
 
-General: Set the absolute tolerance used during comparisons between positions
+######General: 
+Set the absolute tolerance used during comparisons between positions
     and distances. For a tolerance _tol, two positions are taken as equal if
     the distance between them, _dist, satisfies _dist <= _tol. This tolerance
     is used in many functions, such as those for determining symmetries.
 
-Arguments: Any number (units: angstroms)
+######Arguments: 
+- Any number (units: angstroms)
 
-Default: 1e-4
+######Default: 
+1e-4
 
-Examples:
+######Examples:
     "-tolerance 1e-2" set the tolerance to 1e-2 angstroms
 
 
 
 ### -print / -write
 
-General: Controls where structures are printed and their format. If some
+######General: 
+Controls where structures are printed and their format. If some
     positions or the lattice vectors are not defined, then they will be
     assigned random values; this can be turned off when printing to the mint
     format by passing "free" as an argument.
 
-Arguments:
-    "fractional" or "direct" to print using fractional coordinates
-    "cartesian" to print to cartesian coordinates if available in set format
-    "screen" or "stdout" to print to standard out instead of a file
-    "mint" or ".mint" for mint format
-    "vasp", "vasp5", "vasp 5", ".vasp", or ".vasp5" for vasp 5 format
-    "vasp 4", "vasp4", or ".vasp4" for vasp 4 format
-    "cif" or ".cif" for cif format
-    "crystalmaker", "cm", "cmtx", or ".cmtx" for crystal maker format
-    "findsym", ".findsym", "fs", or ".fs" for findsym format
-    "quantum", "espresso", "qe", or ".qe" for quantum espresso format
-    "free" prevent atoms/basis from being randomly set (only for mint format)
+######Arguments:
+- "fractional" or "direct" to print using fractional coordinates
+- "cartesian" to print to cartesian coordinates if available in set format
+- "screen" or "stdout" to print to standard out instead of a file
+- "mint" or ".mint" for mint format
+- "vasp", "vasp5", "vasp 5", ".vasp", or ".vasp5" for vasp 5 format
+- "vasp 4", "vasp4", or ".vasp4" for vasp 4 format
+- "cif" or ".cif" for cif format
+- "crystalmaker", "cm", "cmtx", or ".cmtx" for crystal maker format
+- "findsym", ".findsym", "fs", or ".fs" for findsym format
+- "quantum", "espresso", "qe", or ".qe" for quantum espresso format
+- "free" prevent atoms/basis from being randomly set (only for mint format)
 
-Default: structures are printed to a file in the same format as the original
+######Default: 
+structures are printed to a file in the same format as the original
 
-Examples:
+######Examples:
     "-print screen"         print to standard out
     "-print vasp"           print to vasp format
     "-print vasp cartesian" print to vasp format in cartesian coordinates
@@ -219,31 +227,32 @@ Examples:
 
 ### -name
 
-General: Change the file name for writing a structure.
+######General: 
+Change the file name for writing a structure.
 
-Arguments: Any valid file name
+######Arguments: 
+- Any valid file name
 
-Default: Same file name as the original. If the setting "overwrite" is set to
-    false, then a number may be appended to the file name (i.e. name_1) in 
-    order to avoid writing over an existing file. If this setting is true, 
-    then overwrites will be allowed.
+######Default: 
+- Same file name as the original. If the setting "overwrite" is set to false, then a number may be appended to the file name (i.e. name_1) in  order to avoid writing over an existing file. If this setting is true, then overwrites will be allowed.
 
-Examples:
+######Examples:
     "-name newname" print structure to a file named newname
 
 
 
 ### -remove
 
-General: Remove atoms from the structure by element type, index, or position.
+######General: 
+Remove atoms from the structure by element type, index, or position.
 
-Arguments:
-    Integer to remove atom with that index
-    Element to remove all atoms of set element
-    Element and integer to remove instance of set element
-    Three decimal values to remove atom at set position
+######Arguments:
+- Integer to remove atom with that index
+- Element to remove all atoms of set element
+- Element and integer to remove instance of set element
+- Three decimal values to remove atom at set position
 
-Examples:
+######Examples:
     "-rem 1 2"         remove atoms 1 and 2
     "-rem Al"          remove all Al atoms
     "-rem Al 2 H 3"    remove second Al and third H atoms
@@ -253,20 +262,22 @@ Examples:
 
 ### -fix
 
-General: Fix atomic coordinates and lattice parameters that have been
+######General: 
+Fix atomic coordinates and lattice parameters that have been
     explicitly defined for the structure and are not already fixed. Any
     positions or parameters that were not set will still be allowed to change.
     This is useful when importing a structure that is to be optimized but for
     which some properties are known; in this case, the properties that are
     fixed by this command will not be changed.
 
-Arguments:
-    "atoms" or "positions" to fix positions
-    "basis" or "lattice" to fix lattice parameters
+######Arguments:
+- "atoms" or "positions" to fix positions
+- "basis" or "lattice" to fix lattice parameters
 
-Default: Without arguments, known positions and lattice parameters are fixed
+######Default: 
+Without arguments, known positions and lattice parameters are fixed
 
-Examples:
+######Examples:
     "-fix"       fix all positions and lattice parameters that are defined
     "-fix atoms" fix all positions that are defined, basis is still free
     "-fix basis" fix lattice parameters, all positions are still free
