@@ -1,8 +1,8 @@
-Mint (Materials Interface)
-====
+# Mint (Materials Interface)
 
-Installation
-----
+
+## Installation
+
 
 1. Get a copy of "update.sh" onto your local machine
   - Method 1
@@ -16,104 +16,63 @@ Installation
 4. In the future, just run "./update.sh" and then "make" anytime that you want to update to a new version
 
 
-Getting Started
-----
+## The Interface to Mint
 
-Once installed, run "mint -h" for more detailed help when getting started. In general, a single call to mint will have the form
 
-    mint input_files -function_1 args_1 -function_2 args_2 ...
+### General
 
-where input_files is a list of files (structures, settings, etc.), -function_1 and -function_2 are functions to execute, and args_1 and args_2 are arguments to each. Any number of functions can be passed in a single call. A list of functions that are available can be obtained by running "mint -h functions". As a practical example, the call to
+A single call to mint should have the form: 
+
+    mint _files -_function1 _arguments1 -_function2 _arguments2
+
+Here, _files is a list of files that will be read on startup. All files should appear before the first function call. Each function is preceded by a - sign. In general, only the first few letters are needed for a function name. A list of arguments needed for the function should appear after the call. Any number of functions can be called at a given time; with the exception of settings, they will be executed in the order in which they appear. Those functions that change settings (e.g. -tolerance) will be executed before all others.
+
+
+Any number of files can be passed in a single call to mint. Their order does not matter and their formats will be determined automatically. The following file formats are supported as input:
+    * Structure (vasp 4, vasp 5, mint, cif, quantum espresso)
+    * Settings
+    * Potential
+    * Xray pattern (mint, pdf xml)
+
+As a practical example, the call to
 
     mint structureFile -conventional -symmetry -print screen
 
 would read the structure in structureFile, convert it to a conventional cell, print the symmetry of the conventional cell, and print the structure to stdout.
 
 
-The interface to Mint
-----
+### Settings
 
-================================================================================
- General
-================================================================================
-
-A single call to mint should have the form: 
-
-    mint _files -_function1 _arguments1 -_function2 _arguments2
-
-Here, _files is a list of files that will be read on startup. All files should
-appear before the first function call. Each function is preceded by a - sign.
-In general, only the first few letters are needed for a function name. A list of
-arguments needed for the function should appear after the call. Any number of
-functions can be called at a given time; with the exception of settings, they
-will be executed in the order in which they appear. Those functions that change
-settings (e.g. -tolerance) will be executed before all others.
-
-
-Any number of files can be passed in a single call to mint. Their order does
-not matter and their formats will be determined automatically. The following
-file formats are supported as input:
-    * Structure (vasp 4, vasp 5, mint, cif, quantum espresso)
-    * Settings
-    * Potential
-    * Xray pattern (mint, pdf xml)
-
-
-
-================================================================================
- Settings
-================================================================================
 
 Settings can be changed using a settings file supplied to mint using e.g.:
 
     mint _settingsFile _files -_function1 ...
 
-where _settingsFile is the name of the settings file, _files are any other
-files, and -_function1 is the first function to perform. Multiple settings
-files can be supplied in a single call. For example, in the call to
+where _settingsFile is the name of the settings file, _files are any other files, and -_function1 is the first function to perform. Multiple settings files can be supplied in a single call. For example, in the call to
 
     mint _settings1 _settings2 _files -_function1 ...
 
-settings in _settings1 would be applied, followed by _settings2 (overwriting
-values in _settings1 if defined also in _settings2). Any settings applied on
-the command line (e.g. -tolerance) overwrite anything supplied by file.
+settings in _settings1 would be applied, followed by _settings2 (overwriting values in _settings1 if defined also in _settings2). Any settings applied on the command line (e.g. -tolerance) overwrite anything supplied by file.
 
 
-A global settings file can also be created to change default values. This
-file should be named ".mint_settings" and appear in your home directory.
-Mint will automatically read this file if it is present. These settings have
-the lowest weight and are overwritten by any files or settings passed in on
-the command line.
+A global settings file can also be created to change default values. This file should be named ".mint_settings" and appear in your home directory. Mint will automatically read this file if it is present. These settings have the lowest weight and are overwritten by any files or settings passed in on the command line.
 
 
 
-================================================================================
- Output
-================================================================================
-
-General output will be directed to stdout. However, for some functions (e.g.
-optimizations) more detailed log files will be created in order to organize
-output more efficiently. General output is divided into two catagories: runtime
-and results.
+### Output
 
 
-Runtime output shows details of each function call as they occur. This can be
-useful be degbugging purposes and may give more detailed information than what
-is shown in the results. Each line from runtime output is preceeded by o:, w:,
-or e:, which coorespond to ordinary output, warnings, and errors, respectively.
-Warnings and errors are always shown, but ordinary output can be supressed since
-it often gives far more information than is needed (see the setting
-"displaylevel" or the function "-display").
+General output will be directed to stdout. However, for some functions (e.g. optimizations) more detailed log files will be created in order to organize output more efficiently. General output is divided into two catagories: runtime and results.
 
 
-The other output category, results, is always printed. Results are not preceded
-by any identifier (o, w, or e) and will be printed to stdout (with the exception
-of structures, which may be printed to a file - see the setting "usestdout"
-or the function "-print").
+Runtime output shows details of each function call as they occur. This can be useful be degbugging purposes and may give more detailed information than what is shown in the results. Each line from runtime output is preceeded by o:, w:, or e:, which coorespond to ordinary output, warnings, and errors, respectively. Warnings and errors are always shown, but ordinary output can be supressed since it often gives far more information than is needed (see the setting "displaylevel" or the function "-display").
 
 
-Functions
-----
+The other output category, results, is always printed. Results are not preceded by any identifier (o, w, or e) and will be printed to stdout (with the exception of structures, which may be printed to a file - see the setting "usestdout" or the function "-print").
+
+
+## Functions Available in Mint
+
 
 List of functions in this document and brief descriptions:
 
@@ -153,17 +112,13 @@ List of functions in this document and brief descriptions:
 
 
 
-================================================================================
- -help
-================================================================================
+### -help
 
 General: Print help information.
 
 
 
-================================================================================
- -n / -np
-================================================================================
+### -n / -np
 
 General: Set the number of processors to use when launching an external mpi
     job. This is only used if the launching function (MPIRUN in the makefile)
@@ -179,9 +134,7 @@ Examples:
 
 
 
-================================================================================
- -display / -output
-================================================================================
+### -display / -output
 
 General: Set the level of runtime display to show. Level 1 is the most broad
     while the detail increases with level. This controls ordinary output only; 
@@ -199,9 +152,7 @@ Examples:
 
 
 
-================================================================================
- -time
-================================================================================
+### -time
 
 General: Show the total time to complete all functions.
 
@@ -218,9 +169,7 @@ Examples:
 
 
 
-================================================================================
- -tolerance
-================================================================================
+### -tolerance
 
 General: Set the absolute tolerance used during comparisons between positions
     and distances. For a tolerance _tol, two positions are taken as equal if
@@ -236,9 +185,7 @@ Examples:
 
 
 
-================================================================================
- -print / -write
-================================================================================
+### -print / -write
 
 General: Controls where structures are printed and their format. If some
     positions or the lattice vectors are not defined, then they will be
@@ -267,9 +214,7 @@ Examples:
 
 
 
-================================================================================
- -name
-================================================================================
+### -name
 
 General: Change the file name for writing a structure.
 
@@ -285,9 +230,7 @@ Examples:
 
 
 
-================================================================================
- -remove
-================================================================================
+### -remove
 
 General: Remove atoms from the structure by element type, index, or position.
 
@@ -305,9 +248,7 @@ Examples:
 
 
 
-================================================================================
- -fix
-================================================================================
+### -fix
 
 General: Fix atomic coordinates and lattice parameters that have been
     explicitly defined for the structure and are not already fixed. Any
@@ -329,9 +270,7 @@ Examples:
 
 
 
-================================================================================
- -neighbors
-================================================================================
+### -neighbors
 
 General: Calculate nearest neighbors list. For each atom, the distance in
     angstroms is printed as well as three integers that give the cell in which
@@ -353,9 +292,7 @@ Examples:
 
 
 
-================================================================================
- -shell
-================================================================================
+### -shell
 
 General: Calculate nearest neighbor shells. Given a particular atom, A0, in the
     structure, all other other atoms (including periodic images) out to a set
@@ -384,9 +321,7 @@ Examples:
 
 
 
-================================================================================
- -transform
-================================================================================
+### -transform
 
 General: Transform a cell. The new lattice vectors are equal to Lnew = M*Lorig
     where M is the transformation matrix and Lorig is the original matrix of
@@ -408,9 +343,7 @@ Examples:
 
 
 
-================================================================================
- -rotate
-================================================================================
+### -rotate
 
 General: Rotate fractional positions of atoms in the cell. For a rotation
     matrix R, the position of an atom after rotation is R*x0 where x0 is its
@@ -427,9 +360,7 @@ Examples:
 
 
 
-================================================================================
- -shift
-================================================================================
+### -shift
 
 General: Shift atom positions by a set amount.
 
@@ -443,9 +374,7 @@ Examples:
 
 
 
-================================================================================
- -reduced
-================================================================================
+### -reduced
 
 General: Perform Niggli reduction of current cell. Note that this DOES NOT
     convert to the primitive cell first; for a reduced primitive cell, run
@@ -455,9 +384,7 @@ Arguments: none
 
 
 
-================================================================================
- -primitive
-================================================================================
+### -primitive
 
 General: Convert to the primitive form of the current cell. Note that the
     primitive cell is not unique; a unique primitive cell can be obtained by
@@ -467,9 +394,7 @@ Arguments: none
 
 
 
-================================================================================
- -conventional
-================================================================================
+### -conventional
 
 General: Convert current structure to conventional cell. The space group of the
     structure is first determined and the appropriate transformation and origin
@@ -480,9 +405,7 @@ Arguments: none
 
 
 
-================================================================================
- -ideal
-================================================================================
+### -ideal
 
 General: Convert current structure to its most ideal form. The most ideal form
     is defined as the unit cell that maximizes the minimum image distance under
@@ -507,9 +430,7 @@ Examples:
 
 
 
-================================================================================
- -symmetry
-================================================================================
+### -symmetry
 
 General: Print the symmetry of the current unit cell. A list of unique symmetry
     operations are printed first; there should be as many operations in this
@@ -534,9 +455,7 @@ Expample:
 
 
 
-================================================================================
- -point
-================================================================================
+### -point
 
 General: Print the point group of the structure, a list of all point groups,
     or information about a point group.
@@ -553,9 +472,7 @@ Examples:
 
 
 
-================================================================================
- -space
-================================================================================
+### -space
 
 General: Print the space group of the structure, a list of all space groups,
     or information about a space group.
@@ -572,9 +489,7 @@ Examples:
 
 
 
-================================================================================
- -about
-================================================================================
+### -about
 
 General: Print the following information about the structure:
       * Point group
@@ -609,9 +524,7 @@ Examples:
 
 
 
-================================================================================
- -refine
-================================================================================
+### -refine
 
 General: Refine the lattice vectors and atomic positions so that a set of
     symmetry operations that are satisfied only to some tolerance are made
@@ -640,9 +553,7 @@ Examples:
 
 
 
-================================================================================
- -perturb
-================================================================================
+### -perturb
 
 General: Randomly adjust the atomic positions and/or lattice vectors.
 
@@ -665,9 +576,7 @@ Examples:
 
 
 
-================================================================================
- -unique / -equivalent
-================================================================================
+### -unique / -equivalent
 
 General: Search for unique atoms, groups of atoms, or transitions between atomic
     sites in a structure. -unique prints only the unique groups that are found.
@@ -699,9 +608,7 @@ Examples:
 
 
 
-================================================================================
- -interstitial
-================================================================================
+### -interstitial
 
 General: Search for interstitial sites in a structure. This algorithm works by
     placing an exponential decay (Exp[-r/a]) at each atomic site and searching
@@ -732,9 +639,7 @@ Examples:
 
 
 
-================================================================================
- -energy
-================================================================================
+### -energy
 
 General: Calculate the energy of a structure under a supplied potential. Both
     the total energy of the unit cell and the energy per atom are returned.
@@ -743,9 +648,7 @@ Arguments: none
 
 
 
-================================================================================
- -forces
-================================================================================
+### -forces
 
 General: Calculate the forces on atoms in a structure under a supplied
     potential.
@@ -754,9 +657,7 @@ Arguments: none
 
 
 
-================================================================================
- -diffraction
-================================================================================
+### -diffraction
 
 General: Calculate the powder xray diffraction pattern for a structure. If a
     diffraction pattern was supplied as input, the r-factor will be calculated
@@ -786,9 +687,7 @@ Examples:
 
 
 
-================================================================================
- -optimize
-================================================================================
+### -optimize
 
 General: Run global optimization for a structure. Any free parameters will be
     changed while any that are fixed will be preserved. Multiple optimization
@@ -812,9 +711,7 @@ Examples:
 
 
 
-================================================================================
- -compare
-================================================================================
+### -compare
 
 General: Compare structures to determine if they are cells derived from the
     same lattice. Comparisons are made in the following ways:
@@ -851,9 +748,7 @@ Examples:
 
 
 
-================================================================================
- -kmc
-================================================================================
+### -kmc
 
 General: Run lattice-based kinetic Monte Carlo (KMC) simulation of atomic
     diffusion. These simulations are initialized over two steps and run in
@@ -920,8 +815,7 @@ Examples:
     Step 3: "mint kmc.in -kmc"      Perform kmc simulation using kmc.in
 
 
-Settings
-----
+## Settings
 
 List of settings and brief descriptions (detailed descriptions follow):
 
@@ -962,9 +856,7 @@ gaoptscreenmethod   Screening method used during GA optimization
 
 
 
-================================================================================
- numprocs
-================================================================================
+### numprocs
 
 General: Mint has the ability to launch external programs such as VASP and
     Quantum Espresso, which may be MPI-enabled. This setting controls the number
@@ -979,9 +871,7 @@ Default: 1
 
 
 
-================================================================================
- displaylevel
-================================================================================
+### displaylevel
 
 General: By default, no runtime output is shown, only results. However, there
     is a large amount of information that can be printed by increasing the
@@ -995,9 +885,7 @@ Default: 0
 
 
 
-================================================================================
- displaytab
-================================================================================
+### displaytab
 
 General: Each successive level of runtime output is indented by a set tab value.
     This setting controls the number of spaces that define this tab. This is a
@@ -1009,9 +897,7 @@ Default: 4
 
 
 
-================================================================================
- timeshow
-================================================================================
+### timeshow
 
 General: The time to complete a single call to Mint can be displayed at the
     end if a run with this setting. This can also be controlled from the command
@@ -1024,9 +910,7 @@ Default: False (time is not shown)
 
 
 
-================================================================================
- timeprec
-================================================================================
+### timeprec
 
 General: Precision to use when printing the time to complete a run. This setting
     controls the number of places that are shown after the decimal. This can
@@ -1038,9 +922,7 @@ Default: 4
 
 
 
-================================================================================
- formattime
-================================================================================
+### formattime
 
 General: Control whether time is printed as the total number of seconds to
     complete a single run, or formatted into days/hours/minutes/seconds.
@@ -1052,9 +934,7 @@ Default: True (time is converted to days/hours/minutes/seconds)
 
 
 
-================================================================================
- tolerance
-================================================================================
+### tolerance
 
 General: Global tolerance used to test floating point values for equality. Two
     numbers are taken as equal if the absolute difference between them is less
@@ -1069,9 +949,7 @@ Default: 1e-4
 
 
 
-================================================================================
- clustertol
-================================================================================
+### clustertol
 
 General: In several functions, Mint expands positions of atoms from the
     assymetric unit using the symmetries of the crystal. For atoms not lying on
@@ -1087,9 +965,7 @@ Default: 0.2
 
 
 
-================================================================================
- usestdout
-================================================================================
+### usestdout
 
 General: Control whether structures are printed to stdout or to a file. This
     can be controlled from the command line using the -print function.
@@ -1101,9 +977,7 @@ Default: False (structures are printed to file)
 
 
 
-================================================================================
- coordinates
-================================================================================
+### coordinates
 
 General: Control whether positions in a crystal are printed using fractional
     (direct) or cartesian coordinates. This can be controlled from the command
@@ -1117,9 +991,7 @@ Default: Fractional
 
 
 
-================================================================================
- strformat
-================================================================================
+### strformat
 
 General: Set the format used when printing a structure. This setting can be
     controlled from the command line using the -print function.
@@ -1137,9 +1009,7 @@ Default: Same as input file
 
 
 
-================================================================================
- overwrite
-================================================================================
+### overwrite
 
 General: Control whether structure files can be overwritten. Mint names output
     files based on the name of the supplied file, but can alter the name so
@@ -1154,9 +1024,7 @@ Default: False (a unique name is generated each time that a file is printed)
 
 
 
-================================================================================
- addextension
-================================================================================
+### addextension
 
 General: Add an extension to structure file names when printing them. The
     extension used will depened on the format of the file. For example, files
@@ -1169,9 +1037,7 @@ Default: True (extensions are added to structure file names)
 
 
 
-================================================================================
- randstrmaxloops
-================================================================================
+### randstrmaxloops
 
 General: Control the number of attempts to create a "good" structure when
     generated randomly. A structure is considered "good" if no two atoms
@@ -1186,9 +1052,7 @@ Default: 100
 
 
 
-================================================================================
- randstrminbond
-================================================================================
+### randstrminbond
 
 General: Control the minimum bond length when generating random structures.
     The ideal bond length between two atoms, d_ideal, is taken as the sum of
@@ -1204,9 +1068,7 @@ Default: 0.5 (minimum distance is half the ideal distance)
 
 
 
-================================================================================
- gaoptnumsim
-================================================================================
+### gaoptnumsim
 
 General: Control the number of unique simulations to perform during GA-based
     structure prediction/solution. For each unique simulation, a new random
@@ -1221,9 +1083,7 @@ Default: 1 (only one unique simulation is performed)
 
 
 
-================================================================================
- gaoptpopsize
-================================================================================
+### gaoptpopsize
 
 General: Set the number of structures in the population during GA-based
     structure prediction/solution. This number is kept constant throughout the
@@ -1235,9 +1095,7 @@ Default: 10
 
 
 
-================================================================================
- gaoptcellmutprob
-================================================================================
+### gaoptcellmutprob
 
 General: Probability of making a change to the unit cell parameters during
     GA-based structure prediction/solution. The unit cell is modified with this
@@ -1252,9 +1110,7 @@ Default: 0.1 (probability of a mutation is 1/10)
 
 
 
-================================================================================
- gaoptposmutprob
-================================================================================
+### gaoptposmutprob
 
 General: Probability of making a change to the positions of atoms in the unit
     cell during GA-based structure prediction/solution. Positions in a cell are
@@ -1270,9 +1126,7 @@ Default: 0.1 (probability of a mutation is 1/10)
 
 
 
-================================================================================
- gaoptwyckmutprob
-================================================================================
+### gaoptwyckmutprob
 
 General: Probability of changing which Wyckoff sites are occupied in the
     structure during GA-based structure prediction/solution. Wyckoff site
@@ -1287,9 +1141,7 @@ Default: 0.1 (probability of a mutation is 1/10)
 
 
 
-================================================================================
- gaoptmetric
-================================================================================
+### gaoptmetric
 
 General: Metric to optimize during GA-based structure prediction/solution. While
     multiple metrics can be used to guide the search, this setting controls
@@ -1308,9 +1160,7 @@ Default: Energy if it is supplied, otherwise r-factor
 
 
 
-================================================================================
- gaoptconverge
-================================================================================
+### gaoptconverge
 
 General: Number of generations without a change for a GA-based structure
     prediction/solution calculation to be considered converged. In other words,
@@ -1323,9 +1173,7 @@ Default: 10
 
 
 
-================================================================================
- gaoptmaxgens
-================================================================================
+### gaoptmaxgens
 
 General: Maximum number of generations allowed during GA-based structure
     prediction/solution calculation. If the simulation has not converged after
@@ -1338,9 +1186,7 @@ Default: 1000
 
 
 
-================================================================================
- gaoptnumtokeep
-================================================================================
+### gaoptnumtokeep
 
 General: Number of structures to keep from one generation to the next during
     a GA-based structure prediction/solution calculation. These structures are
@@ -1353,9 +1199,7 @@ Default: 0
 
 
 
-================================================================================
- gaoptselection
-================================================================================
+### gaoptselection
 
 General: Selection method for choosing structures to mate during GA-based
     structure prediction/solution calculations.
@@ -1366,9 +1210,7 @@ Default: Tournament
 
 
 
-================================================================================
- gaoptenergytol
-================================================================================
+### gaoptenergytol
 
 General: Tolerance used to decide whether an energy is lower than another during
     a GA-based structure prediction/solution calculation. For example, if the
@@ -1384,9 +1226,7 @@ Default: 0.001
 
 
 
-================================================================================
- gaoptdifftol
-================================================================================
+### gaoptdifftol
 
 General: Tolerance used to decide whether an R-factor is lower than another
     during a GA-based structure prediction/solution calculation. For example,
@@ -1402,9 +1242,7 @@ Default: 1e-4
 
 
 
-================================================================================
- gaoptscreenmethod
-================================================================================
+### gaoptscreenmethod
 
 General: Set the screening method used when generating children during a
     GA-based structure prediction/solution calculation. For example, if the
@@ -1435,9 +1273,7 @@ Default: None (no screen is applied)
 
 
 
-================================================================================
- gaoptscreennum
-================================================================================
+### gaoptscreennum
 
 General: Set the number of candidates to generate and screen for each child
     in each generation of a GA-based structure prediction/solution calculation.
@@ -1449,9 +1285,7 @@ Default: 0 (no screen is applied)
 
 
 
-================================================================================
- wyckoffbias
-================================================================================
+### wyckoffbias
 
 General: From analysis of structures in the Inorganic Crystal Structure Database
     it was found that atoms tend to occupy Wyckoff site combinations so as to
@@ -1479,9 +1313,7 @@ Default: 0.5
 
 
 
-================================================================================
- minimagedis
-================================================================================
+### minimagedis
 
 General: Several functions within Mint generate supercells of structures. This
     setting controls the size of the supercell by controlling the minimum image
@@ -1496,9 +1328,7 @@ Default: 8.0
 
 
 
-================================================================================
- maxjumpdistance
-================================================================================
+### maxjumpdistance
 
 General: Maximum jumps distance allowed when generating jumps between atomic
     sites in a structure.
@@ -1509,9 +1339,7 @@ Default: 7.0
 
 
 
-================================================================================
- kmcjumpsperatom
-================================================================================
+### kmcjumpsperatom
 
 General: Number of jumps to perform in a KMC simulation. This setting in given
     as a function of the number of atoms in a structure so the actual number
@@ -1524,9 +1352,7 @@ Default: 100
 
 
 
-================================================================================
- kmcconverge
-================================================================================
+### kmcconverge
 
 General: Convergence criterion for a KMC simulation to be considered complete.
     The simulation is terminated once the standard error is below this value.
