@@ -819,40 +819,40 @@ Examples:
 
 List of settings and brief descriptions (detailed descriptions follow):
 
-         numprocs   Number of processors when launching external MPI programs
-     displaylevel   Level of runtime output to display (0 is no output)
-       displaytab   Indentation for each nested level of runtime output
-         timeshow   Set whether the time to complete a run is printed
-         timeprec   Number of decimal places to show when printing run time
-       formattime   Control whether time is converted to minutes/seconds
-        tolerance   Tolerance used to test floating point values for equality
-       clustertol   Equality tolerance when expanding positions by symmetry
-        usestdout   Structures are printed to stdout, instead of to a file
-      coordinates   Print positions in fractional or cartesian coordinates
-        strformat   Control the file format for printing structures
-        overwrite   Allow structure files to be overwritten
-     addextension   Add a file extension when printing a structure to file
-  randstrmaxloops   Maximum number of loops when generating a random structure
-   randstrminbond   Minimum random bond length
-      gaoptnumsim   Number of unique runs during GA optimization
-     gaoptpopsize   Number of structure in GA optimization
- gaoptcellmutprob   Probability of cell mutation in GA optimization
-  gaoptposmutprob   Probability of position mutation in GA optimization
- gaoptwyckmutprob   Probability of Wyckoff site mutation in GA optimization
-      gaoptmetric   Metric to optimize in GA-based optimization
-    gaoptconverge   Number of GA generations without change for convergence
-     gaoptmaxgens   Maximum number of GA generations allowed during optimization
-   gaoptnumtokeep   Number of structures to keep between GA generations
-   gaoptselection   Selection method to use during GA optimization
-   gaoptenergytol   Tolerance for an energy to be a new best during GA
-     gaoptdifftol   Tolerance for an r-factor to be a new best during GA
-gaoptscreenmethod   Screening method used during GA optimization
-   gaoptscreennum   Number of trial structures to screen during GA
-      wyckoffbias   Biasing level for choosing random Wyckoff positions
-      minimagedis   Minimum image distance when generating supercells
-  maxjumpdistance   Maximum jump distance when generating jumps between sites
-  kmcjumpsperatom   Number of jumps in a KMC simulation per atom
-      kmcconverge   Convergence for a KMC simulation to be complete
+             numprocs   Number of processors when launching external MPI programs
+         displaylevel   Level of runtime output to display (0 is no output)
+           displaytab   Indentation for each nested level of runtime output
+             timeshow   Set whether the time to complete a run is printed
+             timeprec   Number of decimal places to show when printing run time
+           formattime   Control whether time is converted to minutes/seconds
+            tolerance   Tolerance used to test floating point values for equality
+           clustertol   Equality tolerance when expanding positions by symmetry
+                usestdout   Structures are printed to stdout, instead of to a file
+          coordinates   Print positions in fractional or cartesian coordinates
+            strformat   Control the file format for printing structures
+            overwrite   Allow structure files to be overwritten
+         addextension   Add a file extension when printing a structure to file
+      randstrmaxloops   Maximum number of loops when generating a random structure
+       randstrminbond   Minimum random bond length
+          gaoptnumsim   Number of unique runs during GA optimization
+         gaoptpopsize   Number of structure in GA optimization
+     gaoptcellmutprob   Probability of cell mutation in GA optimization
+      gaoptposmutprob   Probability of position mutation in GA optimization
+     gaoptwyckmutprob   Probability of Wyckoff site mutation in GA optimization
+          gaoptmetric   Metric to optimize in GA-based optimization
+        gaoptconverge   Number of GA generations without change for convergence
+         gaoptmaxgens   Maximum number of GA generations allowed during optimization
+       gaoptnumtokeep   Number of structures to keep between GA generations
+       gaoptselection   Selection method to use during GA optimization
+       gaoptenergytol   Tolerance for an energy to be a new best during GA
+         gaoptdifftol   Tolerance for an r-factor to be a new best during GA
+    gaoptscreenmethod   Screening method used during GA optimization
+       gaoptscreennum   Number of trial structures to screen during GA
+          wyckoffbias   Biasing level for choosing random Wyckoff positions
+          minimagedis   Minimum image distance when generating supercells
+      maxjumpdistance   Maximum jump distance when generating jumps between sites
+      kmcjumpsperatom   Number of jumps in a KMC simulation per atom
+          kmcconverge   Convergence for a KMC simulation to be complete
 
 
 
