@@ -347,13 +347,13 @@ Transform a cell. The new lattice vectors are equal to Lnew = M*Lorig
 
 ######Arguments:
 - Three numbers (n1 to n3) to set the transformation matrix
-            | n1  0  0 |
-        M = | 0  n2  0 |
-            | 0   0 n3 |
+			| n1  0  0 |
+		M = | 0  n2  0 |
+			| 0   0 n3 |
 - Nine numbers (n1 to n9) to set the transformation matrix
-            | n1 n2 n3 |
-        M = | n4 n5 n6 |
-            | n7 n8 n9 |
+			| n1 n2 n3 |
+		M = | n4 n5 n6 |
+			| n7 n8 n9 |
 
 ######Examples:
     "-transform 2 1 2"             transform with 2, 1, 2 on matrix diagonal
