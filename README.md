@@ -29,10 +29,10 @@ Here, _files is a list of files that will be read on startup. All files should a
 
 
 Any number of files can be passed in a single call to mint. Their order does not matter and their formats will be determined automatically. The following file formats are supported as input:
-    * Structure (vasp 4, vasp 5, mint, cif, quantum espresso)
-    * Settings
-    * Potential
-    * Xray pattern (mint, pdf xml)
+- Structure (vasp 4, vasp 5, mint, cif, quantum espresso)
+- Settings
+- Potential
+- Xray pattern (mint, pdf xml)
 
 As a practical example, the call to
 
@@ -827,7 +827,7 @@ List of settings and brief descriptions (detailed descriptions follow):
            formattime   Control whether time is converted to minutes/seconds
             tolerance   Tolerance used to test floating point values for equality
            clustertol   Equality tolerance when expanding positions by symmetry
-            usestdout   Structures are printed to stdout, instead of to a file
+		    usestdout   Structures are printed to stdout, instead of to a file
           coordinates   Print positions in fractional or cartesian coordinates
             strformat   Control the file format for printing structures
             overwrite   Allow structure files to be overwritten
