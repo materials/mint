@@ -827,12 +827,12 @@ List of settings and brief descriptions (detailed descriptions follow):
            formattime   Control whether time is converted to minutes/seconds
             tolerance   Tolerance used to test floating point values for equality
            clustertol   Equality tolerance when expanding positions by symmetry
-                usestdout   Structures are printed to stdout, instead of to a file
+            usestdout   Structures are printed to stdout, instead of to a file
           coordinates   Print positions in fractional or cartesian coordinates
             strformat   Control the file format for printing structures
             overwrite   Allow structure files to be overwritten
          addextension   Add a file extension when printing a structure to file
-      randstrmaxloops   Maximum number of loops when generating a random structure
+	  randstrmaxloops   Maximum number of loops when generating a random structure
        randstrminbond   Minimum random bond length
           gaoptnumsim   Number of unique runs during GA optimization
          gaoptpopsize   Number of structure in GA optimization
