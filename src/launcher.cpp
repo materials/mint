@@ -4029,7 +4029,7 @@ void Launcher::shells(Storage& data, const Function& function)
 	{
 		if (Language::isDecimal(function.arguments()[i]))
 			maxDistance = atof(function.arguments()[i].array());
-		if (function.arguments()[i].equal("det", false, 4))
+		if (function.arguments()[i].equal("det", false, 3))
 			details = true;
 	}
 	

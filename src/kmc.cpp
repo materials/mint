@@ -1493,6 +1493,10 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 		while (1)
 		{
 			
+			// Loop over tracers and set their displacements to zero
+			for (i = 0; i < tracers.length(); ++i)
+				tracers[i].reset();
+			
 			// Make a jump
 			curTracer = 0;
 			ran = random.decimal(0, curNode->rates().last());
@@ -1545,8 +1549,6 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 			localD /= 2.0;
 			localD /= totalTime;
 			localD /= tracers.length();
-			for (i = 0; i < 3; ++i)
-				localD[i] = Num<double>::abs(localD[i]);
 		
 			// Update the total diffusivity
 			for (i = 0; i < 3; ++i)

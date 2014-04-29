@@ -221,6 +221,7 @@ class KMC::Tracer
 	Vector3D _vector;	
 public:
 	Tracer()								{ _vector = 0.0; _numJumps = 0; }
+	void reset()							{ _vector = 0.0; _numJumps = 0; }
 	void add(const Vector3D& input)			{ _vector += input; ++_numJumps; }
 	void subtract(const Vector3D& input)	{ _vector -= input; ++_numJumps; }
 	int numJumps() const					{ return _numJumps; }
