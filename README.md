@@ -286,18 +286,19 @@ Without arguments, known positions and lattice parameters are fixed
 
 ### -neighbors
 
-General: Calculate nearest neighbors list. For each atom, the distance in
+######General: 
+Calculate nearest neighbors list. For each atom, the distance in
     angstroms is printed as well as three integers that give the cell in which
     the nearest image of the atom occurs.
 
-Arguments:
-    No arguments to print neighbors list for all atoms
-    Integer to print neighbors to atom with that index
-    Element to print neighbors to all atoms of set element
-    Element and integer to print neighbors to instance of set element
-    Three decimal values to print neighbors to atom at set position
+######Arguments:
+- No arguments to print neighbors list for all atoms
+- Integer to print neighbors to atom with that index
+- Element to print neighbors to all atoms of set element
+- Element and integer to print neighbors to instance of set element
+- Three decimal values to print neighbors to atom at set position
 
-Examples:
+######Examples:
     "-neigh"             print neighbors list for all atoms
     "-neigh 1 2"         print neighbors for atoms 1 and 2
     "-neigh Al"          print neighbors for all Al atoms
@@ -308,24 +309,26 @@ Examples:
 
 ### -shell
 
-General: Calculate nearest neighbor shells. Given a particular atom, A0, in the
+######General: 
+Calculate nearest neighbor shells. Given a particular atom, A0, in the
     structure, all other other atoms (including periodic images) out to a set
     maximum are grouped by distance from A0. When grouping atoms into shells,
     two distances are considered the same if the difference between them is
     less than some tolerance; this can be changed using the -tol command or the
     "tolerance" tag in a settings file.
 
-Arguments:
-    "details" to print information about each atom in the shell
-    No arguments to print shells for all atoms
-    Integer to print shells of atom with that index
-    Element to print shells of all atoms of set element
-    Element and integer to print shells of instance of set element
-    Decimal value to set the max distance to calculate shells
+######Arguments:
+- "details" to print information about each atom in the shell
+- No arguments to print shells for all atoms
+- Integer to print shells of atom with that index
+- Element to print shells of all atoms of set element
+- Element and integer to print shells of instance of set element
+- Decimal value to set the max distance to calculate shells
 
-Default: Default max distance is 3 Ang
+######Default: 
+Default max distance is 3 Ang
 
-Examples:
+######Examples:
     "-shell"             print shells for all atoms
     "-shell 1 2"         print shells for atoms 1 and 2
     "-shell Al"          print shells for all Al atoms
@@ -337,21 +340,22 @@ Examples:
 
 ### -transform
 
-General: Transform a cell. The new lattice vectors are equal to Lnew = M*Lorig
+######General: 
+Transform a cell. The new lattice vectors are equal to Lnew = M*Lorig
     where M is the transformation matrix and Lorig is the original matrix of
     lattice vectors (each vector along a row of the matrix).
 
-Arguments:
-    Three numbers (n1 to n3) to set the transformation matrix
+######Arguments:
+- Three numbers (n1 to n3) to set the transformation matrix
             | n1  0  0 |
         M = | 0  n2  0 |
             | 0   0 n3 |
-    Nine numbers (n1 to n9) to set the transformation matrix
+- Nine numbers (n1 to n9) to set the transformation matrix
             | n1 n2 n3 |
         M = | n4 n5 n6 |
             | n7 n8 n9 |
 
-Examples:
+######Examples:
     "-transform 2 1 2"             transform with 2, 1, 2 on matrix diagonal
     "-transform 1 1 1 0 1 1 0 0 1" transform with corresponding matrix
 
