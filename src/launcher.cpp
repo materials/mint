@@ -4509,10 +4509,25 @@ void Launcher::compare(Storage& data, const Function& function)
 	// Loop over arguments to get settings
 	int i;
 	bool compareVolume = false;
+	bool compareCellParams = true;
 	for (i = 0; i < function.arguments().length(); ++i)
 	{
 		if (function.arguments()[i].equal("volume", false, 3))
 			compareVolume = true;
+		if (function.arguments()[i].equal("cell", false, 4))
+			compareCellParams = false;
+	}
+	
+	// Get the space groups of the structures if not comparing cell parameters
+	OList<SpaceGroup> spaceGroups(data.iso().length());
+	if (compareCellParams == false)
+	{
+		Output::newline();
+		Output::print("Determining the space group of each structure");
+		Output::increase();
+		for (i = 0; i < data.iso().length(); ++i)
+			spaceGroups[i].set(data.iso()[i], Settings::value<double>(TOLERANCE));
+		Output::decrease();
 	}
 	
 	// Loop over pairs of structures and compare them
@@ -4536,7 +4551,19 @@ void Launcher::compare(Storage& data, const Function& function)
 			// Compare structures
 			origID += data.id()[i];
 			compID += data.id()[j];
-			areEqual += data.iso()[i].equivalent(data.iso()[j], Settings::value<double>(TOLERANCE), compareVolume);
+			areEqual += true;
+			if (compareCellParams == false)
+			{
+				if (spaceGroups[i].itcNumber() != spaceGroups[j].itcNumber())
+				{
+					*areEqual.last() = false;
+					Output::newline();
+					Output::print("Structures are not the same because they are in different space groups");
+				}
+			}
+			if (*areEqual.last())
+				*areEqual.last() = data.iso()[i].equivalent(data.iso()[j], Settings::value<double>(TOLERANCE), \
+					compareVolume, compareCellParams);
 			
 			// Output
 			Output::decrease();

@@ -2547,12 +2547,12 @@ OList<Atom>::D2 ISO::shells(const Atom* atom, double maxDistance, double tol) co
 
 
 
-/* bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume) const
+/* bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume, bool matchCellParams) const
  *
  * Return whether two structures are the same
  */
 
-bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume) const
+bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume, bool matchCellParams) const
 {
 	
 	// Output
@@ -2707,9 +2707,12 @@ bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume) const
 	{
 		
 		// Output
-		Output::newline();
-		Output::print("Comparing basis metrics");
-		Output::increase();
+		if (matchCellParams)
+		{
+			Output::newline();
+			Output::print("Comparing basis metrics");
+			Output::increase();
+		}
 		
 		// Output
 		Output::newline();
@@ -2729,55 +2732,60 @@ bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume) const
 		// Output
 		Output::decrease();
 		
-		// Check the current angles
-		const Vector3D& thisAngles = thisPrim.basis().angles();
-		const Vector3D& compAngles = compPrim.basis().angles();
-		if ((Num<double>::abs(thisAngles[0] - compAngles[0]) > angTol) || \
-			(Num<double>::abs(thisAngles[1] - compAngles[1]) > angTol) || \
-			(Num<double>::abs(thisAngles[2] - compAngles[2]) > angTol))
+		// Only run this section if comparing the cell parameters
+		if (matchCellParams)
 		{
 			
-			// Output
-			Output::newline();
-			Output::print("Attempting transformation between reduced cell types I and II");
-			Output::increase();
-			
-			// Try converting cell type for comparison cell
-			Matrix3D changeType (-1, 0, 0, 0, -1, 0, 0, 0, 1);
-			compPrim.transform(changeType, tol);
-			compPrimToRed *= changeType;
-			
-			// Output
-			Output::decrease();
-			
-			// Check new angles
+			// Check the current angles
+			const Vector3D& thisAngles = thisPrim.basis().angles();
+			const Vector3D& compAngles = compPrim.basis().angles();
 			if ((Num<double>::abs(thisAngles[0] - compAngles[0]) > angTol) || \
 				(Num<double>::abs(thisAngles[1] - compAngles[1]) > angTol) || \
 				(Num<double>::abs(thisAngles[2] - compAngles[2]) > angTol))
 			{
+			
+				// Output
 				Output::newline();
-				Output::print("Angles in primitive cell do not match");
-				res = false;
+				Output::print("Attempting transformation between reduced cell types I and II");
+				Output::increase();
+			
+				// Try converting cell type for comparison cell
+				Matrix3D changeType (-1, 0, 0, 0, -1, 0, 0, 0, 1);
+				compPrim.transform(changeType, tol);
+				compPrimToRed *= changeType;
+			
+				// Output
+				Output::decrease();
+			
+				// Check new angles
+				if ((Num<double>::abs(thisAngles[0] - compAngles[0]) > angTol) || \
+					(Num<double>::abs(thisAngles[1] - compAngles[1]) > angTol) || \
+					(Num<double>::abs(thisAngles[2] - compAngles[2]) > angTol))
+				{
+					Output::newline();
+					Output::print("Angles in primitive cell do not match");
+					res = false;
+				}
 			}
-		}
 		
-		// Compare lattice parameter ratios
-		if (res)
-		{
-			const Vector3D& thisLengths = thisPrim.basis().lengths();
-			const Vector3D& compLengths = compPrim.basis().lengths();
-			if ((Num<double>::abs(thisLengths[0]/thisLengths[1] - compLengths[0]/compLengths[1]) > lenTol) || \
-				(Num<double>::abs(thisLengths[0]/thisLengths[2] - compLengths[0]/compLengths[2]) > lenTol) || \
-				(Num<double>::abs(thisLengths[1]/thisLengths[2] - compLengths[1]/compLengths[2]) > lenTol))
+			// Compare lattice parameter ratios
+			if (res)
 			{
-				Output::newline();
-				Output::print("Ratios of primitive cell lattice vector lengths do not match");
-				res = false;
+				const Vector3D& thisLengths = thisPrim.basis().lengths();
+				const Vector3D& compLengths = compPrim.basis().lengths();
+				if ((Num<double>::abs(thisLengths[0]/thisLengths[1] - compLengths[0]/compLengths[1]) > lenTol) || \
+					(Num<double>::abs(thisLengths[0]/thisLengths[2] - compLengths[0]/compLengths[2]) > lenTol) || \
+					(Num<double>::abs(thisLengths[1]/thisLengths[2] - compLengths[1]/compLengths[2]) > lenTol))
+				{
+					Output::newline();
+					Output::print("Ratios of primitive cell lattice vector lengths do not match");
+					res = false;
+				}
 			}
-		}
 		
-		// Output
-		Output::decrease();
+			// Output
+			Output::decrease();
+		}
 	}
 	
 	// Check atom positions

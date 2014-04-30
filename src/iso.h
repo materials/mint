@@ -344,7 +344,7 @@ public:
 	OList<Atom>::D2 shells(const Atom* atom, double maxDistance, double tol = 1e-4) const;
 	
 	// Compare to another structure
-	bool equivalent(const ISO& compISO, double tol, bool matchVolume = false) const;
+	bool equivalent(const ISO& compISO, double tol, bool matchVolume = false, bool matchCellParams = true) const;
 	
 	// Set the space group
 	void spaceGroup(const Word& input)	{ _spaceGroup = input; }
