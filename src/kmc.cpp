@@ -1575,7 +1575,7 @@ Vector3D KMC::runSingleSimulation(Random& random, int numNodes, Node* curNode, c
 		netAvgDsquared = (numSimulations * netAvgDsquared + avgLocalD * avgLocalD) / (numSimulations + 1);
 		
 		// Check for convergence if needed
-		if (++numSimulations >= 1000)
+		if (++numSimulations >= 10)
 		{
 			if (sqrt((netAvgDsquared - netAvgD*netAvgD) / numSimulations) / netAvgD < _convergence)
 				break;
