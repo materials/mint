@@ -2034,9 +2034,10 @@ Matrix3D Symmetry::idealTransformation(const ISO& iso, int numAtoms, bool numAto
 	Matrix3D transformedCell;
 	for (double curDet = 2; curDet <= numCells; ++curDet)
 	{
-			
+		
 		// Loop over range from -1 to 1, and -2 to 2 if needed
-		for (range = 1; range <= 2; ++range)
+		const int maxRange = 2;
+		for (range = 1; range <= maxRange; ++range)
 		{
 			
 			// Loop over all permutations of vectors to add
@@ -2118,8 +2119,9 @@ Matrix3D Symmetry::idealTransformation(const ISO& iso, int numAtoms, bool numAto
 			}
 			
 			// Break condition to improve efficiency
-			if (bestNum >= primRedSymm.operations().length()/2)
-				break;
+			// THIS SEEMS TO CAUSE BAD BEHAVIOR IF UNCOMMENTED
+			//if (bestNum >= primRedSymm.operations().length()/2)
+			//	break;
 		}
 		
 		// Save best transformation for current determinant

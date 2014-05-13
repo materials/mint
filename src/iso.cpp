@@ -653,7 +653,7 @@ Matrix3D Basis::reducedTransformation(const Matrix3D& vectors)
 	// Minimum reduction variables
 	bool firstMinRedTest = true;
 	bool minRedOn = false;
-	double minRedMult = 10;
+	double minRedMult = 100;
 	double lastA;
 	double lastB;
 	double lastC;
@@ -666,7 +666,7 @@ Matrix3D Basis::reducedTransformation(const Matrix3D& vectors)
 	transformation.makeIdentity();
 	
 	// Variables to control reduction
-	int maxLoops = 1000;
+	int maxLoops = 2500;
 	
 	// Loop until basis is in reduced form
 	int count;
@@ -752,7 +752,7 @@ Matrix3D Basis::reducedTransformation(const Matrix3D& vectors)
 					((minRedMult * B + (B - lastB)) - (B * minRedMult) == 0) && \
 					((minRedMult * C + (C - lastC)) - (C * minRedMult) == 0))
 				{
-					if ((minRedOn) && (count > 100))
+					if ((minRedOn) && (count > 50))
 						break;
 					minRedOn = true;
 				}
