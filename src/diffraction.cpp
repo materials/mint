@@ -1027,7 +1027,7 @@ void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
 		vector<vector<double> > peakTwoTheta;
 		vector<vector<double> > peakIntensity;
 		locatePeaks(peakTwoTheta, peakIntensity, twoThetaCopy, intensityCopy);
-		fitPeaks(peakTwoTheta, peakIntensity);
+		getPeakIntensities(peakTwoTheta, peakIntensity);
 
 		// Output
 		Output::decrease();
@@ -1714,7 +1714,7 @@ void Diffraction::locatePeaks(vector<vector<double> >& peakTwoTheta,
  *  be arranged in ascending order with two theta.
  * @param peakIntensity [in] 2D array containing intensities at each measured angle for each peak
  */
-void Diffraction::fitPeaks(const vector<vector<double> >& peakTwoTheta, \
+void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
         const vector<vector<double> >& peakIntensity) {
     // Clear the old peak data out
     _diffractionPeaks.clear();
@@ -1776,42 +1776,42 @@ void Diffraction::fitPeaks(const vector<vector<double> >& peakTwoTheta, \
                 peakGroup.back().push_back(peak);
         else {
             vector<int> newGroup(1, peak);
-                    peakGroup.push_back(newGroup);
+            peakGroup.push_back(newGroup);
         }
     }
     // Combine data from peak groups
-    List<double>::D3 peakGroupPoints(peakGroup.size());
-    for (int group = 0; group < peakGroup.size(); group++) {
-        int totalPeakSize = 0;
-        for (int subPeak = 0; subPeak < peakGroup[group].size(); subPeak++)
-                totalPeakSize += singlePeakPoints[peakGroup[group][subPeak]].length();
-                // Copying points from each singlePeak (in reverse order)
-                peakGroupPoints[group].length(totalPeakSize);
-            for (int subPeak = peakGroup[group].size() - 1; subPeak >= 0; subPeak--) {
-                int curPeak = peakGroup[group][subPeak];
-                for (int point = singlePeakPoints[curPeak].length() - 1; point >= 0; point--)
-                        peakGroupPoints[group][--totalPeakSize] = singlePeakPoints[curPeak][point];
-            }
-    }
+	List<double>::D3 peakGroupPoints(peakGroup.size());
+	for (int group = 0; group < peakGroup.size(); group++) {
+		int totalPeakSize = 0;
+		for (int subPeak = 0; subPeak < peakGroup[group].size(); subPeak++)
+			totalPeakSize += singlePeakPoints[peakGroup[group][subPeak]].length();
+		// Copying points from each singlePeak (in reverse order)
+		peakGroupPoints[group].length(totalPeakSize);
+		for (int subPeak = peakGroup[group].size() - 1; subPeak >= 0; subPeak--) {
+			int curPeak = peakGroup[group][subPeak];
+			for (int point = singlePeakPoints[curPeak].length() - 1; point >= 0; point--)
+				peakGroupPoints[group][--totalPeakSize] = singlePeakPoints[curPeak][point];
+		}
+	}
 
     // Part #3: Fit groups of peaks with multiple Gaussian functions. Note
     //  that each Gaussian still corresponds to a single peak.
-    for (int group = 0; group < peakGroup.size(); group++) {
-        // If only a single peak in group, do nothing
-        if (peakGroup[group].size() == 1) continue;
-        // Step #1: Extract parameters from individual Gaussians
-        Vector initialCompositeParams(3 * peakGroup[group].size());
-        for (int peak = 0; peak < peakGroup[group].size(); peak++)
-        for (int i = 0; i < 3; i++)
-            initialCompositeParams[peak * 3 + i] = gaussianParams[peakGroup[group][peak]][i];
-            // Step #2: Fit new parameters 
-            Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
-            compositeGaussFun, compositeGaussDeriv, initialCompositeParams, 1e-5);
-            // Step #3: Copy parameters back
-        for (int peak = 0; peak < peakGroup[group].size(); peak++)
-            for (int i = 0; i < 3; i++)
-                    gaussianParams[peakGroup[group][peak]][i] = compositeParams[peak * 3 + i];
-            }
+	for (int group = 0; group < peakGroup.size(); group++) {
+		// If only a single peak in group, do nothing
+		if (peakGroup[group].size() == 1) continue;
+		// Step #1: Extract parameters from individual Gaussians
+		Vector initialCompositeParams(3 * peakGroup[group].size());
+		for (int peak = 0; peak < peakGroup[group].size(); peak++)
+			for (int i = 0; i < 3; i++)
+				initialCompositeParams[peak * 3 + i] = gaussianParams[peakGroup[group][peak]][i];
+		// Step #2: Fit new parameters 
+		Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
+				compositeGaussFun, compositeGaussDeriv, initialCompositeParams, 1e-5);
+		// Step #3: Copy parameters back
+		for (int peak = 0; peak < peakGroup[group].size(); peak++)
+			for (int i = 0; i < 3; i++)
+				gaussianParams[peakGroup[group][peak]][i] = compositeParams[peak * 3 + i];
+	}
 
     // Part #4: Fit groups of peaks with multiple pseudo-Voight functions
     OList<Vector> psParams(peakTwoTheta.size());
@@ -1830,22 +1830,22 @@ void Diffraction::fitPeaks(const vector<vector<double> >& peakTwoTheta, \
 
         // Store result
         psParams[curPeak] = initialPS;
-    }
+	}
 
-    for (int group = 0; group < peakGroup.size(); group++) {
-        // Step #2: Extract parameters from individual peaks
-        Vector initialCompositeParams(8 * peakGroup[group].size());
-        for (int peak = 0; peak < peakGroup[group].size(); peak++)
-            for (int i = 0; i < 8; i++)
-                    initialCompositeParams[peak * 8 + i] = psParams[peakGroup[group][peak]][i];
-                    // Step #3: Fit new parameters 
-                    Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
-                    compositePVFun, compositePVDeriv, initialCompositeParams, 1e-5);
-                    // Step #4: Copy parameters back
-                for (int peak = 0; peak < peakGroup[group].size(); peak++)
-                    for (int i = 0; i < 8; i++)
-                            psParams[peakGroup[group][peak]][i] = compositeParams[peak * 8 + i];
-                    }
+	for (int group = 0; group < peakGroup.size(); group++) {
+		// Step #2: Extract parameters from individual peaks
+		Vector initialCompositeParams(8 * peakGroup[group].size());
+		for (int peak = 0; peak < peakGroup[group].size(); peak++)
+			for (int i = 0; i < 8; i++)
+				initialCompositeParams[peak * 8 + i] = psParams[peakGroup[group][peak]][i];
+		// Step #3: Fit new parameters 
+		Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
+				compositePVFun, compositePVDeriv, initialCompositeParams, 1e-5);
+		// Step #4: Copy parameters back
+		for (int peak = 0; peak < peakGroup[group].size(); peak++)
+			for (int i = 0; i < 8; i++)
+				psParams[peakGroup[group][peak]][i] = compositeParams[peak * 8 + i];
+	}
 
     // Part #5: Extract peak intensities, store in _diffractionPeaks
     Output::increase();
@@ -1865,6 +1865,22 @@ void Diffraction::fitPeaks(const vector<vector<double> >& peakTwoTheta, \
             // Integrate the peak
             PVPeakFunction peakFunc(this, psParams[curPeak]);
             intensity = dlib::integrate_function_adapt_simp(peakFunc, groupMin, groupMax, 1e-8);
+			
+			// Check that results make sense
+			if (intensity < 0.0) {
+				Output::newline(WARNING);
+				Output::print("Failure during peak integration - Negative intensity found near: ");
+				Output::print(location, 3);
+				Output::quit();
+			}
+			
+			// Check that the maximum is within bounds of the measurement
+			if (location < this->_minTwoTheta || location > this->_maxTwoTheta) {
+				Output::newline(WARNING);
+				Output::print("Failure during peak integration - Peak maximum outside of measured range: ");
+				Output::print(location, 3);
+				Output::quit();
+			}
             
             // Make a new peak
             Peak newPeak(location, intensity);
