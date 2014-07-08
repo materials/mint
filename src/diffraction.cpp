@@ -239,7 +239,6 @@ void Diffraction::refineParameters(std::set<RefinementParameters> toRefine) {
     if (willRefine(RF_BFACTORS, toRefine)) {
         Output::newline();
         Output::print("Also refining isotropic thermal factors. Current R Factor: ");
-        _currentlyRefining.clear();
         _currentlyRefining.insert(RF_BFACTORS);
         double curRFactor = runRefinement();
         Output::print(curRFactor, 3);
