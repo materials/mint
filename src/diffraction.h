@@ -218,7 +218,7 @@ private:
 		void removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity);
 		void locatePeaks(vector<vector<double> >& peakTwoTheta, vector<vector<double> >& peakIntensity, \
 				const vector<double>& rawTwoTheta, const vector<double>& rawIntensity);
-		void fitPeaks(const vector<vector<double> >& peakTwoTheta, \
+		void getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
                         const vector<vector<double> >& peakIntensity);
                 vector<double> getFirstDerivative(const vector<double>& x, const vector<double>& y);
                 vector<double> getSecondDerivative(const vector<double>& x, const vector<double>& y);
