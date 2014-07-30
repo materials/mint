@@ -667,13 +667,15 @@ void Diffraction::Peak::updateCalculatedIntensity() {
     derivPositions.resize(3 * _sourcePattern->_BFactors.size());
     derivPositions = 0;
 
-    // Calculate integrated intensity. (Note abscence of scale factor, which 
+    // Calculate integrated intensity. (Note absence of scale factor, which 
     //  is always optimized when calculating R factor)
     peakIntensity = structureFactorSquared(*(_sourcePattern->_symmetry), _twoThetaRad / 2,
             hkl, _sourcePattern->_BFactors, derivBfactors, derivPositions);
     // Everything but the structure factor
     double otherFactors = multiplicity * lpFactor;
     peakIntensity *= otherFactors;
+	
+	// Not currently in use, but totally useful
     // otherFactors *= getTexturingFactor(preferredOrientation, 1.666, _peaks[i][j].recipLatticeVectors);
 
     // Update B and position factor derivatives (which are currently derivatives of structure
@@ -743,7 +745,7 @@ void Diffraction::matchPeaksToReference() {
     if (_referencePattern == 0) {
         Output::newline(ERROR);
         Output::print("Internal Error: Reference pattern not set");
-        return;
+        Output::quit();
     }
     
     // Reset lookup table for which peaks in this pattern match to a each 
@@ -794,7 +796,7 @@ void Diffraction::matchPeaksToReference() {
 
 /**
  * Calculate the squared structure factor for all atoms in a crystal for certain 
- *  plane at a specific anlge.
+ *  plane at a specific angle.
  * @param symmetry [in] Symmetrical information about a structure
  * @param angle [in] Angle at which radiation is reflected
  * @param hkl [in] Crystallographic plane being considered
@@ -1100,21 +1102,20 @@ void Diffraction::symDerivatives(const Symmetry& symmetry, Vector& derivs) {
             Vector3D tempDeriv;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
         for (j = 0; j < 3; ++j)
-                tempDeriv[j] = derivs[3 * i + j];
-                tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
+			tempDeriv[j] = derivs[3 * i + j];
+			tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
             if (symmetry.orbits()[i].anyAtomsFixed())
-                    tempDeriv = 0.0;
-
-                for (j = 0; j < 3; ++j)
-                        derivs[3 * i + j] = tempDeriv[j];
-                }
+				tempDeriv = 0.0;
+			for (j = 0; j < 3; ++j)
+				derivs[3 * i + j] = tempDeriv[j];
+	}
 }
 
 /**
  * Ensure that positions obey symmetry of a crystal.
  * 
  * @param symmetry [in] Object describing the positions
- * @param postions [in,out] Derivatives with respect to each position parameter. Will be adjusted
+ * @param position [in,out] Derivatives with respect to each position parameter. Will be adjusted
  */
 void Diffraction::symPositions(const Symmetry& symmetry, Vector& position) {
     int i, j;
@@ -1462,11 +1463,11 @@ void Diffraction::smoothData(const vector<double>& rawTwoTheta, vector<double>& 
     // Weight for point at max distance away
     double farWeight = power;
 
-            // Calculate weights (linear scaling)
-            int numSmoothPoints = numPerSide * 2 + 1;
-            double weight[numSmoothPoints];
-            weight[numPerSide] = 1.0;
-            double totalWeight = 1.0;
+	// Calculate weights (linear scaling)
+	int numSmoothPoints = numPerSide * 2 + 1;
+	double weight[numSmoothPoints];
+	weight[numPerSide] = 1.0;
+	double totalWeight = 1.0;
     for (int i = 1; i <= numPerSide; i++) {
         double temp = 1.0 + (farWeight - 1.0) * (double) i / (double) numPerSide;
                 totalWeight += 2 * temp;
@@ -1500,14 +1501,14 @@ void Diffraction::smoothData(const vector<double>& rawTwoTheta, vector<double>& 
 void Diffraction::removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity) {
     // Determine how many points to include in smoothing
     double boxSize = 4.0;
-            int nPoints = (int) (boxSize / (rawTwoTheta[1] - rawTwoTheta[0]));
-            int pointsPerSide = nPoints / 2;
+	int nPoints = (int) (boxSize / (rawTwoTheta[1] - rawTwoTheta[0]));
+	int pointsPerSide = nPoints / 2;
 
-            // Weight points based on the squared inverse of their intensities
-            vector<double> fitWeight(rawIntensity.size());
+	// Weight points based on the squared inverse of their intensities
+	vector<double> fitWeight(rawIntensity.size());
     for (int i = 0; i < fitWeight.size(); i++) {
         fitWeight[i] = rawIntensity[i] > 0 ? 1.0 / rawIntensity[i] : 10;
-                fitWeight[i] *= fitWeight[i]; fitWeight[i] *= fitWeight[i];
+		fitWeight[i] *= fitWeight[i]; fitWeight[i] *= fitWeight[i];
     }
 
 
@@ -1532,7 +1533,7 @@ void Diffraction::removeBackground(vector<double>& rawTwoTheta, vector<double>& 
 
     // If desired, print out background-less signal
     if (LW_EXCESSIVE_PRINTING == 1)
-            savePattern("xray-nobackground.out", rawTwoTheta, rawIntensity, backgroundSignal);
+		savePattern("xray-nobackground.out", rawTwoTheta, rawIntensity, backgroundSignal);
 }
 
 
@@ -1768,16 +1769,17 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
     // Detect which peaks are in contact
     vector<vector<int> > peakGroup; peakGroup.reserve(peakTwoTheta.size());
     {
-        vector<int> newVec; newVec.push_back(0); peakGroup.push_back(newVec); }
-    for (int peak = 1; peak < peakTwoTheta.size(); peak++) {
-        double peakStart = peakTwoTheta[peak].front();
-                double lastGroupEnd = peakTwoTheta[peakGroup.back().back()].back();
-        if (peakStart - lastGroupEnd < 0.1)
-                peakGroup.back().push_back(peak);
-        else {
-            vector<int> newGroup(1, peak);
-            peakGroup.push_back(newGroup);
-        }
+        vector<int> newVec; newVec.push_back(0); peakGroup.push_back(newVec); 
+	}
+	for (int peak = 1; peak < peakTwoTheta.size(); peak++) {
+		double peakStart = peakTwoTheta[peak].front();
+		double lastGroupEnd = peakTwoTheta[peakGroup.back().back()].back();
+		if (peakStart - lastGroupEnd < 0.1)
+			peakGroup.back().push_back(peak);
+		else {
+			vector<int> newGroup(1, peak);
+			peakGroup.push_back(newGroup);
+		}
     }
     // Combine data from peak groups
 	List<double>::D3 peakGroupPoints(peakGroup.size());
