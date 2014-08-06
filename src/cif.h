@@ -40,8 +40,8 @@ class CIF
 	enum Tag {tag_unknown, atom_site_label, atom_site_type_symbol, atom_site_fract_x, atom_site_fract_y, \
 		atom_site_fract_z, atom_site_occupancy, cell_length_a, cell_length_b, cell_length_c, cell_angle_alpha, \
 		cell_angle_beta, cell_angle_gamma, space_group_IT_number, space_group_symop_operation_xyz, \
-		symmetry_Int_Tables_number, symmetry_space_group_name_H_M, symmetry_equiv_pos_as_xyz, chemical_formula_sum, \
-		cell_formula_units_Z};
+		symmetry_Int_Tables_number, space_group_name_H_M, space_group_name_Hall, \
+		symmetry_equiv_pos_as_xyz, chemical_formula_sum, cell_formula_units_Z};
 	
 	// Functions
 	static bool checkTag(Tag tag, OList<Word>& curLine, Vector3D& lengths, Vector3D& angles, \
