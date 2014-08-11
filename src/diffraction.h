@@ -36,7 +36,7 @@
 #include "dlib/optimization.h"
 
 // Set == 1 to print out diffraction pattern at each stage
-#define LW_EXCESSIVE_PRINTING 0
+#define LW_EXCESSIVE_PRINTING 1
 
 /**
  * Object used to calculate, store, and compare diffraction peaks. 
@@ -212,9 +212,9 @@ private:
 	// =========================================
 		
 		// Analyze a raw pattern
-                void set(vector<double>& twoTheta, vector<double>& intensity);
+		void set(vector<double>& twoTheta, vector<double>& intensity);
 		void smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity, \
-                        const int numPerSide = 2, const double power = 0.25);
+						const int numPerSide = 2, const double power = 0.25);
 		void removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity);
 		void locatePeaks(vector<vector<double> >& peakTwoTheta, vector<vector<double> >& peakIntensity, \
 				const vector<double>& rawTwoTheta, const vector<double>& rawIntensity);
@@ -235,13 +235,27 @@ private:
 		double PV(const Vector& params, double twoTheta);
 		Vector PVderivs(const Vector& params, double twoTheta);
 		double PVderiv(const Vector& params, double twoTheta);
-                double compositePV(const Vector& params, double twoTheta);
-                Vector compositePVDerivs(const Vector& params, double twoTheta);
-                                
-                // Debugging functions
-                void savePattern(const Word& filename, const vector<double>& twoTheta,
-                        const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
+		double compositePV(const Vector& params, double twoTheta);
+		Vector compositePVDerivs(const Vector& params, double twoTheta);
+
+		// Debugging functions
+		void savePattern(const Word& filename, const vector<double>& twoTheta,
+				const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
+
+protected:
 	
+	// Get diffraction pattern
+	/**
+	 * Given diffraction angle, return diffracted intensity
+     * @param twoTheta Diffraction angle
+     * @return Diffracted intensity at each specified angle
+     */
+	virtual vector<double> getDiffractedIntensity(vector<double> twoTheta);
+	
+	/**
+	 * 
+     */
+	virtual vector<Diffraction::Peak> getDiffractedPeaks();
                 
 public:
 	
@@ -261,7 +275,7 @@ public:
 	
 	// Setup functions
 	void clear();
-	
+		
 	// Check if file is correct format
 	static bool isFormat(const Text& text);
 	static bool isFormat(const Word& file)	{ return isFormat(Read::text(file)); }
@@ -269,7 +283,7 @@ public:
 	// Set from file, existing data, or a structure
 	void set(const Text& text);
 	void set(const Word& file)	{ set(Read::text(file)); }
-        void set(const Linked<double>& twoTheta, const Linked<double>& intensity);
+	void set(const Linked<double>& twoTheta, const Linked<double>& intensity);
 	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, bool fitBfactors = false);
 	
 	// Refine a structure
@@ -282,18 +296,42 @@ public:
 	void print(const Word& file, bool broaden = false) const;
 	
 	// Access functions
-        PatternType patternType() { return _type; }
+	PatternType patternType() { return _type; }
 	bool isSet() const { return (_peakTwoTheta.size() > 0); }
 	double wavelength() const { return _wavelength; }
         
-        // Friendships
-        friend class RFactorFunctionModel;
-        friend class RFactorDerivativeFunctionalModel;
-        friend class Diffraction::Peak;
-        friend class PVPeakFunction;
+	// Friendships
+	friend class RFactorFunctionModel;
+	friend class RFactorDerivativeFunctionalModel;
+	friend class Diffraction::Peak;
+	friend class PVPeakFunction;
 };
 
+/**
+ * Represents a powder diffraction pattern from an experimental source. 
+ * 
+ * <p>Key functionality:
+ * <ul>
+ * <li>Read in diffraction patterns from file
+ * </ul>
+ */
+class ExperimentalPattern : public Diffraction {
+	
+};
 
+/**
+ * Represents the calculated powder diffraction pattern from a structure.
+ * 
+ * Key functionality:
+ * <ul>
+ * <li>Generate peak locations and intensities
+ * <li>Generate intensity as a continuous function of angle
+ * <li>Refine crystal structure and other parameters to better match a reference pattern
+ * </ul>
+ */
+class CalculatedPattern : public Diffraction {
+	
+};
 
 /**
  * Utility class designed to store peak positions and intensities. Also contains 
