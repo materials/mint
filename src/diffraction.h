@@ -289,7 +289,7 @@ public:
 	
 	// Access functions
 	PatternType patternType() { return _type; }
-	bool isSet() const { return (_method != 0); }
+	bool isSet() const { return (_method != DM_NONE); }
 	double wavelength() const { return _wavelength; }
 	Method method() const { return _method; }
 	double minTwoTheta() const { return _minTwoTheta; }
