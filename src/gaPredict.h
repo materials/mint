@@ -85,7 +85,7 @@ class GAPredict
 	
 	// Storage
 	Potential* _potential;
-	Diffraction* _diffraction;
+	CalculatedPattern* _diffraction;
 	Diffraction* _refDiffraction;
 	
 	// Functions

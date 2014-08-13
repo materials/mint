@@ -70,7 +70,7 @@ class Storage
 	Potential _potential;
 	Phonons _phonons;
 	Text _kmc;
-	Diffraction _diffraction;
+	ExperimentalPattern _diffraction;
 	Random _random;
 	
 public:
@@ -103,7 +103,7 @@ public:
 	Potential& potential()		{ return _potential; }
 	Phonons& phonons()			{ return _phonons; }
 	Text& kmc()					{ return _kmc; }
-	Diffraction& diffraction()	{ return _diffraction; }
+	ExperimentalPattern& diffraction()	{ return _diffraction; }
 	Random& random()			{ return _random; }
 };
 

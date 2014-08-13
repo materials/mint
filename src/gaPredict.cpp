@@ -235,7 +235,7 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	StructureIO::addExtension(structureFile, structureFormat);
 	
 	// Create diffraction object
-	Diffraction curDiffraction;
+	CalculatedPattern curDiffraction;
 	_diffraction = &curDiffraction;
 	
 	// Loop over number of simulations to run

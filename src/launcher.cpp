@@ -913,7 +913,7 @@ void Launcher::runSetup(Storage& data, Functions& functions, bool& keepFree)
 	{
 		
 		// Found a diffraction file
-		if (Diffraction::isFormat(content[i]))
+		if (ExperimentalPattern::isFormat(content[i]))
 		{
 			
 			// Diffraction has already been set
@@ -2904,7 +2904,7 @@ void Launcher::refine(Storage& data, const Function& function)
 		Word tag = " > Refined against diffraction pattern";
 		
 		// Loop over structures
-		Diffraction tempPattern;
+		CalculatedPattern tempPattern;
 		for (i = 0; i < data.iso().length(); i++)
 		{
 
@@ -3171,11 +3171,9 @@ void Launcher::forces(Storage& data)
 
 
 
-/* void Launcher::diffraction(Storage& data, const Function& function)
- *
+/**
  * Calculate diffraction pattern
  */
-
 void Launcher::diffraction(Storage& data, const Function& function)
 {
 	
@@ -3191,7 +3189,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 			
 			// Current file is not an diffraction pattern
 			files += Read::text(function.arguments()[i]);
-			if (!Diffraction::isFormat(files.last()))
+			if (!ExperimentalPattern::isFormat(files.last()))
 				files.length(files.length() - 1);
 		}
 	}
@@ -3298,7 +3296,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		Output::increase();
 		
 		// Loop over files and get overlaps
-		Diffraction comp;
+		ExperimentalPattern comp;
 		for (i = 0; i < files.length(); ++i)
 		{
 			
@@ -3357,7 +3355,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	updateSymmetry(data);
 	
 	// Loop over structures and get diffraction pattern
-	OList<Diffraction> patterns(data.iso().length());
+	OList<CalculatedPattern> patterns(data.iso().length());
 	List<double> match(data.iso().length());
 	for (i = 0; i < data.iso().length(); ++i)
 	{

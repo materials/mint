@@ -33,8 +33,7 @@
  *
  * Read PDF file and save structure information and diffraction pattern
  */
-
-void PDF::read(Diffraction& diffraction, Text content, ISO* iso)
+void PDF::read(ExperimentalPattern& diffraction, Text content, ISO* iso)
 {
 	
 	// Output
@@ -305,7 +304,7 @@ void PDF::read(Diffraction& diffraction, Text content, ISO* iso)
 		Output::print("Setting wavelength to ");
 		Output::print(wavelength);
 		Output::print(" Ang");
-		diffraction.wavelength(wavelength);
+		diffraction.setWavelength(wavelength);
 	}
 	else
 	{

@@ -34,9 +34,170 @@
 #include <set>
 #include <valarray>
 #include "dlib/optimization.h"
+#include "output.h"
 
 // Set == 1 to print out diffraction pattern at each stage
 #define LW_EXCESSIVE_PRINTING 1
+
+// Diffraction pattern determination methods
+enum Method {DM_XRAY, DM_NEUTRON, DM_SIMPLE, DM_NONE};
+
+/**
+ * Utility class designed to store peak positions and intensities. Also contains 
+ *  the ability to calculate integrated peak intensities for patterns calculated from
+ *  a known structure.
+ */
+class DiffractionPeak {
+public:
+	
+    /**
+     * Create a peak found in a measured diffraction pattern (only requires the 
+     *  measured intensity and angle)
+     * @param twoThetaDegrees Bragg angle of peak in degrees
+     * @param intensity Intensity of peak (units don't matter)
+     */
+    DiffractionPeak(double twoThetaDegrees, double intensity) {
+        this->TwoThetaDeg = twoThetaDegrees;
+        this->_twoThetaRad = Num<double>::toRadians(twoThetaDegrees);
+        this->peakIntensity = intensity;
+        this->patternIndex = -1;
+    }
+    
+    // --> Operations to access data about this peak
+    /** 
+     * Get Bragg angle (twoTheta) for this peak in degrees.
+     */
+    double getAngle() const { return TwoThetaDeg; }
+    
+    // Get integrated intensity for this peak
+    double getIntensity() const { return this->peakIntensity; }
+    
+    // Index of matching peak in reference pattern
+    int patternIndex;
+	
+    // ---> Utility operations (allow this class to be used efficiently)
+    DiffractionPeak& operator= (const DiffractionPeak& rhs) {
+            if (this != &rhs) {
+                    patternIndex = rhs.patternIndex;
+                    TwoThetaDeg = rhs.TwoThetaDeg;
+                    _twoThetaRad = rhs._twoThetaRad;
+                    peakIntensity = rhs.peakIntensity;
+            }
+            return *this;
+    }
+    
+    bool operator< (const DiffractionPeak rhs) const {
+        return TwoThetaDeg < rhs.TwoThetaDeg;
+    }
+    
+protected:
+        
+    // Angle of peak in radians
+    double _twoThetaRad;
+    // Angle of peak in degrees
+    double TwoThetaDeg;
+    // Intensity of peak 
+    double peakIntensity;
+    
+};
+
+/**
+ * Create a new peak corresponding to a peak in a calculated diffraction pattern. 
+ * For computational efficiency, this constructor assumes many of the parameters
+ * related to symmetry have already been calculated. 
+ * 
+ * Developer's note: Since the Bragg angle and reciprocal lattice vectors are supplied,
+ *  peaks diffraction angles will not change if the lattice parameters
+ *  of the structure used to generate this object are changed.
+ * 
+ * @param wavelength Wavelength of incident radiation
+ * @param twoThetaDegrees Bragg angle of peak in degrees
+ * @param multiplicity Multiplicity factor for this peak
+ * @param hkl A plane index that represents this peak
+ * @param equivHKL Reciprocal lattice vectors of all planes
+ *   contributing to this peak
+ */
+class CalculatedPeak : public DiffractionPeak {
+	
+public:
+	/**
+     * Create a new peak corresponding to a peak in a calculated diffraction pattern. 
+     * For computational efficiency, this constructor assumes many of the parameters
+     * related to symmetry have already been calculated. 
+     * 
+     * Developer's note: Since the Bragg angle and reciprocal lattice vectors are supplied,
+     *  peaks diffraction angles will not change if the lattice parameters
+     *  of the structure used to generate this object are changed.
+	 * 
+	 * @param method Method used to compute diffraction peaks
+	 * @param structure ISO representing the structure from which this peak is calculated
+	 * @param symmetry Symmetry object representing symmetry of structure
+     * @param wavelength Wavelength of incident radiation
+     * @param multiplicity Multiplicity factor for this peak
+     * @param hkl A plane index that represents this peak
+     * @param reciprocalLatticeVectors Reciprocal lattice vectors of all planes
+     *   contributing to this peak
+     */
+    CalculatedPeak(Method method, const ISO* structure, const Symmetry* symmetry, double wavelength, 
+			Vector3D hkl, std::vector<Vector3D> equivHKL) :	DiffractionPeak(-1, -1) {
+		this->method = method;
+		this->structure = structure;
+		this->symmetry = symmetry;
+		this->_twoThetaRad = CalculatedPeak::getDiffractionAngle(structure->basis(),hkl,wavelength);
+		this->TwoThetaDeg = Num<double>::toDegrees(this->_twoThetaRad);
+        this->wavelength = wavelength;
+		this->multiplicity = equivHKL.size();
+        this->hkl = hkl;
+        this->equivHKL = equivHKL;
+        this->lpFactor = getLPFactor(_twoThetaRad / 2.0);
+    }
+
+    void updateCalculatedIntensity(vector<double> BFactors, List<double>::D2 atfParams);
+	
+	static double getDiffractionAngle(const Basis& basis, const Vector3D& hkl, double wavelength);	
+	
+	CalculatedPeak& operator= (const CalculatedPeak& rhs) {
+            if (this != &rhs) {
+                    patternIndex = rhs.patternIndex;
+                    TwoThetaDeg = rhs.TwoThetaDeg;
+                    _twoThetaRad = rhs._twoThetaRad;
+                    peakIntensity = rhs.peakIntensity;
+                    lpFactor = rhs.lpFactor;
+                    multiplicity = rhs.multiplicity;
+                    hkl = rhs.hkl;
+                    equivHKL = rhs.equivHKL;
+            }
+            return *this;
+    }
+	
+private:
+	
+	// Method used to compute diffraction intensity
+	Method method;
+	// Pointer to the structure 
+	const ISO* structure;
+	// Pointer the symmetry description of structure
+	const Symmetry* symmetry;
+    // Wavelength of incident radiation
+    double wavelength;
+    // Index of family of planes which result in this peak
+    Vector3D hkl;
+    // Reciprocal lattice vectors of each member of the family of planes
+    std::vector<Vector3D> equivHKL;
+    // Lorentz polarization factor for this peak
+    double lpFactor;
+    // Multiplicity for this peak
+    double multiplicity;
+	
+	// ---> Operations used to calculate diffraction peak intensity
+    static double getLPFactor(double angle);
+    static double thermalFactor(double angle, double wavelength, double Bfactor = 1);
+    static double getAbsorptionFactor(double angle, double uEff);
+    static double getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors );
+    static double structureFactorSquared(Method method, double wavelength, const Symmetry& symmetry, double angle, \
+			const Vector3D& hkl, vector<double> BFactors, List<double>::D2 atfParams);
+    static double atomicScatteringFactor(List<double>& atfParams, double angle, double wavelength);
+};
 
 /**
  * Object used to calculate, store, and compare diffraction peaks. 
@@ -49,245 +210,76 @@ public:
     enum PatternType {PT_EXP_RAW, // Raw pattern from experiment, raw pattern
         PT_EXP_INT, // Raw pattern from experiment, integrated intensities
         PT_CALCULATED}; // Pattern calculated from a crystal structure
-
-    // Evaluation methods
-    enum Method {DM_XRAY, DM_NEUTRON, DM_SIMPLE};
-	
-    /**
-     * Definition of structure to store a single peak 
-     */
-    class Peak;
-    
-    // Used by Dlib
-    typedef dlib::matrix<double, 0, 1> column_vector;
-        
-private:
-    
-    // Methods for calculating R factors
+		
+	// Methods for calculating R factors
     enum Rmethod {DR_ABS, /** Method often used to report matches in lit : <br>
                            * R = sum(|I_ref - scale * I_calc|) / sum(I_ref) */
     DR_SQUARED /** Method used in refinement with integrated intensities 
                 * (because it is differentiable):<br>
                 * R = sum[ (I_ref - I_calc) ^ 2 ] / sum[ I_ref^2 ] */
     };
-        	
+        
+protected:
+      	
     // ==============================
     // General variables and methods
     // ==============================
     
     // Type of diffraction pattern
     PatternType _type;
-
-    /** Stores each diffracted peak in the pattern. For measured patterns, this 
-     * just stores the angle and intensity (this information is duplicated in 
-     * peak twoTheta. For calculated patterns, the contained Peak objects are 
-     * be used to store peak parameters and store integrated intensities
-     */
-    vector<Peak> _diffractionPeaks;
-    
-    // Angle of each peak in a diffraction pattern
-    valarray<double> _peakTwoTheta;
-    // Intensity of each peak in a diffraction pattern
-    valarray<double> _integratedIntensity;
-    
-    // Continuous x-ray pattern: Either broadened peaks or raw pattern - Angular component
-    valarray<double> _continuousTwoTheta;
-    // Continuous x-ray pattern: Either broadened peaks or raw pattern - Intensity component
-    valarray<double> _continuousIntensity;
-
-    // Experimental technique used to generate a pattern
+	
+	// Experimental technique used to generate a pattern
     Method _method;
+        
     // Wavelength of diffracted radiation
     double _wavelength;
     // Minimum angle at which diffracted intensities were measured
     double _minTwoTheta;
     // Maximum angle at which diffracted intensities were measured
     double _maxTwoTheta;
-    // Minimum measured intensity (LW 19Feb14: Not used??)
-    double _minRelativeIntensity;
-    // Width of peaks, used when printing
-    double _fwhm;
-    // Width of peaks, used when printing (LW 24Feb14: not sure why different than _fwhm)
-    double _variance;
-    // Halt refinement if RFactor changes less than this threshold (LW 19Feb2014: Not used??)
-    double _fitAccuracyRFactor;
-    // Halt refinement if derivatives of RFactor wrt all parameters is less than this threshold
-    double _fitAccuracyDerivs;
-    // Minimum allowed B factor
-    double _minBFactor;
-    // Maximum allowed B factor
-    double _maxBFactor;
     // Minimum distance between any two features in a diffraction pattern (degrees)
     static double _resolution;
 	
-    // ====================================
-    // Calculate a pattern for a structures
-    // ====================================
-    
-    /*
-     * The following variables are parameters used when calculating a
-     * diffraction pattern and are changed when refining the provided structural
-     * model against experimental data.
-     */
-    // Holds the internal degrees of freedom (atomic positions)
-    const Symmetry* _symmetry;
-    // Holds information about basis vectors and such
-    const ISO* _structure;
-    // B factors of each symmetrically-unique sets of atoms
-    vector<double> _BFactors;
-    
-    
-    /*
-     * These variables hold results of calculations, in order to save on 
-     * computation time later.
-     */
-    // Atomic form factor parameters for each symmetrically-unique set of atoms
-    List<double>::D2 _atfParams;
-		
-    // --> Operations that ready this object to calculate peaks / refine
-    void defineStructure(const ISO& structure, const Symmetry& symmetry);
-    bool structureIsDefined();
-    void initializeRefinementParameters();
-    void setATFParams();
-    void calculatePeakLocations();
-    void matchPeaksToReference();
-    double getDiffractionAngle(const Basis& basis, const Vector3D& hkl);
-    
-    // --> Operations are used when calculating peak intensities
-    void calculatePeakIntensities();
-    void scaleIntensity(double max);
-    void extractIntensities();
-	
-    // ===================================
-    // Optimize calculated pattern against reference
-    // ===================================
-    
-    enum RefinementParameters { RF_BFACTORS, RF_POSITIONS };
-    
-    /**
-     * Which parameters are currently being refined
-     */
-    std::set<RefinementParameters> _currentlyRefining;
-    
-    // Pattern that is being refined against
-    const Diffraction* _referencePattern;
-    // Index of peaks in this pattern which match a given peak in the reference
+	// Index of peaks in this pattern which match a given peak in the reference
     vector<vector<int> > _matchingPeaks;
     // Index of peaks that do not match something in the calculated pattern
     vector<int> _unmatchedPeaks;
-    
-    // --> Derivatives of R factor wrt several parameters. These are updated each
-    //  time getCurRFactor is called. 
-    // Derivative of R wrt position vectors (same order as positions stored in _symmetry)
-    valarray<double> _PositionDerivs;
-    // Derivative of R wrt thermal factors
-    valarray<double> _BFactorDerivs;
-    
-    
-    // --> Operations used to set up refinement problem
-    void defineReferencePattern(const Diffraction& reference);
-    bool referencePatternIsDefined();
-    
-    // --> Operation employed by user to refine a calculated pattern
-    void refineParameters(std::set<RefinementParameters> toRefine);
-    
-    // --> Operations used directly by refineStructure
-    bool willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine);
-    double runRefinement();
-    column_vector getRefinementParameters();
-    column_vector getRefinementParameterDerivatives(column_vector x);
-    column_vector getRefinementParameterLowerBoundary();
-    column_vector getRefinementParameterUpperBoundary();
-    void setAccordingToParameters(column_vector params);
-    double getCurrentRFactor(Rmethod rMethod = DR_ABS);
-    
-    // --> Utility operations used during refinement
-    void setPositions(const Symmetry& symmetry, const Vector& positions);
-    void symPositions(const Symmetry& Symmetry, Vector& positions);
-    void symDerivatives(const Symmetry& symmetry, Vector& derivs);
-		
 	
-	// =========================================
-	// Stuff related to processing raw patterns
-	// =========================================
-		
-		// Analyze a raw pattern
-		void set(vector<double>& twoTheta, vector<double>& intensity);
-		void smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity, \
-						const int numPerSide = 2, const double power = 0.25);
-		void removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity);
-		void locatePeaks(vector<vector<double> >& peakTwoTheta, vector<vector<double> >& peakIntensity, \
-				const vector<double>& rawTwoTheta, const vector<double>& rawIntensity);
-		void getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
-                        const vector<vector<double> >& peakIntensity);
-                vector<double> getFirstDerivative(const vector<double>& x, const vector<double>& y);
-                vector<double> getSecondDerivative(const vector<double>& x, const vector<double>& y);
-                
-		// Functions for fitting Gaussian function
-		// Params order H, 2*theta_k, I0
-		double gaussian(const Vector& params, double twoTheta);
-		Vector gaussianDerivs(const Vector& params, double twoTheta);
-                double compositeGaussian(const Vector& params, double twoTheta);
-                Vector compositeGaussianDerivs(const Vector& params, double twoTheta);
+	// Used when calculating match between two problems
 	
-		// Functions for fitting pseudo-Voigt function
-		// Params order: eta0, eta1, eta2, 2*theta_k, u, v, w, I0
-		double PV(const Vector& params, double twoTheta);
-		Vector PVderivs(const Vector& params, double twoTheta);
-		double PVderiv(const Vector& params, double twoTheta);
-		double compositePV(const Vector& params, double twoTheta);
-		Vector compositePVDerivs(const Vector& params, double twoTheta);
-
-		// Debugging functions
-		void savePattern(const Word& filename, const vector<double>& twoTheta,
-				const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
-
-protected:
+	virtual void matchPeaksToReference(const Diffraction& referencePattern);
 	
-	// Get diffraction pattern
-	/**
-	 * Given diffraction angle, return diffracted intensity
-     * @param twoTheta Diffraction angle
-     * @return Diffracted intensity at each specified angle
-     */
-	virtual vector<double> getDiffractedIntensity(vector<double> twoTheta);
-	
-	/**
-	 * 
-     */
-	virtual vector<Diffraction::Peak> getDiffractedPeaks();
+	double getCurrentRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
                 
 public:
+	
+	/**
+	 * Given diffraction angle, return diffracted intensity
+     * @param twoTheta [in/out] Diffraction angle will be sorted
+     * @return Diffracted intensity at each specified angle
+     */
+	virtual vector<double> getDiffractedIntensity(vector<double>& twoTheta) const = 0;
+	
+	/**
+	 * Get a list of diffraction peaks
+	 * @return List of diffraction peaks
+     */
+	virtual vector<DiffractionPeak> getDiffractedPeaks() const = 0;
 	
 	// Constructors
 	Diffraction();
 	
 	// Set settings
-	void setMethod(Method input)				{ _method = input; }
-	void wavelength(double input)			{ _wavelength = input; }
-	void minTwoTheta(double input)			{ _minTwoTheta = input; }
-	void maxTwoTheta(double input)			{ _maxTwoTheta = input; }
-	void minRelativeIntensity(double input)	{ _minRelativeIntensity = input; }
-	void fwhm(double input)					{ _fwhm = input; _variance = pow(input / (2 * sqrt(2 * log(2))), 2); }
-	void variance(double input)				{ _variance = input; _fwhm = 2 * sqrt(2 * log(2) * input); }
-	void fitAccuracyRFactor(double input)	{ _fitAccuracyRFactor = input; }
-	void fitAccuracyDerivs(double input)	{ _fitAccuracyDerivs = input; }
+	void setMethod(Method input)		{ _method = input; }
+	void setWavelength(double input)	{ _wavelength = input; }
+	void setMinTwoTheta(double input)	{ _minTwoTheta = input; }
+	void setMaxTwoTheta(double input)	{ _maxTwoTheta = input; }
 	
 	// Setup functions
-	void clear();
-		
-	// Check if file is correct format
-	static bool isFormat(const Text& text);
-	static bool isFormat(const Word& file)	{ return isFormat(Read::text(file)); }
-	
-	// Set from file, existing data, or a structure
-	void set(const Text& text);
-	void set(const Word& file)	{ set(Read::text(file)); }
-	void set(const Linked<double>& twoTheta, const Linked<double>& intensity);
-	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, bool fitBfactors = false);
-	
-	// Refine a structure
-	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings = true);
+	virtual void clear() {
+		_matchingPeaks.clear();
+		_unmatchedPeaks.clear();
+	}
 	
 	// Get R factor for two patterns
 	double rFactor(const Diffraction& reference);
@@ -297,14 +289,11 @@ public:
 	
 	// Access functions
 	PatternType patternType() { return _type; }
-	bool isSet() const { return (_peakTwoTheta.size() > 0); }
+	bool isSet() const { return (_method != 0); }
 	double wavelength() const { return _wavelength; }
-        
-	// Friendships
-	friend class RFactorFunctionModel;
-	friend class RFactorDerivativeFunctionalModel;
-	friend class Diffraction::Peak;
-	friend class PVPeakFunction;
+	Method method() const { return _method; }
+	double minTwoTheta() const { return _minTwoTheta; }
+	double maxTwoTheta() const { return _maxTwoTheta; }         
 };
 
 /**
@@ -316,7 +305,81 @@ public:
  * </ul>
  */
 class ExperimentalPattern : public Diffraction {
+private: 
+	// =====================================
+	// Data describing the diffraction pattern
+	// =====================================
+	// Continuous x-ray pattern: Only filled when a raw pattern is imported
+    valarray<double> _continuousTwoTheta; // LW 12Aug14: Rename this after porting
+    // Continuous x-ray pattern: Only filled when a raw pattern is imported
+    valarray<double> _continuousIntensity;
 	
+	/** 
+	 * Stores each diffraction peak in the pattern. These values are either 
+	 * stored directly from input data if integrated intensities are provided,
+	 * or calculated directly from a raw pattern.
+     */
+    vector<DiffractionPeak> _diffractionPeaks;
+	
+	// =========================================
+	// Stuff related to processing raw patterns
+	// =========================================
+
+	// Analyze a raw pattern
+	void set(vector<double>& twoTheta, vector<double>& intensity);
+	void smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity, \
+			const int numPerSide = 2, const double power = 0.25);
+	void removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity);
+	void locatePeaks(vector<vector<double> >& peakTwoTheta, vector<vector<double> >& peakIntensity, \
+			const vector<double>& rawTwoTheta, const vector<double>& rawIntensity);
+	void getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
+			const vector<vector<double> >& peakIntensity);
+	vector<double> getFirstDerivative(const vector<double>& x, const vector<double>& y);
+	vector<double> getSecondDerivative(const vector<double>& x, const vector<double>& y);
+
+	// Functions for fitting Gaussian function
+	// Params order H, 2*theta_k, I0
+	double gaussian(const Vector& params, double twoTheta);
+	Vector gaussianDerivs(const Vector& params, double twoTheta);
+	double compositeGaussian(const Vector& params, double twoTheta);
+	Vector compositeGaussianDerivs(const Vector& params, double twoTheta);
+
+	// Functions for fitting pseudo-Voigt function
+	// Params order: eta0, eta1, eta2, 2*theta_k, u, v, w, I0
+	double PV(const Vector& params, double twoTheta);
+	Vector PVderivs(const Vector& params, double twoTheta);
+	double PVderiv(const Vector& params, double twoTheta);
+	double compositePV(const Vector& params, double twoTheta);
+	Vector compositePVDerivs(const Vector& params, double twoTheta);
+
+	// Debugging functions
+	void savePattern(const Word& filename, const vector<double>& twoTheta,
+			const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
+	
+public:
+
+	void clear() {
+		_continuousIntensity.resize(0);
+		_continuousTwoTheta.resize(0);
+		_diffractionPeaks.clear();
+	}
+	
+
+	virtual vector<DiffractionPeak> getDiffractedPeaks() const;
+
+	vector<double> getDiffractedIntensity(vector<double>& twoTheta) const;
+
+	// Set from file or other data
+	void set(const Text& text);
+	void set(const Word& file)	{ set(Read::text(file)); }
+	void set(const Linked<double>& twoTheta, const Linked<double>& intensity);
+	
+	// Check if file is correct format
+	static bool isFormat(const Text& text);
+	static bool isFormat(const Word& file)	{ return isFormat(Read::text(file)); }
+	
+	// Friendships
+	friend class PVPeakFunction;
 };
 
 /**
@@ -330,141 +393,103 @@ class ExperimentalPattern : public Diffraction {
  * </ul>
  */
 class CalculatedPattern : public Diffraction {
-	
-};
-
-/**
- * Utility class designed to store peak positions and intensities. Also contains 
- *  the ability to calculate integrated peak intensities for patterns calculated from
- *  a known structure.
- */
-class Diffraction::Peak {
-    friend class Diffraction;
 public:
-    /**
-     * Create a peak found in a measured diffraction pattern (only requires the 
-     *  measured intensity and angle)
-     * @param twoThetaDegrees Bragg angle of peak in degrees
-     * @param intensity Intensity of peak (units don't matter)
-     */
-    Peak(double twoThetaDegrees, double intensity) {
-        this->TwoThetaDeg = twoThetaDegrees;
-        this->_twoThetaRad = Num<double>::toRadians(twoThetaDegrees);
-        this->peakIntensity = intensity;
-        this->patternIndex = -1;
-    }
-    
-    /**
-     * Create a new peak corresponding to a peak in a calculated diffraction pattern. 
-     * For computational efficiency, this constructor assumes many of the parameters
-     * related to symmetry have already been calculated. 
-     * 
-     * Developer's note: Since the Bragg angle and reciprocal lattice vectors are supplied,
-     *  peaks diffraction angles will not change if the lattice parameters
-     *  of the structure used to generate this object are changed.
-     * @param _sourcePattern Link to the source Diffraction object, which contains parameters
-     *  used to calculate diffraction angles
-     * @param twoThetaDegrees Bragg angle of peak in degrees
-     * @param multiplicity Multiplicity factor for this peak
-     * @param hkl A plane index that represents this peak
-     * @param reciprocalLatticeVectors Reciprocal lattice vectors of all planes
-     *   contributing to this peak
-     */
-    Peak(const Diffraction* _sourcePattern, double twoThetaDegrees, int multiplicity, 
-        Vector3D hkl, std::vector<Vector3D> reciprocalLatticeVectors) {
-        this->_sourcePattern = _sourcePattern;
-        this->TwoThetaDeg = twoThetaDegrees;
-        this->_twoThetaRad = Num<double>::toRadians(twoThetaDegrees);
-        this->multiplicity = multiplicity;
-        this->hkl = hkl;
-        this->recipLatticeVectors = reciprocalLatticeVectors;
-        this->lpFactor = getLPFactor(_twoThetaRad / 2.0);
-        this->peakIntensity = -1; // Needs to be calculated at least once
-        this->patternIndex = -2; // Means that it has not been set by anything
-    }
-    
-    // --> Operations to access data about this peak
-    /** 
-     * Get Bragg angle (twoTheta) for this peak in degrees.
-     */
-    double getAngle() { return TwoThetaDeg; }
-    
-    // Get integrated intensity for this peak
-    double getIntensity() { return this->peakIntensity; }
-    
-    // Index of matching peak in reference pattern
-    int patternIndex;    
-    
-    /** Update calculated intensity. Use to either initialize calculated value
-     * or to update value (and derivatives) during refinement.
-     */
-    void updateCalculatedIntensity();
-
-    // ---> Utility operations (allow this class to be used efficiently)
-    Peak& operator= (const Peak& rhs) {
-            if (this != &rhs) {
-                    patternIndex = rhs.patternIndex;
-                    TwoThetaDeg = rhs.TwoThetaDeg;
-                    _twoThetaRad = rhs._twoThetaRad;
-                    peakIntensity = rhs.peakIntensity;
-                    lpFactor = rhs.lpFactor;
-                    multiplicity = rhs.multiplicity;
-                    hkl = rhs.hkl;
-                    recipLatticeVectors = rhs.recipLatticeVectors;
-                    derivBfactors = rhs.derivBfactors;
-                    derivPositions = rhs.derivPositions;
-            }
-            return *this;
-    }
-    
-    bool operator< (const Diffraction::Peak rhs) const {
-        return TwoThetaDeg < rhs.TwoThetaDeg;
-    }
-    
+	// Used by Dlib
+    typedef dlib::matrix<double, 0, 1> column_vector;
+	
 private:
-    enum PeakType {PKT_MEASURED, // Peak intensity is measured, does not need to be calculated on the fly
-        PKT_CALCULATED}; // Peak intensity is calculated, must be calculated at some point
-        
-    // ---> General variables: Used regardless of whether this a calculated peak or not
-    // Angle of peak in radians
-    double _twoThetaRad;
-    // Angle of peak in degrees
-    double TwoThetaDeg;
-    // Intensity of peak 
-    double peakIntensity;
-    
-
-    
-    // ---> Variables used to calculate peak intensities
-    // Source Diffraction object (used for calculated patterns)
-    const Diffraction* _sourcePattern;
-    // Index of family of planes which result in this peak
-    Vector3D hkl;
-    // Reciprocal lattice vectors of each member of the family of planes
-    std::vector<Vector3D> recipLatticeVectors;
-    // Lorentz polarization factor for this peak
-    double lpFactor;
-    // Multiplicity for this peak
-    double multiplicity;
-    
-    // --> Variables used during refinement
-    // Derivatives of intensity wrt each B factor for each set of atoms
-    valarray<double> derivBfactors;
-    // Derivatives of intensity wrt each position variable for crystal
-    valarray<double> derivPositions;
-    
-    
-    // ---> Operations used to calculate diffraction peak intensity
-    double getLPFactor(double angle);
-    double thermalFactor(double angle, double Bfactor = 1);
-    double thermalFactorDeriv(double angle, double Bfactor = 1);
-    double getAbsorptionFactor(double angle, double uEff);
-    double getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors );
-    double structureFactorSquared(const Symmetry& symmetry, double angle, const Vector3D& hkl, \
-                    vector<double> BFactors, valarray<double>& Bderivs, valarray<double>& posDerivs);
-    double atomicScatteringFactor(int index, double angle);
+	
+	/**
+	 * Holds each reflection from the structure.
+	 */
+	vector<CalculatedPeak> _reflections;
+	
+	// =========================================
+	// Parameters used when generating a pattern
+	// =========================================
+	
+	// Holds the internal degrees of freedom (atomic positions)
+    const Symmetry* _symmetry;
+    // Holds information about basis vectors and such
+    const ISO* _structure;
+    // B factors of each symmetrically-unique set of atoms
+    vector<double> _BFactors;
+	// Atomic form factor parameters for each symmetrically-unique set of atoms
+    List<double>::D2 _atfParams;
+	// Minimum allowed B factor
+    double _minBFactor;
+    // Maximum allowed B factor
+    double _maxBFactor;
+	
+	// ==============================================================
+	// Parameters used when refining structural model against pattern
+	// ==============================================================
+	
+	// Parameters that can be refined
+	enum RefinementParameters { RF_BFACTORS, RF_POSITIONS };
+	// Parameters that are currently being refined
+    std::set<RefinementParameters> _currentlyRefining;
+	
+	// =================================================================
+	// Operations that ready this object to calculate peaks / be refined
+	// =================================================================
+	
+	// --> Operations used to define refinement problem
+	void defineReferencePattern(const Diffraction& reference);
+    bool referencePatternIsDefined() const;
+    void defineStructure(const ISO& structure, const Symmetry& symmetry);
+    bool structureIsDefined();
+    void initializeRefinementParameters();
+    void setATFParams();
+    void calculatePeakLocations();
+	void matchPeaksToReference(Diffraction* referencePattern);
+	
+	// --> Operation employed by user to refine a calculated pattern
+    void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
+	
+	// --> Operations are used when calculating peak intensities
+    void calculatePeakIntensities();
+    void scaleIntensity(double max);
+	
+	// --> Operations used directly by refineStructure
+    bool willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine);
+    double runRefinement(const Diffraction* ref);
+    column_vector getRefinementParameters();
+    column_vector getRefinementParameterDerivatives(column_vector x);
+    column_vector getRefinementParameterLowerBoundary();
+    column_vector getRefinementParameterUpperBoundary();
+    void setAccordingToParameters(column_vector params);
+	
+	// --> Utility operations used during refinement
+    void setPositions(const Symmetry& symmetry, const Vector& positions);
+    void symPositions(const Symmetry& Symmetry, Vector& positions);
+	
+public:
+	
+	vector<DiffractionPeak> getDiffractedPeaks() const;
+	
+	vector<double> getDiffractedIntensity(vector<double>& twoTheta) const;
+	
+	virtual void clear() {
+		_structure = 0;
+	}
+	
+	CalculatedPattern() {
+		_symmetry = 0;
+        _structure = 0;
+		_minBFactor = 0.1;
+		_maxBFactor = 4.0;
+	}
+	
+	// Friendships
+	friend class RFactorFunctionModel;
+	
+	// LW 12Aug14: Eventually, make this the constructor
+	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, bool fitBfactors = false);
+	
+	// Call refinement
+	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings = true);
 };
-
 
 /**
  * This class provides an interface to the Dlib optimization libraries for the purposes
@@ -474,50 +499,28 @@ private:
  *  with a reference to "this" (the class describing the calculated diffraction pattern).
  * 
  * @param toRefine Diffraction pattern that will be refined.
+ * @param reference Reference diffraction pattern
  */
 class RFactorFunctionModel {
 public:
-    RFactorFunctionModel (Diffraction* toRefine) {
+    RFactorFunctionModel (CalculatedPattern* toRefine, const Diffraction* reference) {
         _toRefine = toRefine;
+		_referencePattern = reference;
     }
     
-    double operator() (const Diffraction::column_vector& arg) const {
+    double operator() (const CalculatedPattern::column_vector& arg) const {
         // Change parameters of diffraction pattern
         _toRefine->setAccordingToParameters(arg);
         // Recalculate peak intensities
         _toRefine->calculatePeakIntensities();
         // Get the current R factor
-        return _toRefine->getCurrentRFactor(Diffraction::DR_SQUARED);
+        return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
     }
     
 private:
-    Diffraction* _toRefine;
+    CalculatedPattern* _toRefine;
+	const Diffraction* _referencePattern;
 };
-
-/**
- * Similar to RFactorFunctionalModel, but returns derivatives instead.
- * 
- * Technical note: This is not currently used. See runRefinement for more details.
- * @param toRefine Diffraction pattern that will be refined
- */
-class RFactorDerivativeFunctionalModel {
-public:
-    RFactorDerivativeFunctionalModel(Diffraction* toRefine) {
-        _toRefine = toRefine;
-    }
-    
-    Diffraction::column_vector operator() (const Diffraction::column_vector& arg) const {
-        // Per the documentation of Dlib: Any call to this function is preceed by 
-        // a call to RFactorFunctional model. So, no additional calculation will
-        // be performed and this operation just returns the derivatives.
-        return _toRefine->getRefinementParameterDerivatives(arg);
-    }
-    
-private:
-    Diffraction* _toRefine;
-    
-};
-
 
 /**
  * This class is created for the sole purpose of interfacing with dlib's numerical
@@ -527,7 +530,7 @@ private:
  */
 class PVPeakFunction {
 public:
-    PVPeakFunction(Diffraction* pattern, Vector& params) {
+    PVPeakFunction(ExperimentalPattern* pattern, Vector& params) {
         _pattern = pattern;
         _params = params;
     }
@@ -537,7 +540,7 @@ public:
     }
     
 private:
-    Diffraction* _pattern;
+    ExperimentalPattern* _pattern;
     Vector _params;
     
 };
@@ -551,27 +554,10 @@ private:
  */
 inline Diffraction::Diffraction()
 {
-	_method = DM_XRAY;
+	_method = DM_NONE;
 	_wavelength = 1.5418;
 	_minTwoTheta = 10;
 	_maxTwoTheta = 100;
-	_minRelativeIntensity = 1e-3;
-	fwhm(0.1);
-	_fitAccuracyRFactor = 1e-4;
-	_fitAccuracyDerivs = 1e-5;
-	_minBFactor = 0.1;
-	_maxBFactor = 4.0;
-        _symmetry = 0;
-        _structure = 0;
-        _referencePattern = 0;
-}
-
-/** 
- * Clear data in Diffraction object
- */
-inline void Diffraction::clear() {
-	_diffractionPeaks.clear();
-	_atfParams.clear();
 }
 
 /**
@@ -579,7 +565,7 @@ inline void Diffraction::clear() {
  * @param angle [in] Angle of peak in diffraction pattern
  * @return Lorentz polarization factor for that peak
  */
-inline double Diffraction::Peak::getLPFactor(double angle)
+inline double CalculatedPeak::getLPFactor(double angle)
 {
 	return (1 + pow(cos(2 * angle), 2)) / (cos(angle) * pow(sin(angle), 2));
 }
@@ -592,7 +578,7 @@ inline double Diffraction::Peak::getLPFactor(double angle)
  * @param uEff Effective absorption coefficient.
  * @return Absorption factor for this peak
  */
-inline double Diffraction::Peak::getAbsorptionFactor(double angle, double uEff) {
+inline double CalculatedPeak::getAbsorptionFactor(double angle, double uEff) {
     return 1 - exp(-2 * uEff / sin(angle));
 }
 
@@ -607,7 +593,7 @@ inline double Diffraction::Peak::getAbsorptionFactor(double angle, double uEff) 
  *  to this diffraction peak
  * @return Texturing factor
  */
-inline double Diffraction::Peak::getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors) {
+inline double CalculatedPeak::getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors) {
     double output = 0.0;
     double preNorm = preferredOrientation.magnitude();
     for (Linked<Vector3D>::iterator iter = recipLatticeVectors.begin(); 
@@ -624,30 +610,14 @@ inline double Diffraction::Peak::getTexturingFactor(Vector3D preferredOrientatio
 /**
  * Calculate a thermal factor
  * @param angle [in] Angle at which a certain peak diffractions
+ * @param wavelength [in] Wavelength of incident radiation
  * @param Bfactor [in] Thermal factor parameter for a certain atom
  * @return Thermal factor
  */
-inline double Diffraction::Peak::thermalFactor(double angle, double Bfactor)
+inline double CalculatedPeak::thermalFactor(double angle, double wavelength, double Bfactor)
 {
-	return exp(-Bfactor * pow(sin(angle) /_sourcePattern->_wavelength, 2.0));
+	return exp(-Bfactor * pow(sin(angle) / wavelength, 2.0));
 }
-
-
-
-/**
- * Calculate the derivative of the thermal factor wrt B factor
- * 
- * @param angle [in] Angle at which a certain peak diffractions
- * @param Bfactor [in] Thermal factor parameter for a certain atom
- * @return Derivative of thermalFactor wrt B factor
- */
-inline double Diffraction::Peak::thermalFactorDeriv(double angle, double Bfactor)
-{
-	double temp = sin(angle) / _sourcePattern->_wavelength;
-	temp *= temp;
-	return -temp * exp(-Bfactor * temp);
-}
-
 
 /**
  * Given a set of basis vector and a certain plane index, calculate the angle at which
@@ -655,11 +625,12 @@ inline double Diffraction::Peak::thermalFactorDeriv(double angle, double Bfactor
  *  internally.
  * @param basis [in] Basis vectors of a particular unit cell
  * @param hkl [in] Index of a particular plane
- * @return Angle at which that plane will appear
+ * @param wavelength [in] Wavelength of incident radiation
+ * @return Angle at which that plane will appear in radians
  */
-inline double Diffraction::getDiffractionAngle(const Basis& basis, const Vector3D& hkl)
+inline double CalculatedPeak::getDiffractionAngle(const Basis& basis, const Vector3D& hkl, double wavelength)
 {
-        double arg = (basis.inverse() * hkl).magnitude() * _wavelength / 2;
+	double arg = (basis.inverse() * hkl).magnitude() * wavelength / 2;
 	if ((arg >= -1) && (arg <= 1))
 		return asin(arg);
 	else if (arg < -1)
@@ -674,9 +645,7 @@ inline double Diffraction::getDiffractionAngle(const Basis& basis, const Vector3
  * @param twoTheta [in] Value at which function is evaluated
  * @return Value of Gaussian at that angle
  */
-inline double Diffraction::gaussian(const Vector& params, double twoTheta)
-{
-	
+inline double ExperimentalPattern::gaussian(const Vector& params, double twoTheta) {
 	// Set variables
 	double pi = Constants::pi;
 	double Cg  = 4*log(2);
@@ -696,8 +665,7 @@ inline double Diffraction::gaussian(const Vector& params, double twoTheta)
  * @param twoTheta [in] Value at which derivative is evaluated
  * @return Derivatives wrt each parameter
  */
-inline Vector Diffraction::gaussianDerivs(const Vector& params, double twoTheta)
-{
+inline Vector ExperimentalPattern::gaussianDerivs(const Vector& params, double twoTheta) {
 	
 	// Set variables
 	double pi = Constants::pi;
@@ -723,7 +691,7 @@ inline Vector Diffraction::gaussianDerivs(const Vector& params, double twoTheta)
  * @param twoTheta [in] Angle at which function is evaluated 
  * @return Value of multiple Gaussians at that angle
  */
-inline double Diffraction::compositeGaussian(const Vector& params, double twoTheta) {
+inline double ExperimentalPattern::compositeGaussian(const Vector& params, double twoTheta) {
     double output = 0;
     for (int f = 0; f < params.length()/3; f++) {
         Vector subParams(3);
@@ -741,7 +709,7 @@ inline double Diffraction::compositeGaussian(const Vector& params, double twoThe
  * @param twoTheta [in] Angle at which derivatives are evaluated 
  * @return Derivatives with respect to each parameter
  */ 
-inline Vector Diffraction::compositeGaussianDerivs(const Vector& params, double twoTheta) {
+inline Vector ExperimentalPattern::compositeGaussianDerivs(const Vector& params, double twoTheta) {
     Vector output(params.length(), 0);
     for (int f = 0; f < params.length()/3; f++) {
         Vector subParams(3);
@@ -759,7 +727,7 @@ inline Vector Diffraction::compositeGaussianDerivs(const Vector& params, double 
  * @param twoTheta [in] Angle at which function is evaluated
  * @return Value of PS at that angle
  */
-inline double Diffraction::PV(const Vector& params, double twoTheta)
+inline double ExperimentalPattern::PV(const Vector& params, double twoTheta)
 {
 	
 	// Set variables
@@ -786,7 +754,7 @@ inline double Diffraction::PV(const Vector& params, double twoTheta)
  * @param twoTheta [in] Angle at which derivatives is evaluated
  * @return Derivatives wrt each parameter
  */
-inline Vector Diffraction::PVderivs(const Vector& params, double twoTheta)
+inline Vector ExperimentalPattern::PVderivs(const Vector& params, double twoTheta)
 {
 	
 	// Set variables
@@ -838,7 +806,7 @@ inline Vector Diffraction::PVderivs(const Vector& params, double twoTheta)
  * @param twoTheta [in] Angle at which derivative is evaluated 
  * @return Value of derivative wrt twoTheta
  */
-inline double Diffraction::PVderiv(const Vector& params, double twoTheta)
+inline double ExperimentalPattern::PVderiv(const Vector& params, double twoTheta)
 {
 	
 	// Set variables
@@ -873,7 +841,7 @@ inline double Diffraction::PVderiv(const Vector& params, double twoTheta)
  * @param twoTheta [in] Angle at which function is evaluated 
  * @return Value of multiple PVs at that angle
  */
-inline double Diffraction::compositePV(const Vector& params, double twoTheta) {
+inline double ExperimentalPattern::compositePV(const Vector& params, double twoTheta) {
     double output = 0;
     for (int f = 0; f < params.length()/8; f++) {
         Vector subParams(8);
@@ -891,7 +859,7 @@ inline double Diffraction::compositePV(const Vector& params, double twoTheta) {
  * @param twoTheta [in] Angle at which function is evaluated 
  * @return Value of derivatives of each parameter at that angle
  */ 
-inline Vector Diffraction::compositePVDerivs(const Vector& params, double twoTheta) {
+inline Vector ExperimentalPattern::compositePVDerivs(const Vector& params, double twoTheta) {
     Vector output(params.length(), 0);
     for (int f = 0; f < params.length()/8; f++) {
         Vector subParams(8);

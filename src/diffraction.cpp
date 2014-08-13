@@ -45,7 +45,7 @@ double Diffraction::_resolution = 1e-2;
  * @param structure [in] Structure to be used in calculations / refinements
  * @param symmetry [in] Symmetry information of that structure
  */
-void Diffraction::defineStructure(const ISO& structure, const Symmetry& symmetry) {
+void CalculatedPattern::defineStructure(const ISO& structure, const Symmetry& symmetry) {
     // Clear out any old data
     _symmetry = &symmetry;
     _structure = &structure;
@@ -56,10 +56,6 @@ void Diffraction::defineStructure(const ISO& structure, const Symmetry& symmetry
 
     // Initialize guesses for fitting parameters
     initializeRefinementParameters();
-    
-    // If a reference pattern is set, match peas to it
-    if (referencePatternIsDefined())
-        matchPeaksToReference();
 }
 
 /**
@@ -67,30 +63,19 @@ void Diffraction::defineStructure(const ISO& structure, const Symmetry& symmetry
  *  diffraction pattern.
  * @return Whether defineStructure has been run
  */
-bool Diffraction::structureIsDefined() {
+bool CalculatedPattern::structureIsDefined() {
     return _symmetry != 0;
 }
 
-void Diffraction::defineReferencePattern(const Diffraction& reference) {
-    _referencePattern = &reference;
+void CalculatedPattern::defineReferencePattern(const Diffraction& reference) {
     // Retrieve parameters of reference pattern
-    _method = reference._method;
-    _wavelength = reference._wavelength;
-    _minTwoTheta = reference._minTwoTheta;
-    _maxTwoTheta = reference._maxTwoTheta;
+    _method = reference.method();
+    _wavelength = reference.wavelength();
+    _minTwoTheta = reference.minTwoTheta();
+    _maxTwoTheta = reference.maxTwoTheta();
     // If a structure is defined, redefine peak locations
     if (structureIsDefined())
         calculatePeakLocations();
-    // Match peaks to reference pattern
-    matchPeaksToReference();
-}
-
-/**
- * Whether the user has defined the reference pattern against which the structure 
- *  is refined.
- */
-bool Diffraction::referencePatternIsDefined() {
-    return _referencePattern != 0;
 }
 
 /**
@@ -100,13 +85,10 @@ bool Diffraction::referencePatternIsDefined() {
  * @param structure [in] Structure used to calculate diffraction pattern
  * @param symmetry [in] Symmetry information of structure
  */
-void Diffraction::initializeRefinementParameters() {
+void CalculatedPattern::initializeRefinementParameters() {
     // Set initial guess for B factors to 1.0
     _BFactors.resize(_symmetry->orbits().length());
     fill(_BFactors.begin(), _BFactors.end(), 0.5);
-    // Allocate position / B factor derivatives
-    _BFactorDerivs.resize(_BFactors.size(), 0.0);
-    _PositionDerivs.resize(_BFactorDerivs.size() * 3, 0.0);
     // Note: Internal parameters are kept in _symmetry
 }
 
@@ -117,7 +99,7 @@ void Diffraction::initializeRefinementParameters() {
  * @param toRefine Set of parameters that will be refined
  * @return Whether this parameter will be refined
  */
-bool Diffraction::willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine) {
+bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine) {
     return toRefine.find(parameter) != toRefine.end();
 }
 
@@ -132,7 +114,7 @@ bool Diffraction::willRefine(RefinementParameters parameter, std::set<Refinement
  * @param fitBFactors [in] Whether to fit B factors (if pattern provided)
  * @return R factor (if pattern provided)
  */
-double Diffraction::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, bool fitBfactors) {
+double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, bool fitBfactors) {
     // Clear space
     clear();
 
@@ -160,9 +142,9 @@ double Diffraction::set(const ISO& iso, const Symmetry& symmetry, const Diffract
         std::set<RefinementParameters> toRefine;
         if (fitBfactors)
             toRefine.insert(RF_BFACTORS);
-        refineParameters(toRefine);
+        refineParameters(ref, toRefine);
 
-        rFactor = getCurrentRFactor(DR_ABS);
+        rFactor = getCurrentRFactor(*ref, DR_ABS);
 
         // Output
         Output::newline();
@@ -174,29 +156,32 @@ double Diffraction::set(const ISO& iso, const Symmetry& symmetry, const Diffract
     else {
         calculatePeakIntensities();
     }
-
-    // Extract the intensities
-    extractIntensities();
     
-    // Scale the intensities to 1000
-    _integratedIntensity *= 1000 / _integratedIntensity.max();
+    // Find the maximum intensity
+	double maxIntensity = 0.0;
+	for (int i=0; i<_reflections.size(); i++) {
+		if (_reflections[i].getIntensity() > maxIntensity)
+			maxIntensity = _reflections[i].getIntensity();
+	}
 
     // Print intensities
     Output::newline();
     Output::print("Generated ");
-    Output::print(_peakTwoTheta.size());
+    Output::print(_reflections.size());
     Output::print(" peak");
-    if (_peakTwoTheta.size() != 1)
+    if (_reflections.size() != 1)
         Output::print("s");
     Output::increase();
-    for (int i = 0; i < _peakTwoTheta.size(); ++i) {
-        if (_integratedIntensity[i] < 50) 
+    for (int i = 0; i < _reflections.size(); ++i) {
+		double angle = _reflections[i].getAngle();
+		double intensity = _reflections[i].getIntensity();
+        if (intensity < 0.05 * maxIntensity) 
             continue;
         Output::newline();
         Output::print("Two-theta and intensity of ");
-        Output::print(_peakTwoTheta[i]);
+        Output::print(angle);
         Output::print(" ");
-        Output::print(_integratedIntensity[i]);
+        Output::print(intensity * 1000 / maxIntensity);
     }
     Output::decrease();
 
@@ -210,13 +195,10 @@ double Diffraction::set(const ISO& iso, const Symmetry& symmetry, const Diffract
 /**
  * Refine a structure (which has already been stored internally) against a reference
  *  diffraction pattern
+ * @param reference [in] Pattern to refine against
  * @param toRefine [in] What parameters of the diffracted intensity should be refined
  */
-void Diffraction::refineParameters(std::set<RefinementParameters> toRefine) {
-    if (!referencePatternIsDefined()) {
-        Output::newline(ERROR);
-        Output::print("Internal Error: Reference pattern not yet defined.");
-    }
+void CalculatedPattern::refineParameters(const Diffraction* reference, std::set<RefinementParameters> toRefine) {
     if (!structureIsDefined()) {
         Output::newline(ERROR);
         Output::print("Internal Error: Structure not yet defined.");
@@ -231,7 +213,7 @@ void Diffraction::refineParameters(std::set<RefinementParameters> toRefine) {
         Output::newline();
         Output::print("Refining atomic positions. Current R Factor: ");
         _currentlyRefining.insert(RF_POSITIONS);
-        double curRFactor = runRefinement();
+        double curRFactor = runRefinement(reference);
         Output::print(curRFactor, 3);
     }
 
@@ -240,7 +222,7 @@ void Diffraction::refineParameters(std::set<RefinementParameters> toRefine) {
         Output::newline();
         Output::print("Also refining isotropic thermal factors. Current R Factor: ");
         _currentlyRefining.insert(RF_BFACTORS);
-        double curRFactor = runRefinement();
+        double curRFactor = runRefinement(reference);
         Output::print(curRFactor, 3);
     }
     Output::decrease();
@@ -279,12 +261,12 @@ void Diffraction::refineParameters(std::set<RefinementParameters> toRefine) {
  *  _currentlyRefining.
  * @return Minimal R factor (using DR_ABS)
  */
-double Diffraction::runRefinement() {
+double CalculatedPattern::runRefinement(const Diffraction* reference) {
     column_vector params;
     column_vector x_low = getRefinementParameterLowerBoundary();
     column_vector x_high = getRefinementParameterUpperBoundary();
     params = getRefinementParameters();
-    RFactorFunctionModel f(this);
+    RFactorFunctionModel f(this, reference);
     // Technical issue (as of 12Mar14): 
     //  Derivatives calculated during getCurrentRFactor are wrong. That function 
     //   sets the "optimal scale factor," but assumes it is constant as we adjust 
@@ -297,7 +279,7 @@ double Diffraction::runRefinement() {
             f, dlib::derivative(f), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
-    return getCurrentRFactor(DR_ABS);
+    return getCurrentRFactor(*reference, DR_ABS);
 }
 
 /**
@@ -309,7 +291,7 @@ double Diffraction::runRefinement() {
  * </ol>
  * @return Current values of parameters to be optimized
  */
-Diffraction::column_vector Diffraction::getRefinementParameters() {
+CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
     queue<double> params;
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         for (int orbit = 0; orbit < _symmetry->orbits().length(); orbit++)
@@ -334,41 +316,14 @@ Diffraction::column_vector Diffraction::getRefinementParameters() {
 }
 
 /**
- * Generate the first derivatives of R factor with respect to each current 
- * refinement parameter, in a format that dlib's optimization algorithms can use.
- * 
- * Note: dlib operation algorithms ensure that a call to this algorithm is always preceeded by
- *  a call to currentRFactor, which updates the derivatives for each parameter.
- * 
- * @return A dlib "column_vector"
- */
-Diffraction::column_vector Diffraction::getRefinementParameterDerivatives(column_vector x) {
-    queue<double> params;
-    if (willRefine(RF_POSITIONS, _currentlyRefining))
-        for (int i = 0; i < _PositionDerivs.size(); i++)
-            params.push(_PositionDerivs[i]);
-    if (willRefine(RF_BFACTORS, _currentlyRefining))
-        for (int i = 0; i < _BFactors.size(); i++)
-            params.push(_BFactorDerivs[i]);
-    // Copy parameters to an appropriate container
-    int nParams = params.size();
-    column_vector output(nParams);
-    for (int i = 0; i < nParams; i++) {
-        output(i) = params.front();
-        params.pop();
-    }
-    return output;
-}
-
-/**
  * Get the lower boundary of each refinement parameter. 
  * @return Column vector detailing lower boundary for each parameter, same order
  *  as getRefinementParameters.
  */
-Diffraction::column_vector Diffraction::getRefinementParameterLowerBoundary() {
+CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerBoundary() {
     queue<double> params;
     if (willRefine(RF_POSITIONS, _currentlyRefining))
-        for (int i = 0; i < _PositionDerivs.size(); i++)
+        for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
             params.push(-1);
     if (willRefine(RF_BFACTORS, _currentlyRefining))
         for (int i = 0; i < _BFactors.size(); i++)
@@ -388,10 +343,10 @@ Diffraction::column_vector Diffraction::getRefinementParameterLowerBoundary() {
  * @return Column vector detailing upper boundary for each parameter, same order
  *  as getRefinementParameters.
  */
-Diffraction::column_vector Diffraction::getRefinementParameterUpperBoundary() {
+CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperBoundary() {
     queue<double> params;
     if (willRefine(RF_POSITIONS, _currentlyRefining))
-        for (int i = 0; i < _PositionDerivs.size(); i++)
+        for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
             params.push(2);
     if (willRefine(RF_BFACTORS, _currentlyRefining))
         for (int i = 0; i < _BFactors.size(); i++)
@@ -413,7 +368,7 @@ Diffraction::column_vector Diffraction::getRefinementParameterUpperBoundary() {
  *  
  * @param params New values of parameters being refined
  */
-void Diffraction::setAccordingToParameters(column_vector params) {
+void CalculatedPattern::setAccordingToParameters(column_vector params) {
     int position = 0;
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         Vector newPositions(_symmetry->orbits().length()*3);
@@ -438,7 +393,7 @@ void Diffraction::setAccordingToParameters(column_vector params) {
  * @param showWarnings [in] Whether to print warnings
  * @return Optimized R Factor
  */
-double Diffraction::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings) {
+double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings) {
     // Clear out any old information
     clear();
     
@@ -459,8 +414,8 @@ double Diffraction::refine(ISO& iso, Symmetry& symmetry, const Diffraction& refe
     toRefine.insert(RF_POSITIONS);
 
     // Run refinement
-    refineParameters(toRefine);
-    double rFactor = getCurrentRFactor(DR_ABS);
+    refineParameters(&reference, toRefine);
+    double rFactor = getCurrentRFactor(reference, DR_ABS);
 
     // Output
     Output::newline();
@@ -478,171 +433,171 @@ double Diffraction::refine(ISO& iso, Symmetry& symmetry, const Diffraction& refe
  * Calculate peaks that will appear in diffraction pattern of a 
  * particular structure. Store them internally in _integratedPeaks.
  */
-void Diffraction::calculatePeakLocations() {
-    Output::increase();
-    // Clear any previously-calculated peaks
-    _diffractionPeaks.clear();
+void CalculatedPattern::calculatePeakLocations() {
+	Output::increase();
+	// Clear any previously-calculated peaks
+	_reflections.clear();
 
-    // Calculate the hkl range
-    int i, j;
-    double range[3];
-    double maxMag = 2 * sin(Num<double>::toRadians(_maxTwoTheta / 2)) / _wavelength;
-    Vector3D vec;
-    for (i = 0; i < 3; ++i) {
-        for (j = 0; j < 3; ++j)
-            vec[j] = _structure->basis().reducedInverse()(j, i);
-        range[i] = Num<double>::abs(Num<double>::ceil(maxMag / vec.magnitude()));
-    }
+	// Calculate the hkl range
+	int i, j;
+	double range[3];
+	double maxMag = 2 * sin(Num<double>::toRadians(_maxTwoTheta / 2)) / _wavelength;
+	Vector3D vec;
+	for (i = 0; i < 3; ++i) {
+		for (j = 0; j < 3; ++j)
+			vec[j] = _structure->basis().reducedInverse()(j, i);
+		range[i] = Num<double>::abs(Num<double>::ceil(maxMag / vec.magnitude()));
+	}
 
-    // Conversion matrix to take reduced cell reciprocal lattice vector to unit cell reciprocal lattice vector
-    Matrix3D convHKL = _structure->basis().unitPointToReduced().transpose();
+	// Conversion matrix to take reduced cell reciprocal lattice vector to unit cell reciprocal lattice vector
+	Matrix3D convHKL = _structure->basis().unitPointToReduced().transpose();
 
-    // Generate symmetry operations for reduced cell
-    Matrix3D P = _structure->basis().unitToReduced().transpose();
-    Matrix3D Q = P.inverse();
-    OList<Matrix3D > operations(_symmetry->operations().length());
-    for (i = 0; i < _symmetry->operations().length(); ++i) {
-        operations[i] = P;
-        operations[i] *= _symmetry->operations()[i].rotation();
-        operations[i] *= Q;
-        operations[i] = operations[i].transpose();
-    }
+	// Generate symmetry operations for reduced cell
+	Matrix3D P = _structure->basis().unitToReduced().transpose();
+	Matrix3D Q = P.inverse();
+	OList<Matrix3D > operations(_symmetry->operations().length());
+	for (i = 0; i < _symmetry->operations().length(); ++i) {
+		operations[i] = P;
+		operations[i] *= _symmetry->operations()[i].rotation();
+		operations[i] *= Q;
+		operations[i] = operations[i].transpose();
+	}
 
-    // Remove identity operation
-    Matrix3D identity;
-    identity.makeIdentity();
-    for (i = 0; i < operations.length(); ++i) {
-        if (operations[i] == identity) {
-            operations.remove(i);
-            break;
-        }
-    }
+	// Remove identity operation
+	Matrix3D identity;
+	identity.makeIdentity();
+	for (i = 0; i < operations.length(); ++i) {
+		if (operations[i] == identity) {
+			operations.remove(i);
+			break;
+		}
+	}
 
-    // Get the intrinsic part of all symmetry operations
-    OList<Vector3D >::D2 translations(_symmetry->operations().length());
-    for (i = 0; i < _symmetry->operations().length(); ++i) {
-        translations[i].length(_symmetry->operations()[i].translations().length());
-        for (j = 0; j < _symmetry->operations()[i].translations().length(); ++j)
-            translations[i][j] = Symmetry::intrinsicTranslation(_symmetry->operations()[i].rotation(), \
+	// Get the intrinsic part of all symmetry operations
+	OList<Vector3D >::D2 translations(_symmetry->operations().length());
+	for (i = 0; i < _symmetry->operations().length(); ++i) {
+		translations[i].length(_symmetry->operations()[i].translations().length());
+		for (j = 0; j < _symmetry->operations()[i].translations().length(); ++j)
+			translations[i][j] = Symmetry::intrinsicTranslation(_symmetry->operations()[i].rotation(), \
 				_symmetry->operations()[i].translations()[j]);
-    }
+	}
 
-    // Get the peak intensities
-    bool found;
-    int mult;
-    double product;
-    double twoTheta;
-    Vector3D hkl;
-    Vector3D redHKL;
-    Vector3D symHKL;
-    Linked<Vector3D > equivPoints;
-    Linked<Vector3D >::iterator itEquiv;
-    for (redHKL[0] = -range[0]; redHKL[0] <= range[0]; ++redHKL[0]) {
-        for (redHKL[1] = -range[1]; redHKL[1] <= range[1]; ++redHKL[1]) {
-            for (redHKL[2] = -range[2]; redHKL[2] <= range[2]; ++redHKL[2]) {
-                // Loop over operations to generate equivalent points
-                mult = 1;
-                equivPoints.clear();
-                equivPoints += redHKL;
-                for (i = 0; i < operations.length(); ++i) {
-                    // Get new point
-                    symHKL = operations[i] * redHKL;
-                    for (j = 0; j < 3; ++j)
-                        symHKL[j] = Num<double>::round(symHKL[j], 1);
+	// Get the peak intensities
+	bool found;
+	int mult;
+	double product;
+	double twoTheta;
+	Vector3D hkl;
+	Vector3D redHKL;
+	Vector3D symHKL;
+	Linked<Vector3D > equivPoints;
+	Linked<Vector3D >::iterator itEquiv;
+	for (redHKL[0] = -range[0]; redHKL[0] <= range[0]; ++redHKL[0]) {
+		for (redHKL[1] = -range[1]; redHKL[1] <= range[1]; ++redHKL[1]) {
+			for (redHKL[2] = -range[2]; redHKL[2] <= range[2]; ++redHKL[2]) {
+				// Loop over operations to generate equivalent points
+				mult = 1;
+				equivPoints.clear();
+				equivPoints += redHKL;
+				for (i = 0; i < operations.length(); ++i) {
+					// Get new point
+					symHKL = operations[i] * redHKL;
+					for (j = 0; j < 3; ++j)
+						symHKL[j] = Num<double>::round(symHKL[j], 1);
 
-                    // Check if hkl is equilvalent of something that has been generated earlier
-                    // If so, set mult = 0
-                    if (symHKL[0] < redHKL[0] - 1e-4)
-                        mult = 0;
-                    else if (Num<double>::abs(symHKL[0] - redHKL[0]) < 1e-4) {
-                        if (symHKL[1] < redHKL[1] - 1e-4)
-                            mult = 0;
-                        else if (Num<double>::abs(symHKL[1] - redHKL[1]) < 1e-4) {
-                            if (symHKL[2] < redHKL[2] - 1e-4)
-                                mult = 0;
-                        }
-                    }
-                    if (mult == 0)
-                        break;
+					// Check if hkl is equilvalent of something that has been generated earlier
+					// If so, set mult = 0
+					if (symHKL[0] < redHKL[0] - 1e-4)
+						mult = 0;
+					else if (Num<double>::abs(symHKL[0] - redHKL[0]) < 1e-4) {
+						if (symHKL[1] < redHKL[1] - 1e-4)
+							mult = 0;
+						else if (Num<double>::abs(symHKL[1] - redHKL[1]) < 1e-4) {
+							if (symHKL[2] < redHKL[2] - 1e-4)
+								mult = 0;
+						}
+					}
+					if (mult == 0)
+						break;
 
-                    // Check if point is already known as an equivalent point
-                    found = false;
-                    for (itEquiv = equivPoints.begin(); itEquiv != equivPoints.end(); ++itEquiv) {
-                        if ((Num<double>::abs((*itEquiv)[0] - symHKL[0]) < 1e-4) && \
+					// Check if point is already known as an equivalent point
+					found = false;
+					for (itEquiv = equivPoints.begin(); itEquiv != equivPoints.end(); ++itEquiv) {
+						if ((Num<double>::abs((*itEquiv)[0] - symHKL[0]) < 1e-4) && \
                                 (Num<double>::abs((*itEquiv)[1] - symHKL[1]) < 1e-4) && \
                                 (Num<double>::abs((*itEquiv)[2] - symHKL[2]) < 1e-4)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        ++mult;
-                        equivPoints += symHKL;
-                    }
-                }
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						++mult;
+						equivPoints += symHKL;
+					}
+				}
 
-                // Multiplier is zero so skip
-                if (mult == 0)
-                    continue;
+				// Multiplier is zero so skip
+				if (mult == 0)
+					continue;
 
-                // Convert current reduced basis hkl to unit cell
-                hkl = convHKL * redHKL;
-                vector<Vector3D> recipLatVectors;
-                recipLatVectors.reserve(mult);
-                for (itEquiv = equivPoints.begin(); itEquiv != equivPoints.end(); ++itEquiv) {
-                    *itEquiv = convHKL * *itEquiv;
-                    recipLatVectors.push_back(_structure->basis().inverse() * *itEquiv);
-                }
+				// Convert current reduced basis hkl to unit cell
+				hkl = convHKL * redHKL;
+				vector<Vector3D> equivHKL;
+				equivHKL.reserve(mult);
+				for (itEquiv = equivPoints.begin(); itEquiv != equivPoints.end(); ++itEquiv) {
+					*itEquiv = convHKL * *itEquiv;
+					equivHKL.push_back(*itEquiv);
+				}
 
-                // Check if direction will be a systematic absence
-                found = false;
-                for (i = 0; i < _symmetry->operations().length(); ++i) {
+				// Check if direction will be a systematic absence
+				found = false;
+				for (i = 0; i < _symmetry->operations().length(); ++i) {
 
-                    // Check if R*hkl = hkl
-                    symHKL = _symmetry->operations()[i].rotation() * hkl;
-                    if ((Num<double>::abs(symHKL[0] - hkl[0]) > 1e-4) || \
+					// Check if R*hkl = hkl
+					symHKL = _symmetry->operations()[i].rotation() * hkl;
+					if ((Num<double>::abs(symHKL[0] - hkl[0]) > 1e-4) || \
                             (Num<double>::abs(symHKL[1] - hkl[1]) > 1e-4) || \
                             (Num<double>::abs(symHKL[2] - hkl[2]) > 1e-4))
-                        continue;
+						continue;
 
-                    // Loop over intrinsic translations and check if ti*hkl = integer for all
-                    for (j = 0; j < translations[i].length(); ++j) {
-                        product = translations[i][j] * hkl;
-                        if (Num<double>::abs(Num<double>::round(product, 1) - product) > 1e-4) {
-                            found = true;
-                            break;
-                        }
-                    }
+					// Loop over intrinsic translations and check if ti*hkl = integer for all
+					for (j = 0; j < translations[i].length(); ++j) {
+						product = translations[i][j] * hkl;
+						if (Num<double>::abs(Num<double>::round(product, 1) - product) > 1e-4) {
+							found = true;
+							break;
+						}
+					}
 
-                    // Break if hkl is a system absence
-                    if (found)
-                        break;
-                }
+					// Break if hkl is a system absence
+					if (found)
+						break;
+				}
 
-                // Current hkl will be a systematic absence (keep just in case)
-                // if (found)
-                   //continue;
+				// Current hkl will be a systematic absence (keep just in case)
+				// if (found)
+				//continue;
 
-                // Get the current angle
-                twoTheta = 2 * Num<double>::toDegrees(getDiffractionAngle(_structure->basis(), hkl));
+				// Get the current angle
+				twoTheta = 2 * Num<double>::toDegrees(CalculatedPeak::getDiffractionAngle(_structure->basis(), hkl, wavelength()));
 
-                // Skip if diffraction angle is too small or too large
-                if ((twoTheta < _minTwoTheta) || (twoTheta > _maxTwoTheta))
-                    continue;
-                
-                // Add peak to list of known peaks
-                Peak newPeak(this, twoTheta, mult, hkl, recipLatVectors);
-                this->_diffractionPeaks.push_back(newPeak);
-            }
-        }
-    }
+				// Skip if diffraction angle is too small or too large
+				if ((twoTheta < _minTwoTheta) || (twoTheta > _maxTwoTheta))
+					continue;
 
-    // Ensure peaks are in proper order
-    std::sort(_diffractionPeaks.begin(), _diffractionPeaks.end());
-    
-    Output::newline();
-    Output::print("Total number of peaks: ");
-    Output::print(_diffractionPeaks.size());
+				// Add peak to list of known peaks
+				CalculatedPeak newPeak(method(), this->_structure, this->_symmetry, this->wavelength(), hkl, equivHKL);
+				this->_reflections.push_back(newPeak);
+			}
+		}
+	}
+
+	// Ensure peaks are in proper order
+	std::sort(_reflections.begin(), _reflections.end());
+
+	Output::newline();
+	Output::print("Total number of peaks: ");
+	Output::print(_reflections.size());
 	Output::decrease();
 }
 
@@ -650,39 +605,83 @@ void Diffraction::calculatePeakLocations() {
  * Calculate the peak intensities, given complete information about a structure. Stores
  * resulting peak heights internally. 
  */
-void Diffraction::calculatePeakIntensities() {
-    for (int i = 0; i < _diffractionPeaks.size(); i++) {
-        _diffractionPeaks[i].updateCalculatedIntensity();
+void CalculatedPattern::calculatePeakIntensities() {
+    for (int i = 0; i < _reflections.size(); i++) {
+        _reflections[i].updateCalculatedIntensity(_BFactors, _atfParams);
     }
 }
 
 /**
- * Update the calculated integrated intensity for a single peak. Also, calculate derivatives
- *  of peak integrated intensity with respect to each parameter
+ * Update the calculated integrated intensity for a diffraction peak. Here, the user must provide
+ *  all non-structural, refinable variables. Structural variables are provided via links to the 
+ *  structure associated with each peak. 
+ * @param BFactors [in] B Factors for each site
+ * @param atfParams [in] Atomic form factors for each element (stored as a property of the pattern to conserve memory)
  */
-void Diffraction::Peak::updateCalculatedIntensity() {
-    // Set derivatives to zero
-    derivBfactors.resize(_sourcePattern->_BFactors.size());
-    derivBfactors = 0;
-    derivPositions.resize(3 * _sourcePattern->_BFactors.size());
-    derivPositions = 0;
-
+void CalculatedPeak::updateCalculatedIntensity(vector<double> BFactors, List<double>::D2 atfParams) {
     // Calculate integrated intensity. (Note absence of scale factor, which 
     //  is always optimized when calculating R factor)
-    peakIntensity = structureFactorSquared(*(_sourcePattern->_symmetry), _twoThetaRad / 2,
-            hkl, _sourcePattern->_BFactors, derivBfactors, derivPositions);
+    peakIntensity = CalculatedPeak::structureFactorSquared(method, wavelength, *symmetry, 
+			_twoThetaRad / 2, hkl, BFactors, atfParams);
     // Everything but the structure factor
     double otherFactors = multiplicity * lpFactor;
     peakIntensity *= otherFactors;
 	
-	// Not currently in use, but totally useful
+	// Not currently in use, but might be useful eventually
     // otherFactors *= getTexturingFactor(preferredOrientation, 1.666, _peaks[i][j].recipLatticeVectors);
-
-    // Update B and position factor derivatives (which are currently derivatives of structure
-    //  factor) to those of the peak intensity. Convert simply by multiply all other factors
-    derivBfactors *= otherFactors;
-    derivPositions *= otherFactors;
 }
+
+vector<DiffractionPeak> ExperimentalPattern::getDiffractedPeaks() const {
+	if (_diffractionPeaks.size() == 0) {
+		Output::newline(ERROR);
+		Output::print("No diffracted intensities were set");
+		Output::quit();
+	}
+	vector<DiffractionPeak> output;
+	output.insert(output.begin(), _diffractionPeaks.begin(), _diffractionPeaks.end());
+	return output;
+}
+
+vector<double> ExperimentalPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
+	// Sort input array
+	std::sort(twoTheta.begin(), twoTheta.end());
+	
+	// Check bounds
+	if (twoTheta[0] < _continuousTwoTheta[0]) {
+		Output::newline(ERROR);
+		Output::print("No data before ");
+		Output::print(_continuousTwoTheta[0]);
+		Output::quit();
+	}
+	if (twoTheta.back() > _continuousTwoTheta[_continuousTwoTheta.size() - 1]) {
+		Output::newline(ERROR);
+		Output::print("No data after ");
+		Output::print(_continuousTwoTheta[_continuousTwoTheta.size() - 1]);
+		Output::quit();
+	}
+	
+	// Compute intensity at each point using linear interpolation
+	vector<double> output;
+	output.reserve(twoTheta.size());
+	int cpos = 0;
+	for (int a=0; a<twoTheta.size(); a++) {
+		double angle = twoTheta[a];
+		while (_continuousTwoTheta[cpos + 1] < angle) {
+			cpos++;
+		}
+		double intensity = _continuousIntensity[cpos] + (_continuousIntensity[cpos + 1] - _continuousIntensity[cpos])
+			/ (_continuousTwoTheta[cpos + 1] - _continuousTwoTheta[cpos]) * (angle - _continuousTwoTheta[cpos]);
+		output.push_back(intensity);
+	}
+	return output;
+}
+
+vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
+	Output::newline(ERROR);
+	Output::print("Not yet implemented");
+	Output::quit();
+}
+
 
 /** 
  * Extract calculated peak intensities. Peaks that are closer than a certain 
@@ -690,69 +689,70 @@ void Diffraction::Peak::updateCalculatedIntensity() {
  * 
  * Results are stored internally in _peakTwoTheta and _integratedIntensity
  */
-void Diffraction::extractIntensities() {
-    // Build a list of intensities
-    vector<double> tempTwoTheta; tempTwoTheta.reserve(_diffractionPeaks.size());
-    vector<double> tempIntensity; tempIntensity.reserve(_diffractionPeaks.size());
-    tempTwoTheta.push_back(_diffractionPeaks[0].TwoThetaDeg);
-    tempIntensity.push_back(_diffractionPeaks[0].peakIntensity);
-    if (referencePatternIsDefined()) {
-        // Combine peaks with the same pattern index
-        int lastPatternIndex = _diffractionPeaks[0].patternIndex;
-        for (int i=1; i<_diffractionPeaks.size(); i++) {
-            if (_diffractionPeaks[i].patternIndex == -1 || 
-                    _diffractionPeaks[i].patternIndex != lastPatternIndex) {
-                tempTwoTheta.push_back(_diffractionPeaks[i].TwoThetaDeg);
-                tempIntensity.push_back(_diffractionPeaks[i].peakIntensity);
+vector<DiffractionPeak> CalculatedPattern::getDiffractedPeaks() const {
+    vector<double> tempTwoTheta; tempTwoTheta.reserve(_reflections.size());
+    vector<double> tempIntensity; tempIntensity.reserve(_reflections.size());
+    tempTwoTheta.push_back(_reflections[0].getAngle());
+    tempIntensity.push_back(_reflections[0].getIntensity());
+	
+	// Build a list of intensities
+    if (_matchingPeaks.size() > 0) { // If peaks have been matched
+        // Combine peaks with the same pattern index (knowing that they are sorted)
+        int lastPatternIndex = _reflections[0].patternIndex;
+        for (int i=1; i<_reflections.size(); i++) {
+            if (_reflections[i].patternIndex == -1 || 
+                    _reflections[i].patternIndex != lastPatternIndex) {
+                tempTwoTheta.push_back(_reflections[i].getAngle());
+                tempIntensity.push_back(_reflections[i].getIntensity());
             } else 
-                tempIntensity.back() += _diffractionPeaks[i].peakIntensity;
+                tempIntensity.back() += _reflections[i].getIntensity();
         }
     } else {
         // Combine peaks closer than 0.15 degrees
         int lastAngle = -100;
-        for (int i=1; i<_diffractionPeaks.size(); i++) {
-            if (_diffractionPeaks[i].TwoThetaDeg - lastAngle > 0.15) {
-                tempTwoTheta.push_back(_diffractionPeaks[i].TwoThetaDeg);
-                tempIntensity.push_back(_diffractionPeaks[i].peakIntensity);
+        for (int i=1; i<_reflections.size(); i++) {
+            if (_reflections[i].getAngle() - lastAngle > 0.15) {
+                tempTwoTheta.push_back(_reflections[i].getAngle());
+                tempIntensity.push_back(_reflections[i].getIntensity());
                 lastAngle = tempTwoTheta.back();
             } else {
-                tempIntensity.back() += _diffractionPeaks[i].peakIntensity;
+                tempIntensity.back() += _reflections[i].getIntensity();
             }
         }
     }
     
     // Save peaks
-    _peakTwoTheta.resize(tempTwoTheta.size());
-    _integratedIntensity.resize(tempTwoTheta.size());
-    for (int i = 0; i < tempTwoTheta.size(); ++i) {
-        _peakTwoTheta[i] = tempTwoTheta[i];
-        _integratedIntensity[i] = tempIntensity[i];
-    }
+    vector<DiffractionPeak> output;
+	output.reserve(tempTwoTheta.size());
+	for (int i=0; i<tempTwoTheta.size(); i++) {
+		output.push_back(DiffractionPeak(tempTwoTheta[i],tempIntensity[i]));
+	}
+	
+	return output;
+}
+
+void CalculatedPattern::matchPeaksToReference(Diffraction* referencePattern) {
+	// Before calling superclass, ensure that no peaks will be matched together
+	for (int i=0; i<_reflections.size(); i++) {
+		_reflections[i].patternIndex = i;
+	}
 }
 
 /**
  * Given a diffraction pattern, identifies which calculated peaks match up to 
- *  each peak in the stored reference pattern. Stores matching peak in _diffractionPeak data structure.
+ *  each peak in the stored reference pattern. Groups of peaks that match a single peak
+ *  in the reference and those peaks in this pattern that are not matched are stored 
+ *  internally.
  * 
- * This function also creates a "matching peaks" object, which contains the indexes of
- *  peaks in this pattern that match each peak in the reference pattern. While that may
- *  be a mouthful to explain, it will be very useful when calculating R factors, 
- *  which rely on the fact that several peaks from this pattern may match to a single
- *  peak in the reference.
  */
-void Diffraction::matchPeaksToReference() {
-    // Return if there are no reference peaks
-    if (_referencePattern == 0) {
-        Output::newline(ERROR);
-        Output::print("Internal Error: Reference pattern not set");
-        Output::quit();
-    }
+void Diffraction::matchPeaksToReference(const Diffraction& _referencePattern) {
     
     // Reset lookup table for which peaks in this pattern match to a each 
     //  peak in the reference
+	vector<DiffractionPeak> referencePeaks = _referencePattern.getDiffractedPeaks();
     _matchingPeaks.clear(); 
-    _matchingPeaks.reserve(_referencePattern->_diffractionPeaks.size());
-    for (int i=0; i<_referencePattern->_diffractionPeaks.size(); i++) {
+    _matchingPeaks.reserve(referencePeaks.size());
+    for (int i=0; i<referencePeaks.size(); i++) {
         vector<int> empty;
         _matchingPeaks.push_back(empty);
     }
@@ -762,16 +762,18 @@ void Diffraction::matchPeaksToReference() {
 
     // Tolerance for peaks to be aligned
     double tol = 0.15;
-
+	
+	
+	vector<DiffractionPeak> thisPeaks = getDiffractedPeaks();
     // Loop over diffraction peaks in this pattern
-    for (int thisPeak = 0; thisPeak < _diffractionPeaks.size(); ++thisPeak) {
+    for (int thisPeak = 0; thisPeak < thisPeaks.size(); ++thisPeak) {
         // Find the nearest diffraction peak in reference pattern
         int nearIndex = 0;
-        double nearDif = abs(_diffractionPeaks[thisPeak].TwoThetaDeg - \
-                _referencePattern->_diffractionPeaks[thisPeak].TwoThetaDeg);
-        for (int refPeak = 1; refPeak < _referencePattern->_diffractionPeaks.size(); ++refPeak) {
-            double curDif = abs(_diffractionPeaks[thisPeak].TwoThetaDeg \
-                - _referencePattern->_diffractionPeaks[refPeak].TwoThetaDeg);
+        double nearDif = abs(thisPeaks[thisPeak].getAngle() - \
+                referencePeaks[thisPeak].getAngle());
+        for (int refPeak = 1; refPeak < referencePeaks.size(); ++refPeak) {
+            double curDif = abs(thisPeaks[thisPeak].getAngle() \
+                - referencePeaks[refPeak].getAngle());
             if (curDif < nearDif) {
                 nearIndex = refPeak;
                 nearDif = curDif;
@@ -781,13 +783,13 @@ void Diffraction::matchPeaksToReference() {
         // If no peak within tolerance of this peak mark its index as -1 (not matched)
         //  and move on to the next peak
         if (nearDif > tol) {
-            _diffractionPeaks[thisPeak].patternIndex = -1;
+            thisPeaks[thisPeak].patternIndex = -1;
             _unmatchedPeaks.push_back(thisPeak);
             continue;
         }
 
         // Otherwise, save index of peak in reference as the pattern index for this peak
-        _diffractionPeaks[thisPeak].patternIndex = nearIndex;
+        thisPeaks[thisPeak].patternIndex = nearIndex;
         
         // Add this peak to the list of those that match nearIndex
         _matchingPeaks[nearIndex].push_back(thisPeak);
@@ -797,22 +799,17 @@ void Diffraction::matchPeaksToReference() {
 /**
  * Calculate the squared structure factor for all atoms in a crystal for certain 
  *  plane at a specific angle.
+ * @param method [in] Method used to calculate diffraction peaks
+ * @param wavelength [in] Wavelength of incident radiation
  * @param symmetry [in] Symmetrical information about a structure
- * @param angle [in] Angle at which radiation is reflected
+ * @param angle [in] Angle at which radiation is reflected (radians)
  * @param hkl [in] Crystallographic plane being considered
  * @param BFactors [in] Thermal factors for each orbit of atoms
- * @param Bderivs [out] Derivatives of squared structure factor wrt to each B factor
- * @param posDerivates [out] Derivatives of squared structure factor wrt to each B factor
+ * @param atfParams [in] Parameters to atomic form factors
  * @return Squared structure factor for this condition
  */
-double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, double angle, \
-        const Vector3D& hkl, vector<double> BFactors, valarray<double>& Bderivs, valarray<double>& posDerivs) {
-
-    // Variables to store real and imaginary parts of derivatives
-    valarray<double> realBderivs(0.0, Bderivs.size());
-    valarray<double> imagBderivs(0.0, Bderivs.size());
-    valarray<double> realPosDerivs(0.0, posDerivs.size());
-    valarray<double> imagPosDerivs(0.0, posDerivs.size());
+double CalculatedPeak::structureFactorSquared(Method method, double wavelength, const Symmetry& symmetry, double angle, \
+        const Vector3D& hkl, vector<double> BFactors, List<double>::D2 atfParams) {
 
     // Loop over all atoms and calculate magnitude squared
     int i, j, k;
@@ -822,21 +819,16 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
     double imag = 0;
     double sinTerm;
     double cosTerm;
-    double preBderiv;
-    double prePosDeriv;
     double thermFactor;
     double scatteringFactor;
-    double thermFactorDeriv = 0;
     Atom* curAtom;
 	for (i = 0; i < symmetry.orbits().length(); ++i) {
 
 		// Get scaling factors for current atom
 		curAtom = symmetry.orbits()[i].atoms()[0];
-		scatteringFactor = atomicScatteringFactor(i, angle);
-		thermFactor = (_sourcePattern->_method == DM_SIMPLE) ? 1 : thermalFactor(angle, BFactors[i]);
-		if (Bderivs.size() > 0)
-			thermFactorDeriv = (_sourcePattern->_method == DM_SIMPLE) ? 0 : thermalFactorDeriv(angle, BFactors[i]);
-
+		scatteringFactor = atomicScatteringFactor(atfParams[i], angle, wavelength);
+		thermFactor = (method == DM_SIMPLE) ? 1 : thermalFactor(angle, BFactors[i]);
+		
 		// Loop over equivalent atoms
 		for (j = 0; j < symmetry.orbits()[i].atoms().length(); ++j) {
 
@@ -850,45 +842,9 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
 			pre = scatteringFactor * thermFactor * curAtom->occupancy();
 			real += pre * cosTerm;
 			imag += pre * sinTerm;
-
-			// Add the B factor derivative if passed
-			if (Bderivs.size() > 0) {
-				preBderiv = scatteringFactor * thermFactorDeriv * curAtom->occupancy();
-				realBderivs[i] += preBderiv * cosTerm;
-				imagBderivs[i] += preBderiv * sinTerm;
-			}
-
-			// Add position derivatives if passed
-			if ((j == 0) && (posDerivs.size() > 0)) {
-				for (k = 0; k < 3; ++k) {
-					prePosDeriv = pre * 2 * Constants::pi * hkl[k] * symmetry.orbits()[i].atoms().length();
-					realPosDerivs[3 * i + k] += prePosDeriv * sinTerm;
-					imagPosDerivs[3 * i + k] += prePosDeriv * cosTerm;
-				}
-			}
 		}
 	}
-
-	// Save B factor derivatives
-	for (i = 0; i < Bderivs.size(); ++i)
-		Bderivs[i] = 2 * (real * realBderivs[i] + imag * imagBderivs[i]);
-
-	// Save position derivatives
-	if (posDerivs.size() > 0) {
-		Vector3D tempDeriv;
-		for (i = 0; i < posDerivs.size(); ++i)
-			posDerivs[i] = 2 * (-real * realPosDerivs[i] + imag * imagPosDerivs[i]);
-		for (i = 0; i < symmetry.orbits().length(); ++i) {
-			for (j = 0; j < 3; ++j)
-				tempDeriv[j] = posDerivs[3 * i + j];
-			tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
-			if (symmetry.orbits()[i].anyAtomsFixed())
-				tempDeriv = 0.0;
-			for (j = 0; j < 3; ++j)
-				posDerivs[3 * i + j] = tempDeriv[j];
-		}
-	}
-
+	
     // Return the square of the magnitude
     return real * real + imag*imag;
 }
@@ -910,7 +866,7 @@ double Diffraction::Peak::structureFactorSquared(const Symmetry& symmetry, doubl
  * @param twoTheta [in] List of angles at which diffracted intensity is measured
  * @param intensity [in] Intensity measured at each angle
  */
-void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& intensity) {
+void ExperimentalPattern::set(const Linked<double>& twoTheta, const Linked<double>& intensity) {
 	// Copy over two theta
 	vector<double> twoThetaCopy(twoTheta.length());
 	Linked<double>::iterator iter = twoTheta.begin();
@@ -942,7 +898,7 @@ void Diffraction::set(const Linked<double>& twoTheta, const Linked<double>& inte
  * @param twoTheta [in, out] List of angles at which diffracted intensity is measured. Returned in sorted order
  * @param intensity [in] Intensity measured at each angle. Sorted in same order as twoTheta
  */
-void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
+void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensity) {
     // Clear space
     clear();
 
@@ -987,7 +943,7 @@ void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
 		_diffractionPeaks.reserve(twoTheta.size());
 
 		for (int i = 0; i < twoTheta.size(); ++i) {
-			Diffraction::Peak newPeak(twoTheta[i], intensity[i]);
+			DiffractionPeak newPeak(twoTheta[i], intensity[i]);
 			_diffractionPeaks.push_back(newPeak);
 		}
 
@@ -1034,8 +990,6 @@ void Diffraction::set(vector<double>& twoTheta, vector<double>& intensity) {
 		// Output
 		Output::decrease();
 	}
-
-	extractIntensities();
 }
 
 /**
@@ -1050,12 +1004,10 @@ double Diffraction::rFactor(const Diffraction& reference) {
     Output::increase();
 
     // Match peaks in this pattern to reference pattern
-    defineReferencePattern(reference);
+    matchPeaksToReference(reference);
 
     // Get the R factor (refining nothing)
-    double optMaxIntensity;
-    _currentlyRefining.clear();
-    double rFactor = getCurrentRFactor(DR_ABS);
+    double rFactor = getCurrentRFactor(reference, DR_ABS);
 
     // Output
     Output::newline();
@@ -1075,7 +1027,7 @@ double Diffraction::rFactor(const Diffraction& reference) {
  * @param symmetry [in,out] Symmetry object describing structure (contains atomic positions)
  * @param positions [in] Vector containing all relevant position data
  */
-void Diffraction::setPositions(const Symmetry& symmetry, const Vector& positions) {
+void CalculatedPattern::setPositions(const Symmetry& symmetry, const Vector& positions) {
     int i, j, k;
             Vector3D newPos;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
@@ -1092,32 +1044,12 @@ void Diffraction::setPositions(const Symmetry& symmetry, const Vector& positions
 }
 
 /**
- * Ensure that derivatives of a property wrt position obey symmetry of a crystal.
- * 
- * @param symmetry [in] Object describing the symmetry of the structure
- * @param derivs [in,out] Derivatives with respect to each position parameter. Will be adjusted
- */
-void Diffraction::symDerivatives(const Symmetry& symmetry, Vector& derivs) {
-    int i, j;
-            Vector3D tempDeriv;
-    for (i = 0; i < symmetry.orbits().length(); ++i) {
-        for (j = 0; j < 3; ++j)
-			tempDeriv[j] = derivs[3 * i + j];
-			tempDeriv *= symmetry.orbits()[i].specialPositions()[0].rotation();
-            if (symmetry.orbits()[i].anyAtomsFixed())
-				tempDeriv = 0.0;
-			for (j = 0; j < 3; ++j)
-				derivs[3 * i + j] = tempDeriv[j];
-	}
-}
-
-/**
  * Ensure that positions obey symmetry of a crystal.
  * 
  * @param symmetry [in] Object describing the positions
  * @param position [in,out] Derivatives with respect to each position parameter. Will be adjusted
  */
-void Diffraction::symPositions(const Symmetry& symmetry, Vector& position) {
+void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position) {
     int i, j;
             Vector3D tempPos;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
@@ -1139,40 +1071,40 @@ void Diffraction::symPositions(const Symmetry& symmetry, Vector& position) {
  * 
  * User Notices:
  * <ol>
- * <li>You should have already have defined the reference pattern and structure
- * <li>Current intensity values in peaks are used. Make sure you run calculatePeakIntensities
- * with your new parameters before running this operation.
+ * <li>You should already have matched peaks to the reference pattern (done separately so that 
+ * they do not have be computed each time to call this operation). Be careful!
+ * <li>Uses whatever intensities are return when calling getDiffractedPeaks. If you are using a 
+ * calculated pattern, make sure to update this before computing the rFactor!
  * </ol>
  * 
+ * @param 
  * @param method [in] Method used to calculate R factor
  * @return R factor describing match between this pattern and reference
  */
-double Diffraction::getCurrentRFactor(Rmethod method) {
-    if (!referencePatternIsDefined()) {
-        Output::newline(ERROR);
-        Output::print("Internal Error: Reference pattern not yet defined.");
-        return -1;
-    }
+double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmethod method) {
     
     // ---> Part #1: Store the peak intensities for both the reference pattern and 
     //   peaks from the calculated pattern that match those peaks
     
     // Intensities of peaks in the reference pattern that are matched by peaks 
     //  in the calculated pattern.
-    vector<double> referenceIntensity(_referencePattern->_diffractionPeaks.size(), 0.0);
+	vector<DiffractionPeak> referencePeaks = _referencePattern.getDiffractedPeaks(),
+			thisPeaks = getDiffractedPeaks();
+	
+    vector<double> referenceIntensity(referencePeaks.size(), 0.0);
     // For each peak in the reference, total intensity of all matching peaks from this pattern
     vector<double> matchedIntensity(referenceIntensity.size(), 0.0);
     // Intensity of peaks in this pattern that do not match a reference peak
     vector<double> unmatchedIntensity(_unmatchedPeaks.size());
     
     for (int i = 0; i < referenceIntensity.size(); i++) {
-        referenceIntensity[i] = _referencePattern->_diffractionPeaks[i].peakIntensity;
+        referenceIntensity[i] = referencePeaks[i].getIntensity();
         for (int j=0; j < _matchingPeaks[i].size(); j++)
-            matchedIntensity[i] += _diffractionPeaks[_matchingPeaks[i][j]].peakIntensity;
+            matchedIntensity[i] += thisPeaks[_matchingPeaks[i][j]].getIntensity();
     }
     
     for (int i=0; i<unmatchedIntensity.size(); i++)
-        unmatchedIntensity[i] = _diffractionPeaks[_unmatchedPeaks[i]].peakIntensity;
+        unmatchedIntensity[i] = thisPeaks[_unmatchedPeaks[i]].getIntensity();
 
     // ---> Part #2: Calculate the normalization factor, which is what the total
     //  error is divided by to make it an R factor. This is generally the sum of
@@ -1204,8 +1136,8 @@ double Diffraction::getCurrentRFactor(Rmethod method) {
         optimalScale = std::inner_product(matchedIntensity.begin(), matchedIntensity.end(), \
                 referenceIntensity.begin(), 0.0);
         double denom = 0;
-        for (int i=0; i<_diffractionPeaks.size(); i++) 
-            denom += _diffractionPeaks[i].peakIntensity * _diffractionPeaks[i].peakIntensity;
+        for (int i=0; i<referencePeaks.size(); i++) 
+            denom += thisPeaks[i].getIntensity() * thisPeaks[i].getIntensity();
         optimalScale /= denom;
     } else if (method == DR_ABS) {
         // In this case, the minimum occurs when at least one calculated peak intensity
@@ -1219,7 +1151,7 @@ double Diffraction::getCurrentRFactor(Rmethod method) {
                 for (int j = 0; j < matchedIntensity.size(); j++)
                     curError += abs(referenceIntensity[j] - curScale * matchedIntensity[j]);
                 for (int j = 0; j < _unmatchedPeaks.size(); j++) 
-                    curError += abs(curScale * _diffractionPeaks[_unmatchedPeaks[j]].peakIntensity);
+                    curError += abs(curScale * thisPeaks[_unmatchedPeaks[j]].getIntensity());
                 if (curError < minimumError) {
                     minimumError = curError; optimalScale = curScale; 
                 }
@@ -1253,54 +1185,6 @@ double Diffraction::getCurrentRFactor(Rmethod method) {
             return -1;
     }
     
-    // ---> Part #5: Calculate derivative of R factor with respect to each refinement parameter
-    // This is only necessary for calculated patterns
-    // LW 8Apr14: MARKED FOR DELETION. I don't think we are going to use analytical derivatives, 
-    //            numerical ones seem to work well enough. See discussion in runRefinement().
-    if (_type == PT_CALCULATED) {
-        // Zero all derivatives (assume they have already been allocated)
-        _BFactorDerivs =  0.0;
-        _PositionDerivs = 0.0;
-        if (method == DR_SQUARED) {
-            // Accrue total derivatives from each peaks contributing at this angle
-            for (int p=0; p < _diffractionPeaks.size(); p++) {
-                // Get the error for this peak
-                int patternIndex = _diffractionPeaks[p].patternIndex;
-                double error;
-                if (patternIndex == -1) error = _diffractionPeaks[p].peakIntensity;
-                else error = referenceIntensity[patternIndex] 
-                        - optimalScale * matchedIntensity[patternIndex];
-                // Get the contribution to the derivatives from this peak
-                valarray<double> curBderivs = _diffractionPeaks[p].derivBfactors;
-                curBderivs *= -2 * optimalScale * error / norm;
-                valarray<double> curPosDerivs = _diffractionPeaks[p].derivPositions;
-                curPosDerivs *= -2 * optimalScale * error / norm;
-                // Add the contribution to the total derivatives
-                _BFactorDerivs += curBderivs;
-                _PositionDerivs += curBderivs;
-            }
-        } else if (method == DR_ABS) {
-            for (int p=0; p < _diffractionPeaks.size(); p++) {
-                // Get the error for this peak
-                int patternIndex = _diffractionPeaks[p].patternIndex;
-                double error;
-                if (patternIndex == -1) error = _diffractionPeaks[p].peakIntensity;
-                else error = referenceIntensity[patternIndex] 
-                        - optimalScale * matchedIntensity[patternIndex];
-                // Get the contribution to the derivatives from this peak
-                valarray<double> curBderivs = _diffractionPeaks[p].derivBfactors;
-                curBderivs *= optimalScale / norm;
-                if (error < 0) curBderivs *= -1;
-                valarray<double> curPosDerivs = _diffractionPeaks[p].derivPositions;
-                curPosDerivs *= optimalScale / norm;
-                if (error < 0) curPosDerivs *= -1;
-                // Add the contribution to the total derivatives
-                _BFactorDerivs += curBderivs;
-                _PositionDerivs += curBderivs;
-            }
-        }
-    }
-    
     return rFactor;
 }
 
@@ -1308,7 +1192,7 @@ double Diffraction::getCurrentRFactor(Rmethod method) {
  * @param text [in] Text object containing contents of file
  * @return Whether file contains diffraction data
  */
-bool Diffraction::isFormat(const Text& text) {
+bool ExperimentalPattern::isFormat(const Text& text) {
     int pairCount = 0;
             int lineCount = 0;
     for (int i = 0; i < text.length(); ++i) {
@@ -1344,7 +1228,7 @@ bool Diffraction::isFormat(const Text& text) {
  * 
  * @param text [in] Text object containing contents of a file
  */
-void Diffraction::set(const Text& text) {
+void ExperimentalPattern::set(const Text& text) {
     // Output
     Output::newline();
     Output::print("Reading diffraction data from file");
@@ -1382,31 +1266,8 @@ void Diffraction::set(const Text& text) {
                         Output::quit();
             }
         }
-            // Found fwhm
-        else if (text[i][0].equal("fwhm", false, 4)) {
-            if (Language::isNumber(text[i][1]))
-                    fwhm(atof(text[i][1].array()));
-            else {
-                Output::newline(ERROR);
-                        Output::print("Did not recognize FWHM value in diffraction file (");
-                        Output::print(text[i][1]);
-                        Output::print(")");
-                        Output::quit();
-            }
-        }
-            // Found variance
-        else if (text[i][0].equal("variance", false, 3)) {
-            if (Language::isNumber(text[i][1]))
-                    variance(atof(text[i][1].array()));
-            else {
-                Output::newline(ERROR);
-                        Output::print("Did not recognize variance value in diffraction file (");
-                        Output::print(text[i][1]);
-                        Output::print(")");
-                        Output::quit();
-            }
-        }
-            // Found a data line
+		
+		// Found a data line
         else if ((Language::isNumber(text[i][0])) && (Language::isNumber(text[i][1]))) {
             rawTwoTheta.push_back(atof(text[i][0].array()));
             rawIntensity.push_back(atof(text[i][1].array()));
@@ -1421,20 +1282,21 @@ void Diffraction::set(const Text& text) {
     set(rawTwoTheta, rawIntensity);
 
     // Output
+	vector<DiffractionPeak> peaks = getDiffractedPeaks();
     Output::newline();
     Output::print("Found ");
-    Output::print(_peakTwoTheta.size());
+    Output::print(peaks.size());
     Output::print(" peak");
-    if (_peakTwoTheta.size() != 1)
+    if (peaks.size() != 1)
             Output::print("s");
             Output::increase();
-    for (i = 0; i < _peakTwoTheta.size(); ++i) {
+    for (i = 0; i < peaks.size(); ++i) {
 
         Output::newline();
         Output::print("Two-theta and intensity of ");
-        Output::print(_peakTwoTheta[i]);
+        Output::print(peaks[i].getAngle());
         Output::print(" ");
-        Output::print(_integratedIntensity[i]);
+        Output::print(peaks[i].getIntensity());
     }
     Output::decrease();
 
@@ -1457,7 +1319,7 @@ void Diffraction::set(const Text& text) {
  * @param numPerSide [in] Number of points to use on either side for smoothing.
  * @param power [in] How much weight to apply to farthest points. Should range between 0 and 1.
  */
-void Diffraction::smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity,
+void ExperimentalPattern::smoothData(const vector<double>& rawTwoTheta, vector<double>& rawIntensity,
         const int numPerSide, const double power) {
 
     // Weight for point at max distance away
@@ -1498,7 +1360,7 @@ void Diffraction::smoothData(const vector<double>& rawTwoTheta, vector<double>& 
  * @param rawItensity [in,out] Intensity measured at each angle. Background will be 
  *                      removed from these measurements.
  */
-void Diffraction::removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity) {
+void ExperimentalPattern::removeBackground(vector<double>& rawTwoTheta, vector<double>& rawIntensity) {
     // Determine how many points to include in smoothing
     double boxSize = 4.0;
 	int nPoints = (int) (boxSize / (rawTwoTheta[1] - rawTwoTheta[0]));
@@ -1546,7 +1408,7 @@ void Diffraction::removeBackground(vector<double>& rawTwoTheta, vector<double>& 
  * @param rawTwoTheta [in] Raw diffraction pattern: Angles at which intensities were measured
  * @param rawIntensity [in] Raw diffraction pattern: Intensities measured at each angle
  */
-void Diffraction::locatePeaks(vector<vector<double> >& peakTwoTheta,
+void ExperimentalPattern::locatePeaks(vector<vector<double> >& peakTwoTheta,
         vector<vector<double> >& peakIntensity,
         const vector<double>& rawTwoTheta, const vector<double>& rawIntensity) {
 
@@ -1715,21 +1577,21 @@ void Diffraction::locatePeaks(vector<vector<double> >& peakTwoTheta,
  *  be arranged in ascending order with two theta.
  * @param peakIntensity [in] 2D array containing intensities at each measured angle for each peak
  */
-void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
+void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peakTwoTheta, \
         const vector<vector<double> >& peakIntensity) {
     // Clear the old peak data out
     _diffractionPeaks.clear();
     _diffractionPeaks.reserve(peakIntensity.size());
     
     // Functors used in fitting
-    Functor<Diffraction> gaussFun(this, &Diffraction::gaussian);
-    Functor<Diffraction> compositeGaussFun(this, &Diffraction::compositeGaussian);
-    Functor<Diffraction> psFun(this, &Diffraction::PV);
-    Functor<Diffraction> compositePVFun(this, &Diffraction::compositePV);
-    VectorFunctor<Diffraction> gaussDeriv(this, &Diffraction::gaussianDerivs);
-    VectorFunctor<Diffraction> compositeGaussDeriv(this, &Diffraction::compositeGaussianDerivs);
-    VectorFunctor<Diffraction> psDeriv(this, &Diffraction::PVderivs);
-    VectorFunctor<Diffraction> compositePVDeriv(this, &Diffraction::compositePVDerivs);
+    Functor<ExperimentalPattern> gaussFun(this, &ExperimentalPattern::gaussian);
+    Functor<ExperimentalPattern> compositeGaussFun(this, &ExperimentalPattern::compositeGaussian);
+    Functor<ExperimentalPattern> psFun(this, &ExperimentalPattern::PV);
+    Functor<ExperimentalPattern> compositePVFun(this, &ExperimentalPattern::compositePV);
+    VectorFunctor<ExperimentalPattern> gaussDeriv(this, &ExperimentalPattern::gaussianDerivs);
+    VectorFunctor<ExperimentalPattern> compositeGaussDeriv(this, &ExperimentalPattern::compositeGaussianDerivs);
+    VectorFunctor<ExperimentalPattern> psDeriv(this, &ExperimentalPattern::PVderivs);
+    VectorFunctor<ExperimentalPattern> compositePVDeriv(this, &ExperimentalPattern::compositePVDerivs);
 
 
     // Part #0: Save two-theta/intensity pairs in a format compatable with 
@@ -1762,7 +1624,7 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
         }
 
         // Fit Gaussian function
-        gaussianParams[curPeak] = Fit::LM<Diffraction>(singlePeakPoints[curPeak], gaussFun, gaussDeriv, initialGaussian, 1e-5);
+        gaussianParams[curPeak] = Fit::LM<ExperimentalPattern>(singlePeakPoints[curPeak], gaussFun, gaussDeriv, initialGaussian, 1e-5);
     }
 
     // Part #2: Decide which peaks need to be fitted together
@@ -1807,7 +1669,7 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
 			for (int i = 0; i < 3; i++)
 				initialCompositeParams[peak * 3 + i] = gaussianParams[peakGroup[group][peak]][i];
 		// Step #2: Fit new parameters 
-		Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
+		Vector compositeParams = Fit::LM<ExperimentalPattern>(peakGroupPoints[group],
 				compositeGaussFun, compositeGaussDeriv, initialCompositeParams, 1e-5);
 		// Step #3: Copy parameters back
 		for (int peak = 0; peak < peakGroup[group].size(); peak++)
@@ -1841,7 +1703,7 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
 			for (int i = 0; i < 8; i++)
 				initialCompositeParams[peak * 8 + i] = psParams[peakGroup[group][peak]][i];
 		// Step #3: Fit new parameters 
-		Vector compositeParams = Fit::LM<Diffraction>(peakGroupPoints[group],
+		Vector compositeParams = Fit::LM<ExperimentalPattern>(peakGroupPoints[group],
 				compositePVFun, compositePVDeriv, initialCompositeParams, 1e-5);
 		// Step #4: Copy parameters back
 		for (int peak = 0; peak < peakGroup[group].size(); peak++)
@@ -1858,11 +1720,11 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
             int curPeak = peakGroup[group][subPeak];
             double initialTwoTheta = psParams[curPeak][3];
             double twoThetaStep = 1e-3;
-            Functor<Diffraction> psTT(this, &Diffraction::PV, &psParams[curPeak]);
+            Functor<ExperimentalPattern> psTT(this, &ExperimentalPattern::PV, &psParams[curPeak]);
             double location, intensity;
             
             // Find the maximum (location of peak)
-            intensity = Solve<Diffraction>::maximize(psTT, 1e-8, initialTwoTheta, twoThetaStep, location);
+            intensity = Solve<ExperimentalPattern>::maximize(psTT, 1e-8, initialTwoTheta, twoThetaStep, location);
             
             // Integrate the peak
             PVPeakFunction peakFunc(this, psParams[curPeak]);
@@ -1885,7 +1747,7 @@ void Diffraction::getPeakIntensities(const vector<vector<double> >& peakTwoTheta
 			}
             
             // Make a new peak
-            Peak newPeak(location, intensity);
+            DiffractionPeak newPeak(location, intensity);
             _diffractionPeaks.push_back(newPeak);
         }
     }
@@ -1918,7 +1780,7 @@ void Diffraction::print(const Word& file, bool broaden) const {
 
     // Open file for writing if needed
     int origStream = Output::streamID();
-            PrintMethod origMethod = Output::method();
+	PrintMethod origMethod = Output::method();
     if (file != "stdout")
             Output::setStream(Output::addStream(file));
 
@@ -1931,9 +1793,6 @@ void Diffraction::print(const Word& file, bool broaden) const {
         Output::newline();
         Output::print("Wavelength ");
         Output::print(_wavelength);
-        Output::newline();
-        Output::print("FWHM ");
-        Output::printSci(_fwhm);
         Output::newline();
         Output::print("Resolution ");
         Output::print(_resolution);
@@ -1950,28 +1809,29 @@ void Diffraction::print(const Word& file, bool broaden) const {
 
     // Add peaks
     if (!broaden) {
-        message.addLines(_peakTwoTheta.size());
-        for (int i = 0; i < _peakTwoTheta.size(); ++i) {
-            if (_integratedIntensity[i] < 1) 
+		vector<DiffractionPeak> peaks = getDiffractedPeaks();
+        message.addLines(peaks.size());
+        for (int i = 0; i < peaks.size(); ++i) {
+            if (peaks[i].getIntensity() < 1) 
                 continue;
             message.addLine();
-            message.add(_peakTwoTheta[i], 10);
-            message.add(_integratedIntensity[i], 10);
+            message.add(peaks[i].getAngle(), 10);
+            message.add(peaks[i].getIntensity(), 10);
         }
     }
     // Add broadened data
     else {
-        int i;
-        double intensity;
-        double twoTheta = _minTwoTheta - 3 * _fwhm;
-        message.addLines((int) (_maxTwoTheta - _minTwoTheta) / _resolution + 1);
-        for (twoTheta = (twoTheta < 3) ? 3 : twoTheta; twoTheta <= _maxTwoTheta + 3 * _fwhm; twoTheta += _resolution) {
-            intensity = 0;
-            for (i = 0; i < _peakTwoTheta.size(); ++i)
-                intensity += _integratedIntensity[i] * exp(-pow(twoTheta - _peakTwoTheta[i], 2.0) / (2 * _variance));
+        vector<double> twoTheta;
+		twoTheta.reserve((_maxTwoTheta - _minTwoTheta) / _resolution);
+		for (int angle=_minTwoTheta; angle<=_maxTwoTheta; angle += _resolution) {
+			twoTheta.push_back(angle);
+		}
+		vector<double> intensity = getDiffractedIntensity(twoTheta);
+        message.addLines(intensity.size());
+        for (int i=0; i < intensity.size(); i++) {
             message.addLine();
-            message.add(twoTheta, 10);
-            message.add(intensity, 10);
+            message.add(twoTheta[i], 10);
+            message.add(intensity[i], 10);
         }
     }
 
@@ -1991,7 +1851,7 @@ void Diffraction::print(const Word& file, bool broaden) const {
  * factor) . This function simply gets the atomic form factors for each symmetrically
  * unique set of atoms in the structure (should be already defined)
  */
-void Diffraction::setATFParams() {
+void CalculatedPattern::setATFParams() {
     if (!structureIsDefined()) {
         Output::newline(ERROR);
                 Output::print("Structure has not yet been defined. Cannot get ATF parameters");
@@ -2319,26 +2179,26 @@ void Diffraction::setATFParams() {
 
 /**
  * Calculate atomic scattering factor for a group of symmetrically-identical atoms
- * @param index [in] Which group of atoms (same order as in symmetry.orbits())
+ * @param atfParams [in] Atomic form factor parameters
  * @param angle [in] Angle radiation is scattered into
+ * @param wavelength [in] Wavelength of incident radiation
  * @return Atomic scattering factor for those atoms
  */
-double Diffraction::Peak::atomicScatteringFactor(int index, double angle) {
+double CalculatedPeak::atomicScatteringFactor(List<double>& atfParams, double angle, double wavelength) {
     // Get s value
-    double s = sin(angle) / _sourcePattern->_wavelength;
-            double s2 = s * s;
+    double s = sin(angle) / wavelength;
+	double s2 = s * s;
     if (s > 2) {
-
         Output::newline(WARNING);
                 Output::print("Atomic scattering factor is not optimized for s greater than 2");
     }
             
 
     // Return result
-    return _sourcePattern->_atfParams[index][0] * exp(-_sourcePattern->_atfParams[index][4] * s2) + \
-           _sourcePattern->_atfParams[index][1] * exp(-_sourcePattern->_atfParams[index][5] * s2) + \
-           _sourcePattern->_atfParams[index][2] * exp(-_sourcePattern->_atfParams[index][6] * s2) + \
-           _sourcePattern->_atfParams[index][3] * exp(-_sourcePattern->_atfParams[index][7] * s2) + _sourcePattern->_atfParams[index][8];
+    return atfParams[0] * exp(-atfParams[4] * s2) + \
+           atfParams[1] * exp(-atfParams[5] * s2) + \
+           atfParams[2] * exp(-atfParams[6] * s2) + \
+           atfParams[3] * exp(-atfParams[7] * s2) + atfParams[8];
 }
 
 /**
@@ -2351,7 +2211,7 @@ double Diffraction::Peak::atomicScatteringFactor(int index, double angle) {
  * @param Intensity [in] Intensity measured at each angle
  * @param fittedIntensity [in] Optional: Some other function that should be expressed as a function of angle
  */
-void Diffraction::savePattern(const Word& filename, const vector<double>& twoTheta, \
+void ExperimentalPattern::savePattern(const Word& filename, const vector<double>& twoTheta, \
         const vector<double>& Intensity, const vector<double>& otherIntensity) {
     int origStream = Output::streamID();
             Output::setStream(Output::addStream(filename));
@@ -2376,7 +2236,7 @@ void Diffraction::savePattern(const Word& filename, const vector<double>& twoThe
  * @param y f(x)
  * @return f'(x) for each point. Same length as x and y
  */
-vector<double> Diffraction::getFirstDerivative(const vector<double>& x, const vector<double>& y) {
+vector<double> ExperimentalPattern::getFirstDerivative(const vector<double>& x, const vector<double>& y) {
     // Initialize output
     vector<double> d(x.size(), 0.0);
             // Calculate derivatives
@@ -2396,7 +2256,7 @@ vector<double> Diffraction::getFirstDerivative(const vector<double>& x, const ve
  * @param y f(x)
  * @return f''(x) for each point. Same length as x and y
  */
-vector<double> Diffraction::getSecondDerivative(const vector<double>& x, const vector<double>& y) {
+vector<double> ExperimentalPattern::getSecondDerivative(const vector<double>& x, const vector<double>& y) {
     // Initialize output
     vector<double> d(x.size(), 0.0);
             // Calculate derivatives

@@ -38,8 +38,8 @@ class PDF
 public:
 	
 	// Read file
-	static void read(Diffraction& diffraction, Text content, ISO* iso = 0);
-	static void read(Diffraction& diffraction, const Word& file, ISO* iso = 0)
+	static void read(ExperimentalPattern& diffraction, Text content, ISO* iso = 0);
+	static void read(ExperimentalPattern& diffraction, const Word& file, ISO* iso = 0)
 		{ read(diffraction, Read::text(file), iso); }
 
 	// Check if file is in correct format
