@@ -592,14 +592,10 @@ Option #2: If a diffraction pattern has been supplied as input, the refinement
     patterns. 
 
 ######Arguments:
-- "reitveld" to perform full-pattern refinement
+- "reitveld" to perform refinement against full diffraction pattern
 
-######Examples:
-    "-refine"       refine atomic positions and lattice vectors
-    "-refine atoms" refine atomic positions only
-    "-refine basis" refine lattice vectors only
-
-
+######Example:
+    "strc.in xray.in -refine"       Adjust positions to better match diffraction pattern
 
 
 ### -perturb
@@ -728,8 +724,8 @@ Calculate the powder xray diffraction pattern for a structure. If a
 - "wavelength" and number to set the xray wavelength (default: 1.5418 &#8491;)
 - "fwhm" and number (in degrees) used when calculating peak broadening (default: 0.05 &mu&m) 
 - "resolution" and number (in degrees) to set resolution for printing broadened points (default: 0.02&deg;) 
-- "minimum" and number to set the minimum two-theta value to calculate (default: 
-- "maximum" and number to set the maximum two-theta value to calculate
+- "minimum" and number to set the minimum two-theta value to calculate (default: 10 degrees)
+- "maximum" and number to set the maximum two-theta value to calculate (default: 100 degrees)
 
 ######Examples:
     "mint str -xray"        get diffraction pattern for structure in str [Currently broken!]
