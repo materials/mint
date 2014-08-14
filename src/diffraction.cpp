@@ -791,7 +791,7 @@ void CalculatedPeak::updateCalculatedIntensity(vector<double> BFactors, List<dou
 vector<DiffractionPeak> ExperimentalPattern::getDiffractedPeaks() const {
 	if (_diffractionPeaks.size() == 0) {
 		Output::newline(ERROR);
-		Output::print("No diffracted intensities were set");
+		Output::print("No diffracted intensities were set. Something might have failed during import.");
 		Output::quit();
 	}
 	vector<DiffractionPeak> output;
@@ -1195,7 +1195,11 @@ void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensit
 		vector<vector<double> > peakTwoTheta;
 		vector<vector<double> > peakIntensity;
 		locatePeaks(peakTwoTheta, peakIntensity, twoThetaCopy, intensityCopy);
-		getPeakIntensities(peakTwoTheta, peakIntensity);
+		try {
+			getPeakIntensities(peakTwoTheta, peakIntensity);
+		} catch (int e) {
+			_diffractionPeaks.clear();
+		}
 
 		// Output
 		Output::decrease();
@@ -1540,23 +1544,30 @@ void ExperimentalPattern::set(const Text& text) {
     set(rawTwoTheta, rawIntensity);
 
     // Output
-	vector<DiffractionPeak> peaks = getDiffractedPeaks();
-    Output::newline();
-    Output::print("Found ");
-    Output::print(peaks.size());
-    Output::print(" peak");
-    if (peaks.size() != 1)
-            Output::print("s");
-            Output::increase();
-    for (i = 0; i < peaks.size(); ++i) {
+	if (_diffractionPeaks.size() > 0) {
+		vector<DiffractionPeak> peaks = getDiffractedPeaks();
+		Output::newline();
+		Output::print("Found ");
+		Output::print(peaks.size());
+		Output::print(" peak");
+		if (peaks.size() != 1)
+				Output::print("s");
+				Output::increase();
+		for (i = 0; i < peaks.size(); ++i) {
 
-        Output::newline();
-        Output::print("Two-theta and intensity of ");
-        Output::print(peaks[i].getAngle());
-        Output::print(" ");
-        Output::print(peaks[i].getIntensity());
-    }
-    Output::decrease();
+			Output::newline();
+			Output::print("Two-theta and intensity of ");
+			Output::print(peaks[i].getAngle());
+			Output::print(" ");
+			Output::print(peaks[i].getIntensity());
+		}
+	} else {
+		Output::newline(ORDINARY);
+		Output::print("Stored a pattern with ");
+		Output::print(_continuousIntensity.size());
+		Output::print(" measurements.");
+	}
+	Output::decrease();
 
     // Output
     Output::decrease();
@@ -1993,7 +2004,7 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
 				Output::newline(WARNING);
 				Output::print("Failure during peak integration - Negative intensity found near: ");
 				Output::print(location, 3);
-				Output::quit();
+				throw 10;
 			}
 			
 			// Check that the maximum is within bounds of the measurement
@@ -2001,7 +2012,7 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
 				Output::newline(WARNING);
 				Output::print("Failure during peak integration - Peak maximum outside of measured range: ");
 				Output::print(location, 3);
-				Output::quit();
+				throw 10;
 			}
             
             // Make a new peak
