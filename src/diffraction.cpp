@@ -1321,6 +1321,7 @@ double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmet
 		Output::newline(ERROR);
 		Output::print("Internal Error: Mint can't calculate a Reitveld R factor with that method");
 		Output::quit();
+		return 0;
 	}
 }
 

@@ -290,7 +290,7 @@ void Setting::error(const OList<Word>& input)
 
 // Static member values of Settings
 Word Settings::_globalFile;
-const int Settings::_numSettings = 34;
+const int Settings::_numSettings = 35;
 Setting Settings::_settings[Settings::_numSettings];
 
 

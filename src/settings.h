@@ -131,7 +131,7 @@ class Settings
 	
 	// Settings objects
 	static const int _numSettings;
-	static Setting _settings[34];
+	static Setting _settings[35];
 	
 	// Local of global settings file
 	static Word _globalFile;
