@@ -143,7 +143,7 @@ public:
 		this->method = method;
 		this->structure = structure;
 		this->symmetry = symmetry;
-		this->_twoThetaRad = CalculatedPeak::getDiffractionAngle(structure->basis(),hkl,wavelength);
+		this->_twoThetaRad = 2 * CalculatedPeak::getDiffractionAngle(structure->basis(),hkl,wavelength);
 		this->TwoThetaDeg = Num<double>::toDegrees(this->_twoThetaRad);
         this->wavelength = wavelength;
 		this->multiplicity = equivHKL.size();
@@ -207,7 +207,8 @@ class Diffraction {
 public:
     
     // Pattern type
-    enum PatternType {PT_EXP_RAW, // Raw pattern from experiment, raw pattern
+    enum PatternType { PT_NONE, // Pattern does not have type yet
+		PT_EXP_RAW, // Raw pattern from experiment, raw pattern
         PT_EXP_INT, // Raw pattern from experiment, integrated intensities
         PT_CALCULATED}; // Pattern calculated from a crystal structure
 		
@@ -222,7 +223,7 @@ public:
 protected:
       	
     // ==============================
-    // General variables and methods
+    // General descriptions of the pattern
     // ==============================
     
     // Type of diffraction pattern
@@ -230,7 +231,7 @@ protected:
 	
 	// Experimental technique used to generate a pattern
     Method _method;
-        
+	
     // Wavelength of diffracted radiation
     double _wavelength;
     // Minimum angle at which diffracted intensities were measured
@@ -240,12 +241,16 @@ protected:
     // Minimum distance between any two features in a diffraction pattern (degrees)
     static double _resolution;
 	
+	// ====================================
+	// Related to matching to other patterns
+	// ====================================
+	
 	// Index of peaks in this pattern which match a given peak in the reference
     vector<vector<int> > _matchingPeaks;
     // Index of peaks that do not match something in the calculated pattern
     vector<int> _unmatchedPeaks;
-	
-	// Used when calculating match between two problems
+	// Scaling factor to make the output prettiest (i.e. same scale as reference pattern)
+	double _optimalScale;
 	
 	virtual void matchPeaksToReference(const Diffraction& referencePattern);
 	
@@ -274,9 +279,11 @@ public:
 	void setWavelength(double input)	{ _wavelength = input; }
 	void setMinTwoTheta(double input)	{ _minTwoTheta = input; }
 	void setMaxTwoTheta(double input)	{ _maxTwoTheta = input; }
+	void setOptimalScale(double input)	{ _optimalScale = input; }
 	
 	// Setup functions
 	virtual void clear() {
+		_type = PT_NONE;
 		_matchingPeaks.clear();
 		_unmatchedPeaks.clear();
 	}
@@ -289,7 +296,7 @@ public:
 	
 	// Access functions
 	PatternType patternType() { return _type; }
-	bool isSet() const { return (_method != DM_NONE); }
+	bool isSet() const { return (_type != PT_NONE); }
 	double wavelength() const { return _wavelength; }
 	Method method() const { return _method; }
 	double minTwoTheta() const { return _minTwoTheta; }
@@ -359,6 +366,7 @@ private:
 public:
 
 	void clear() {
+		Diffraction::clear();
 		_continuousIntensity.resize(0);
 		_continuousTwoTheta.resize(0);
 		_diffractionPeaks.clear();
@@ -442,7 +450,7 @@ private:
     void initializeRefinementParameters();
     void setATFParams();
     void calculatePeakLocations();
-	void matchPeaksToReference(Diffraction* referencePattern);
+	void matchPeaksToReference(const Diffraction& referencePattern);
 	
 	// --> Operation employed by user to refine a calculated pattern
     void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
@@ -466,11 +474,19 @@ private:
 	
 public:
 	
-	vector<DiffractionPeak> getDiffractedPeaks() const;
+	vector<DiffractionPeak> getDiffractedPeaks() const {
+		vector<DiffractionPeak> output;
+		output.reserve(_reflections.size());
+		output.insert(output.begin(), _reflections.begin(), _reflections.end());
+		return output;
+	}
+	
+	vector<DiffractionPeak> getCombinedPeaks() const;
 	
 	vector<double> getDiffractedIntensity(vector<double>& twoTheta) const;
 	
 	virtual void clear() {
+		Diffraction::clear();
 		_structure = 0;
 	}
 	
@@ -555,9 +571,11 @@ private:
 inline Diffraction::Diffraction()
 {
 	_method = DM_NONE;
+	_type = PT_NONE;
 	_wavelength = 1.5418;
 	_minTwoTheta = 10;
 	_maxTwoTheta = 100;
+	_optimalScale = 1.0;
 }
 
 /**

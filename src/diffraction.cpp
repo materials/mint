@@ -115,6 +115,7 @@ bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<Refi
  * @return R factor (if pattern provided)
  */
 double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, bool fitBfactors) {
+	_type = PT_CALCULATED;
     // Clear space
     clear();
 
@@ -139,6 +140,7 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
         Output::increase();
 
         // Refine the scale factor and B factors
+		matchPeaksToReference(*ref);
         std::set<RefinementParameters> toRefine;
         if (fitBfactors)
             toRefine.insert(RF_BFACTORS);
@@ -195,6 +197,9 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
 /**
  * Refine a structure (which has already been stored internally) against a reference
  *  diffraction pattern
+ * 
+ * LW 13Aug14: ToDo: Either pass Diffraction as ptr or by reference, not both!
+ * 
  * @param reference [in] Pattern to refine against
  * @param toRefine [in] What parameters of the diffracted intensity should be refined
  */
@@ -682,18 +687,15 @@ vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoThet
 	Output::quit();
 }
 
-
 /** 
- * Extract calculated peak intensities. Peaks that are closer than a certain 
- *  tolerance or match the same peak in a reference pattern are combined.
- * 
- * Results are stored internally in _peakTwoTheta and _integratedIntensity
+ * Get combined / scaled peaks for prettier output.
  */
-vector<DiffractionPeak> CalculatedPattern::getDiffractedPeaks() const {
+vector<DiffractionPeak> CalculatedPattern::getCombinedPeaks() const {
     vector<double> tempTwoTheta; tempTwoTheta.reserve(_reflections.size());
     vector<double> tempIntensity; tempIntensity.reserve(_reflections.size());
     tempTwoTheta.push_back(_reflections[0].getAngle());
     tempIntensity.push_back(_reflections[0].getIntensity());
+	double scaleFactor;
 	
 	// Build a list of intensities
     if (_matchingPeaks.size() > 0) { // If peaks have been matched
@@ -707,6 +709,9 @@ vector<DiffractionPeak> CalculatedPattern::getDiffractedPeaks() const {
             } else 
                 tempIntensity.back() += _reflections[i].getIntensity();
         }
+		
+		// Select scale factor maximum is 1000
+		scaleFactor = 1000.0 / *std::max_element(tempIntensity.begin(), tempIntensity.end());
     } else {
         // Combine peaks closer than 0.15 degrees
         int lastAngle = -100;
@@ -719,23 +724,26 @@ vector<DiffractionPeak> CalculatedPattern::getDiffractedPeaks() const {
                 tempIntensity.back() += _reflections[i].getIntensity();
             }
         }
+		// Assume that these peaks have been scaled
+		scaleFactor = 1.0;
     }
-    
+	
     // Save peaks
     vector<DiffractionPeak> output;
 	output.reserve(tempTwoTheta.size());
 	for (int i=0; i<tempTwoTheta.size(); i++) {
-		output.push_back(DiffractionPeak(tempTwoTheta[i],tempIntensity[i]));
+		output.push_back(DiffractionPeak(tempTwoTheta[i],tempIntensity[i] * scaleFactor));
 	}
 	
 	return output;
 }
 
-void CalculatedPattern::matchPeaksToReference(Diffraction* referencePattern) {
+void CalculatedPattern::matchPeaksToReference(const Diffraction& referencePattern) {
 	// Before calling superclass, ensure that no peaks will be matched together
 	for (int i=0; i<_reflections.size(); i++) {
 		_reflections[i].patternIndex = i;
 	}
+	Diffraction::matchPeaksToReference(referencePattern);
 }
 
 /**
@@ -934,6 +942,7 @@ void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensit
 
 	// Save peaks if data is already processed
 	if ((maxDif > 1.1 * minDif) || (maxDif == 0)) {
+		_type = PT_EXP_INT;
 		// Talk about what we are doing here
 		Output::newline();
 		Output::print("Importing an already-processed pattern");
@@ -954,7 +963,7 @@ void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensit
 		_minTwoTheta = _diffractionPeaks[0].getAngle() - _resolution;
 		_maxTwoTheta = _diffractionPeaks.back().getAngle() + _resolution / 2;
 	} else { // Save peaks after processing
-
+		_type = PT_EXP_RAW;
 		// Output
 		Output::newline();
 		Output::print("Processing raw diffraction pattern");
@@ -1082,7 +1091,12 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * @return R factor describing match between this pattern and reference
  */
 double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmethod method) {
-    
+    if (_matchingPeaks.size() == 0) {
+		Output::newline(ERROR);
+		Output::print("Some developer forgot to match diffraction peaks first!");
+		Output::quit();
+	}
+	
     // ---> Part #1: Store the peak intensities for both the reference pattern and 
     //   peaks from the calculated pattern that match those peaks
     
@@ -1126,19 +1140,20 @@ double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmet
     }
 
     // ---> Part #3: Determine optimal scale factor
-    double optimalScale = 1.0;
+    _optimalScale = 1.0;
     if (method == DR_SQUARED) {
         // Very simple for this case. Since R is quadratic wrt scale factor it is 
         //  possible to solve where the first derivative is equal to zero:
         //  s_optimal = sum[ I_ref * I_calc ] / sum[ I_calc * I_calc ]
         // Note: We do not need to worry about where peaks are not matched , because
         //       I_ref * I_calc == 0 for those cases
-        optimalScale = std::inner_product(matchedIntensity.begin(), matchedIntensity.end(), \
+        _optimalScale = std::inner_product(matchedIntensity.begin(), matchedIntensity.end(), \
                 referenceIntensity.begin(), 0.0);
-        double denom = 0;
-        for (int i=0; i<referencePeaks.size(); i++) 
-            denom += thisPeaks[i].getIntensity() * thisPeaks[i].getIntensity();
-        optimalScale /= denom;
+        double denom = std::inner_product(matchedIntensity.begin(), matchedIntensity.end(),
+				matchedIntensity.begin(), 0.0);
+		denom += std::inner_product(unmatchedIntensity.begin(), unmatchedIntensity.end(),
+				unmatchedIntensity.begin(), 0.0);
+        _optimalScale /= denom;
     } else if (method == DR_ABS) {
         // In this case, the minimum occurs when at least one calculated peak intensity
         //  is exactly equal to reference peak intensity. So, we are going to loop through
@@ -1153,7 +1168,7 @@ double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmet
                 for (int j = 0; j < _unmatchedPeaks.size(); j++) 
                     curError += abs(curScale * thisPeaks[_unmatchedPeaks[j]].getIntensity());
                 if (curError < minimumError) {
-                    minimumError = curError; optimalScale = curScale; 
+                    minimumError = curError; _optimalScale = curScale; 
                 }
         }
     } else {
@@ -1167,16 +1182,16 @@ double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmet
     switch (method) {
         case DR_SQUARED:
             for (int i=0; i < matchedIntensity.size(); i++)
-                rFactor += pow(referenceIntensity[i] - optimalScale * matchedIntensity[i],2);
+                rFactor += pow(referenceIntensity[i] - _optimalScale * matchedIntensity[i],2);
             for (int i=0; i<unmatchedIntensity.size(); i++)
-                rFactor += pow(optimalScale * unmatchedIntensity[i], 2);
+                rFactor += pow(_optimalScale * unmatchedIntensity[i], 2);
             rFactor /= norm;
             break;
         case DR_ABS:
             for (int i=0; i < matchedIntensity.size(); i++)
-                rFactor += abs(referenceIntensity[i] - optimalScale * matchedIntensity[i]);
+                rFactor += abs(referenceIntensity[i] - _optimalScale * matchedIntensity[i]);
             for (int i=0; i<unmatchedIntensity.size(); i++)
-                rFactor += abs(optimalScale * unmatchedIntensity[i]);
+                rFactor += abs(_optimalScale * unmatchedIntensity[i]);
             rFactor /= norm;
             break;
         default:
@@ -1193,26 +1208,25 @@ double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmet
  * @return Whether file contains diffraction data
  */
 bool ExperimentalPattern::isFormat(const Text& text) {
-    int pairCount = 0;
-            int lineCount = 0;
-    for (int i = 0; i < text.length(); ++i) {
-        if (!text[i].length())
-            continue;
-            if (Language::isComment(text[i][0]))
-                continue;
-                ++lineCount;
-                if (text[i].length() < 2)
-                    continue;
-                    if ((Language::isNumber(text[i][0])) && (Language::isNumber(text[i][1])))
-                            ++pairCount;
-                    }
-    if (!lineCount)
-        return false;
-        if ((double) pairCount / lineCount < 0.5)
-
-            return false;
-            return true;
-        }
+	int pairCount = 0;
+	int lineCount = 0;
+	for (int i = 0; i < text.length(); ++i) {
+		if (!text[i].length())
+			continue;
+		if (Language::isComment(text[i][0]))
+			continue;
+		++lineCount;
+		if (text[i].length() < 2)
+			continue;
+		if ((Language::isNumber(text[i][0])) && (Language::isNumber(text[i][1])))
+			++pairCount;
+	}
+	if (!lineCount)
+		return false;
+	if ((double) pairCount / lineCount < 0.5)
+		return false;
+	return true;
+}
 
 /**
  * Extract diffraction data from file, store in this object. File must be in the 
