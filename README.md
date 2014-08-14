@@ -717,7 +717,7 @@ Calculate the powder xray diffraction pattern for a structure. If a
 - additional xray patterns to compare to reference
 - "continuous" to print intensity as a function of continuous angle, not just peaks
 - "wavelength" and number to set the xray wavelength (default: 1.5418 &#8491;)
-- "grain size" and number (in &mu;m) used when calculating peak broadening (default: 1 &mu&m) [Not yet implemented!]
+- "fwhm" and number (in degrees) used when calculating peak broadening (default: 0.05 &mu&m) 
 - "resolution" and number (in degrees) to set resolution for printing broadened points (default: 0.02&deg;) 
 - "minimum" and number to set the minimum two-theta value to calculate (default: 
 - "maximum" and number to set the maximum two-theta value to calculate

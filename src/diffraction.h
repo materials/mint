@@ -66,9 +66,16 @@ public:
     // --> Operations to access data about this peak
     /** 
      * Get Bragg angle (twoTheta) for this peak in degrees.
+	 * @return angle in degrees
      */
     double getAngle() const { return TwoThetaDeg; }
-    
+	
+	/**
+	 * Get Bragg angle (twoTheta) for this peak in radians)
+     * @return angle in radians
+     */
+    double getAngleRadians() const { return  _twoThetaRad; }
+	
     // Get integrated intensity for this peak
     double getIntensity() const { return this->peakIntensity; }
     
@@ -414,7 +421,7 @@ private:
 	vector<CalculatedPeak> _reflections;
 	
 	// =========================================
-	// Parameters used when generating a pattern
+	// Parameters/Operations used when generating a pattern
 	// =========================================
 	
 	// Holds the internal degrees of freedom (atomic positions)
@@ -429,6 +436,12 @@ private:
     double _minBFactor;
     // Maximum allowed B factor
     double _maxBFactor;
+	// Parameters to background signal (0: a / 2Theta: 1-n: b * x^(n-1))
+	vector<double> _backgroundParameters;
+	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
+	double _U, _V, _W;
+	
+	vector<double> generateBackgroundSignal(vector<double>& twoTheta) const;
 	
 	// ==============================================================
 	// Parameters used when refining structural model against pattern
@@ -488,7 +501,9 @@ public:
 	
 	virtual void clear() {
 		Diffraction::clear();
+		_symmetry = 0;
 		_structure = 0;
+		_backgroundParameters.clear();
 	}
 	
 	CalculatedPattern() {
@@ -496,10 +511,18 @@ public:
         _structure = 0;
 		_minBFactor = 0.1;
 		_maxBFactor = 4.0;
+		_U = 0.0;
+		_V = 0.0;
+		_W = 0.3;
+		_backgroundParameters.clear();
 	}
 	
 	// Friendships
 	friend class RFactorFunctionModel;
+	
+	void setPeakBroadeningParameters(double u, double v, double w) {
+		_U = u; _V = v; _W = w;
+	}	
 	
 	// LW 12Aug14: Eventually, make this the constructor
 	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, bool fitBfactors = false);

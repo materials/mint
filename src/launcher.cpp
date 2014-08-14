@@ -3205,6 +3205,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	double wavelength = 1.5418;
 	double minTwoTheta = 10;
 	double maxTwoTheta = 100;
+	double fwhm = 0.05;
 	int pos = 0;
 	try {
 		while(pos < function.arguments().length()) {
@@ -3239,6 +3240,14 @@ void Launcher::diffraction(Storage& data, const Function& function)
 					throw 10;
 				}
 				maxTwoTheta = Language::fractionToNumber(function.arguments()[pos]);
+			}
+			
+			// Found FWHM
+			else if (function.arguments()[pos].equal("fwhm", false, 4)) {
+				if (! Language::isNumber(function.arguments()[++pos])) {
+					throw 10;
+				}
+				fwhm = Language::fractionToNumber(function.arguments()[pos]);
 			}
 
 			// Found broaden
@@ -3344,6 +3353,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		patterns[i].setMinTwoTheta(minTwoTheta);
 		patterns[i].setMaxTwoTheta(maxTwoTheta);
 		patterns[i].setResolution(resolution);
+		patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
 		
 		// Get match
 		if (data.diffraction().isSet())

@@ -680,9 +680,57 @@ vector<double> ExperimentalPattern::getDiffractedIntensity(vector<double>& twoTh
 }
 
 vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
-	Output::newline(ERROR);
-	Output::print("Printing continuous, calculated diffraction patterns not yet implemented");
-	Output::quit();
+	std::sort(twoTheta.begin(), twoTheta.end());
+	vector<double> output = generateBackgroundSignal(twoTheta);
+	// Useful constants 
+	double Cg = 4 * log(2);
+	double rCg = sqrt(Cg);
+	double rPI = sqrt(M_PI);
+	// Add in signal from each peak
+	for (int p=0; p<1; p++) {
+		double center = _reflections[p].getAngle();
+		double H = _W + tan(_reflections[p].getAngleRadians() / 2) 
+				+ (_V + _U * tan(_reflections[p].getAngleRadians() / 2));
+		H = sqrt(H);
+		double minAngle = center - 2.5 * H;
+		double maxAngle = center + 2.5 * H;
+		int a = 0;
+		while (twoTheta[++a] < minAngle) continue;
+		while (twoTheta[a] < maxAngle && a < twoTheta.size()) {
+			output[a] += rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
+			a++;
+		}
+	}
+	return output;
+}
+
+/**
+ * Calculate the background signal as a function of angle. Functional form:
+ * 
+ * I(x) = c_0 / x + c_1 + c_2 * x + c_3 * x ^ 2 + ... + c_n * x ^ (n - 1)
+ * 
+ * Background parameters are stored in: _backgroundParameters
+ * 
+ * @param twoTheta Angle at which to calculate background.
+ * @return Background intensity at each point
+ */
+vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTheta) const {
+	vector<double> output;
+	output.insert(output.begin(), twoTheta.size(), 0.0);
+	if (_backgroundParameters.empty()) return output; // No background
+	// Add c_0 / x
+	for (int i=0; i<twoTheta.size(); i++) {
+		output[i] += _backgroundParameters[0] / twoTheta[i];
+	}
+	// Add in polynomial terms
+	for (int a=0; a<twoTheta.size(); a++) {
+		double x = 1.0;
+		for (int p=1; p<_backgroundParameters.size(); p++) {
+			output[a] += _backgroundParameters[p] * x;
+			x *= twoTheta[a];
+		}
+	}
+	return output;
 }
 
 /** 
