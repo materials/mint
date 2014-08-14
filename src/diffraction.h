@@ -261,6 +261,8 @@ protected:
 	
 	virtual void matchPeaksToReference(const Diffraction& referencePattern);
 	
+	double getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
+	
 	double getCurrentRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
                 
 public:
@@ -277,6 +279,18 @@ public:
 	 * @return List of diffraction peaks
      */
 	virtual vector<DiffractionPeak> getDiffractedPeaks() const = 0;
+	
+	/**
+	 * Get the angles at which diffracted intensity was measured
+     * @return List of Bragg angles in degrees
+     */
+	virtual vector<double> getMeasurementAngles() const = 0;
+	
+	/**
+	 * Get intensity value at measured angles.
+	 * @return List of intensity at measured Bragg angles
+     */
+	virtual vector<double> getMeasuredIntensities() const = 0;
 	
 	// Constructors
 	Diffraction();
@@ -384,6 +398,35 @@ public:
 	virtual vector<DiffractionPeak> getDiffractedPeaks() const;
 
 	vector<double> getDiffractedIntensity(vector<double>& twoTheta) const;
+	
+
+	virtual vector<double> getMeasurementAngles() const {
+		if (_continuousIntensity.size() == 0) {
+			Output::newline(ERROR);
+			Output::print("Intensity was not measured as function of angle!");
+			Output::quit();
+		}
+		vector<double> output;
+		output.reserve(_continuousIntensity.size());
+		for (int i=0; i<_continuousTwoTheta.size(); i++) {
+			output.push_back(_continuousTwoTheta[i]);
+		}
+		return output;
+	}
+	
+	virtual vector<double> getMeasuredIntensities() const {
+			if (_continuousIntensity.size() == 0) {
+			Output::newline(ERROR);
+			Output::print("Intensity was not measured as function of angle!");
+			Output::quit();
+		}
+		vector<double> output;
+		output.reserve(_continuousIntensity.size());
+		for (int i=0; i<_continuousTwoTheta.size(); i++) {
+			output.push_back(_continuousIntensity[i]);
+		}
+		return output;
+	}
 
 	// Set from file or other data
 	void set(const Text& text);
@@ -440,6 +483,8 @@ private:
 	vector<double> _backgroundParameters;
 	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
 	double _U, _V, _W;
+	// Angles at which intensities were measured in reference pattern
+	vector<double> _measurementAngles;
 	
 	vector<double> generateBackgroundSignal(vector<double>& twoTheta) const;
 	
@@ -448,7 +493,11 @@ private:
 	// ==============================================================
 	
 	// Parameters that can be refined
-	enum RefinementParameters { RF_BFACTORS, RF_POSITIONS };
+	enum RefinementParameters { RF_SCALE, // Scale factor (only for full pattern)
+		RF_BACKGROUND, // Background signal (only for full pattern)
+		RF_WFACTOR, // Angle-independent peak broadening term
+		RF_BFACTORS, // Isotropic thermal factors
+		RF_POSITIONS };// Atomic positions
 	// Parameters that are currently being refined
     std::set<RefinementParameters> _currentlyRefining;
 	
@@ -468,6 +517,7 @@ private:
 	
 	// --> Operation employed by user to refine a calculated pattern
     void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
+	void reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
 	
 	// --> Operations are used when calculating peak intensities
     void calculatePeakIntensities();
@@ -475,7 +525,7 @@ private:
 	
 	// --> Operations used directly by refineStructure
     bool willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine);
-    double runRefinement(const Diffraction* ref);
+    double runRefinement(const Diffraction* ref, bool reitveld);
     column_vector getRefinementParameters();
     column_vector getRefinementParameterDerivatives(column_vector x);
     column_vector getRefinementParameterLowerBoundary();
@@ -499,11 +549,31 @@ public:
 	
 	vector<double> getDiffractedIntensity(vector<double>& twoTheta) const;
 	
+	virtual vector<double> getMeasurementAngles() const {
+		if (_measurementAngles.empty()) {
+			vector<double> output;
+			output.reserve((_maxTwoTheta - _minTwoTheta) / _resolution + 1);
+			for (double angle = _minTwoTheta; angle <= _maxTwoTheta; angle += _resolution) {
+				output.push_back(angle);
+			}
+			return output;
+		} else {
+			return _measurementAngles;
+		}
+	}
+
+	virtual vector<double> getMeasuredIntensities() const {
+		vector<double> angles = getMeasurementAngles();
+		return getDiffractedIntensity(angles);
+	}
+
+	
 	virtual void clear() {
 		Diffraction::clear();
 		_symmetry = 0;
 		_structure = 0;
 		_backgroundParameters.clear();
+		_measurementAngles.clear();
 	}
 	
 	CalculatedPattern() {
@@ -517,18 +587,20 @@ public:
 		_backgroundParameters.clear();
 	}
 	
-	// Friendships
-	friend class RFactorFunctionModel;
-	
 	void setPeakBroadeningParameters(double u, double v, double w) {
 		_U = u; _V = v; _W = w;
 	}	
 	
-	// LW 12Aug14: Eventually, make this the constructor
-	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, bool fitBfactors = false);
+	
+	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, 
+			bool reitveld = false, bool fitBfactors = false);
 	
 	// Call refinement
 	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings = true);
+	
+	// Friendships
+	friend class RFactorFunctionModel;
+	friend class ReitveldRFactorFunctionModel;
 };
 
 /**
@@ -540,26 +612,34 @@ public:
  * 
  * @param toRefine Diffraction pattern that will be refined.
  * @param reference Reference diffraction pattern
+ * @param reitveld Whether to perform full pattern refinement
  */
 class RFactorFunctionModel {
 public:
-    RFactorFunctionModel (CalculatedPattern* toRefine, const Diffraction* reference) {
+    RFactorFunctionModel (CalculatedPattern* toRefine, 
+			const Diffraction* reference, bool reitveld) {
         _toRefine = toRefine;
 		_referencePattern = reference;
+		_reitveld = reitveld;
     }
     
-    double operator() (const CalculatedPattern::column_vector& arg) const {
+    virtual double operator() (const CalculatedPattern::column_vector& arg) const {
         // Change parameters of diffraction pattern
         _toRefine->setAccordingToParameters(arg);
         // Recalculate peak intensities
         _toRefine->calculatePeakIntensities();
         // Get the current R factor
-        return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
+		if (_reitveld) {
+			return _toRefine->getReitveldRFactor(*_referencePattern, Diffraction::DR_SQUARED);
+		} else {
+			return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
+		}
     }
     
 private:
     CalculatedPattern* _toRefine;
 	const Diffraction* _referencePattern;
+	bool _reitveld;
 };
 
 /**

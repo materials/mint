@@ -70,6 +70,7 @@ void CalculatedPattern::defineReferencePattern(const Diffraction& reference) {
     _wavelength = reference.wavelength();
     _minTwoTheta = reference.minTwoTheta();
     _maxTwoTheta = reference.maxTwoTheta();
+	_measurementAngles = reference.getMeasurementAngles();
     // If a structure is defined, redefine peak locations
     if (structureIsDefined())
         calculatePeakLocations();
@@ -108,10 +109,12 @@ bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<Refi
  * @param iso [in] Structure from which to calculate diffraction pattern
  * @param symmetry [in] Describes symmetry of structure 
  * @param ref [in] Reference pattern to fit intensities and (if desired) BFactors against. Equals 0 if no pattern supplied
+ * @param reitveld [in] Use full-pattern refinement (requires intensity measured a function of angle)
  * @param fitBFactors [in] Whether to fit B factors (if pattern provided)
  * @return R factor (if pattern provided)
  */
-double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, bool fitBfactors) {
+double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, 
+		bool reitveld, bool fitBfactors) {
 	_type = PT_CALCULATED;
     // Clear space
     clear();
@@ -136,14 +139,23 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
         Output::print("Optimizing against reference pattern");
         Output::increase();
 
-        // Refine the scale factor and B factors
-		matchPeaksToReference(*ref);
-        std::set<RefinementParameters> toRefine;
-        if (fitBfactors)
-            toRefine.insert(RF_BFACTORS);
-        refineParameters(ref, toRefine);
+		// Decide what is being refined
+		std::set<RefinementParameters> toRefine;
+		if (fitBfactors)
+			toRefine.insert(RF_BFACTORS);
+		
+		if (reitveld) {
+			reitveldRefinement(*ref, toRefine);
+			getReitveldRFactor(*ref, DR_ABS);
+			
+			rFactor = getReitveldRFactor(*ref, DR_ABS);
+		} else {
+			// Refine the scale factor and B factors
+			matchPeaksToReference(*ref);
+			refineParameters(ref, toRefine);
 
-        rFactor = getCurrentRFactor(*ref, DR_ABS);
+			rFactor = getCurrentRFactor(*ref, DR_ABS);
+		}
 
         // Output
         Output::newline();
@@ -192,6 +204,88 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
 }
 
 /**
+ * Refines the structure against the entire pattern, not the integrated intensities. 
+ * 
+ * At the moment, the following parameters will be refined (in the following order):
+ * 
+ * <ol>
+ * <li>Scale factor</li>
+ * <li>Background parameters (currently set to five)</li>
+ * <li>Angle-independent peak-broadening</li>
+ * <li>Coordinates of atoms (if in toRefine)</li>
+ * <li>Isotropic thermal, B, factors (if in toRefine)</li>
+ * </ol>
+ * 
+ * See Pecharsky pg. 521 for more details.
+ *
+ * @param referencePattern [in] Pattern to refine against
+ * @param toRefine [in] What parameters should be refined (besides background)
+ * @return Optimized R Factor
+ */
+void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine) {
+	if (!structureIsDefined()) {
+        Output::newline(ERROR);
+        Output::print("Internal Error: Structure not yet defined.");
+    }
+    Output::increase();
+	
+	// Clear what parameters are currently being refined
+	_currentlyRefining.clear();
+	
+	// Get reference and calculated intensities (used for guesses)
+	calculatePeakIntensities();
+	vector<double> refAngles = referencePattern.getMeasurementAngles();
+	vector<double> refIntensities = referencePattern.getMeasuredIntensities();
+	vector<double> thisIntensities = getDiffractedIntensity(refAngles);
+	
+	// Refine the scale factor
+	_currentlyRefining.insert(RF_SCALE);
+	_optimalScale = *max_element(refIntensities.begin(), refIntensities.end()) /
+			*max_element(thisIntensities.begin(), thisIntensities.end());
+	double curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined scale factor. Current R: ");
+	Output::print(curR, 4);
+	
+	// Refine the background
+	int numBackground = 5; // Get initial guesses
+	_backgroundParameters.clear();
+	_backgroundParameters.insert(_backgroundParameters.begin(), numBackground, 0.0);
+	_currentlyRefining.insert(RF_BACKGROUND);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined background functions. Current R: ");
+	Output::print(curR, 4);
+	
+	// Refine the peak broadening (W)
+	_currentlyRefining.insert(RF_WFACTOR);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined peak-broadening term to ");
+	Output::print(_W, 4);
+	Output::print(" degrees. Current R: ");
+	Output::print(curR, 4);
+	
+	// Refine atomic positions, if desired
+	if (willRefine(RF_POSITIONS, toRefine)) {
+		_currentlyRefining.insert(RF_POSITIONS);
+		curR = runRefinement(&referencePattern, true);
+		Output::newline();
+		Output::print("Refined atomic positions. Current R: ");
+		Output::print(curR, 4);
+	}
+	
+	// Refine B factors, if desired
+	if (willRefine(RF_BFACTORS, toRefine)) {
+		_currentlyRefining.insert(RF_BFACTORS);
+		curR = runRefinement(&referencePattern, true);
+		Output::newline();
+		Output::print("Refined B factors. Current R: ");
+		Output::print(curR, 4);
+	}
+}
+
+/**
  * Refine a structure (which has already been stored internally) against a reference
  *  diffraction pattern
  * 
@@ -215,7 +309,7 @@ void CalculatedPattern::refineParameters(const Diffraction* reference, std::set<
         Output::newline();
         Output::print("Refining atomic positions. Current R Factor: ");
         _currentlyRefining.insert(RF_POSITIONS);
-        double curRFactor = runRefinement(reference);
+        double curRFactor = runRefinement(reference, false);
         Output::print(curRFactor, 3);
     }
 
@@ -224,7 +318,7 @@ void CalculatedPattern::refineParameters(const Diffraction* reference, std::set<
         Output::newline();
         Output::print("Also refining isotropic thermal factors. Current R Factor: ");
         _currentlyRefining.insert(RF_BFACTORS);
-        double curRFactor = runRefinement(reference);
+        double curRFactor = runRefinement(reference, false);
         Output::print(curRFactor, 3);
     }
     Output::decrease();
@@ -261,14 +355,16 @@ void CalculatedPattern::refineParameters(const Diffraction* reference, std::set<
 /**
  * Called from refineParameters. Refine any parameters currently defined in 
  *  _currentlyRefining.
+ * @param reference [in] Pattern to refine against
+ * @param reitveld [in] Whether to do full-pattern refinement
  * @return Minimal R factor (using DR_ABS)
  */
-double CalculatedPattern::runRefinement(const Diffraction* reference) {
+double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitveld) {
     column_vector params;
     column_vector x_low = getRefinementParameterLowerBoundary();
     column_vector x_high = getRefinementParameterUpperBoundary();
     params = getRefinementParameters();
-    RFactorFunctionModel f(this, reference);
+    RFactorFunctionModel f(this, reference, reitveld);
     // Technical issue (as of 12Mar14): 
     //  Derivatives calculated during getCurrentRFactor are wrong. That function 
     //   sets the "optimal scale factor," but assumes it is constant as we adjust 
@@ -281,13 +377,20 @@ double CalculatedPattern::runRefinement(const Diffraction* reference) {
             f, dlib::derivative(f), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
-    return getCurrentRFactor(*reference, DR_ABS);
+	if (reitveld) {
+		return getReitveldRFactor(*reference, DR_ABS);
+	} else {
+		return getCurrentRFactor(*reference, DR_ABS);
+	}
 }
 
 /**
  * Get a vector representing the parameters which are being refined. Always arranged
  *  in the following order:
  * <ol>
+ * <li>Scale factor</li>
+ * <li>Background parameters</li>
+ * <li>Angle-independent peak broadening term</li>
  * <li>Atomic positions</li>
  * <li>Thermal factors</li>
  * </ol>
@@ -295,6 +398,17 @@ double CalculatedPattern::runRefinement(const Diffraction* reference) {
  */
 CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
     queue<double> params;
+	if (willRefine(RF_SCALE, _currentlyRefining)) {
+		params.push(_optimalScale);
+	}
+	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
+		for (int p=0; p<_backgroundParameters.size(); p++) {
+			params.push(_backgroundParameters[p]);
+		}
+	}
+	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
+		params.push(_W);
+	}
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         for (int orbit = 0; orbit < _symmetry->orbits().length(); orbit++)
             for (int dir = 0; dir < 3; dir++) {
@@ -324,6 +438,17 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
  */
 CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerBoundary() {
     queue<double> params;
+	if (willRefine(RF_SCALE, _currentlyRefining)) {
+		params.push(0);
+	}
+	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
+		for (int i=0; i<_backgroundParameters.size(); i++) {
+			params.push(-1e100);
+		}
+	}
+	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
+		params.push(0);
+	}
     if (willRefine(RF_POSITIONS, _currentlyRefining))
         for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
             params.push(-1);
@@ -347,6 +472,17 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
  */
 CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperBoundary() {
     queue<double> params;
+	if (willRefine(RF_SCALE, _currentlyRefining)) {
+		params.push(1e100);
+	}
+	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
+		for (int i=0; i<_backgroundParameters.size(); i++) {
+			params.push(1e100);
+		}
+	}
+	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
+		params.push(20);
+	}
     if (willRefine(RF_POSITIONS, _currentlyRefining))
         for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
             params.push(2);
@@ -372,6 +508,17 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
  */
 void CalculatedPattern::setAccordingToParameters(column_vector params) {
     int position = 0;
+	if (willRefine(RF_SCALE, _currentlyRefining)) {
+		_optimalScale = params(position++);
+	}
+	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
+		for (int i=0; i<_backgroundParameters.size(); i++) {
+			_backgroundParameters[i] = params(position++);
+		}
+	}
+	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
+		_W = params(position++);
+	}
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         Vector newPositions(_symmetry->orbits().length()*3);
         for (int i = 0; i < newPositions.length(); i++) {
@@ -687,17 +834,18 @@ vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoThet
 	double rCg = sqrt(Cg);
 	double rPI = sqrt(M_PI);
 	// Add in signal from each peak
-	for (int p=0; p<1; p++) {
+	for (int p=0; p<_reflections.size(); p++) {
 		double center = _reflections[p].getAngle();
 		double H = _W + tan(_reflections[p].getAngleRadians() / 2) 
-				+ (_V + _U * tan(_reflections[p].getAngleRadians() / 2));
+				* (_V + _U * tan(_reflections[p].getAngleRadians() / 2));
 		H = sqrt(H);
 		double minAngle = center - 2.5 * H;
 		double maxAngle = center + 2.5 * H;
 		int a = 0;
+		double intensity = _reflections[p].getIntensity();
 		while (twoTheta[++a] < minAngle) continue;
 		while (twoTheta[a] < maxAngle && a < twoTheta.size()) {
-			output[a] += rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
+			output[a] += intensity * rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
 			a++;
 		}
 	}
@@ -1120,9 +1268,52 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
 }
 
 /**
+ * Calculate a pattern match where the entire pattern (background and all is taken into account). 
+ * 
+ * Ways to calculate R factor:
+ * <ul>
+ * <li><b>DR_ABS</b>: Is exactly the R<sub>p</sub>, profile reliability factor
+ * <li><b>DR_SQUARED</b>: Is exactly the weighted profile residual
+ * </ul>
+ * 
+ * @param referencePattern [in] Pattern against which data is compared
+ * @param rMethod [in] Method used to calculate R factor
+ * @return 
+ */
+double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
+	// Get reference pattern
+	vector<double> twoTheta = referencePattern.getMeasurementAngles();
+	vector<double> refIntensities = referencePattern.getMeasuredIntensities();
+	// Get this pattern
+	vector<double> thisIntensities = getDiffractedIntensity(twoTheta);
+	
+	if (rMethod == DR_ABS) {
+		double denom = accumulate(refIntensities.begin(), refIntensities.end(), 0);
+		double num = 0;
+		for (int i=0; i<thisIntensities.size(); i++) {
+			num += abs(refIntensities[i] - _optimalScale * thisIntensities[i]);
+		}
+		return num / denom;
+	} else if (rMethod == DR_SQUARED) {
+		vector<double> weight; weight.reserve(twoTheta.size());
+		for (int i=0; i<refIntensities.size(); i++) {
+			weight.push_back(1.0 / refIntensities[i]);
+		}
+		double denom = 0.0, num = 0.0, diff = 0.0;
+		for (int i=0; i<weight.size(); i++) {
+			diff = refIntensities[i] - _optimalScale * thisIntensities[i];
+			num += weight[i] * diff * diff;
+			denom += weight[i] * refIntensities[i] * refIntensities[i];
+		}
+		return sqrt(num / denom);
+	}
+}
+
+
+/**
  * Calculate the current R factor based on the intensities stored in _peaks. This operation
  *  also calculates derivatives of R factor with respect to every variable that can 
- *  be refined.
+ *  be refined. Also automagically determines the optimal scale factor.
  * 
  * User Notices:
  * <ol>
@@ -1136,7 +1327,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * @param method [in] Method used to calculate R factor
  * @return R factor describing match between this pattern and reference
  */
-double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmethod method) {
+double Diffraction::getCurrentRFactor(const Diffraction& referencePattern, Rmethod method) {
     if (_matchingPeaks.size() == 0) {
 		Output::newline(ERROR);
 		Output::print("Some developer forgot to match diffraction peaks first!");
@@ -1148,7 +1339,7 @@ double Diffraction::getCurrentRFactor(const Diffraction& _referencePattern, Rmet
     
     // Intensities of peaks in the reference pattern that are matched by peaks 
     //  in the calculated pattern.
-	vector<DiffractionPeak> referencePeaks = _referencePattern.getDiffractedPeaks(),
+	vector<DiffractionPeak> referencePeaks = referencePattern.getDiffractedPeaks(),
 			thisPeaks = getDiffractedPeaks();
 	
     vector<double> referenceIntensity(referencePeaks.size(), 0.0);

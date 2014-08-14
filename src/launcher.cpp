@@ -3200,7 +3200,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	}
 	
 	// Loop over arguments and look for keywords
-	bool broaden = false;
+	bool continuous = false;
 	double resolution = 0.02;
 	double wavelength = 1.5418;
 	double minTwoTheta = 10;
@@ -3252,7 +3252,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 
 			// Found broaden
 			else if (function.arguments()[pos].equal("continuous", false, 4)) {
-				broaden = true;
+				continuous = true;
 			}
 			
 			pos++;
@@ -3357,7 +3357,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		
 		// Get match
 		if (data.diffraction().isSet())
-			match[i] = patterns[i].set(data.iso()[i], data.symmetry()[i], &data.diffraction(), true);
+			match[i] = patterns[i].set(data.iso()[i], data.symmetry()[i], &data.diffraction(), continuous, true);
 		else
 			patterns[i].set(data.iso()[i], data.symmetry()[i]);
 		
@@ -3372,7 +3372,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		
 		// Print pattern
 		data.printLabel(i);
-		patterns[i].print("stdout", broaden);
+		patterns[i].print("stdout", continuous);
 		
 		// If diffraction file was supplied, then print comparison
 		if (data.diffraction().isSet())
