@@ -611,7 +611,7 @@ int SpaceGroup::getNumberFromName(const Word& name, bool useNumber)
 	if (compareName(name, "173",   "C6^6",     "P63",         "P 63 1 1",             "P 6c", useNumber)) return 172;
 	if (compareName(name, "174",  "C3h^1",     "P-6",         "P -6 1 1",             "P -6", useNumber)) return 173;
 	if (compareName(name, "175",  "C6h^1",    "P6/m",        "P 6/m 1 1",             "-P 6", useNumber)) return 174;
-	if (compareName(name, "176",  "C6h^3",   "P63/m",       "P 63/m 1 1",            "-P 6c", useNumber)) return 175;
+	if (compareName(name, "176",  "C6h^2",   "P63/m",       "P 63/m 1 1",            "-P 6c", useNumber)) return 175;
 	if (compareName(name, "177",   "D6^1",    "P622",          "P 6 2 2",            "P 6 2", useNumber)) return 176;
 	if (compareName(name, "178",   "D6^2",   "P6122",         "P 61 2 2",  "P 61 2 (0 0 -1)", useNumber)) return 177;
 	if (compareName(name, "179",   "D6^3",   "P6522",         "P 65 2 2",   "P 65 2 (0 0 1)", useNumber)) return 178;
@@ -631,7 +631,7 @@ int SpaceGroup::getNumberFromName(const Word& name, bool useNumber)
 	if (compareName(name, "193",  "D6h^3", "P63/mcm",   "P 63/m 2/c 2/m",          "-P 6c 2", useNumber)) return 192;
 	if (compareName(name, "194",  "D6h^4", "P63/mmc",   "P 63/m 2/m 2/c",         "-P 6c 2c", useNumber)) return 193;
 	if (compareName(name, "195",    "T^1",     "P23",          "P 2 3 1",          "P 2 2 3", useNumber)) return 194;
-	if (compareName(name, "196",    "T^3",     "F23",          "F 2 3 1",          "F 2 2 3", useNumber)) return 195;
+	if (compareName(name, "196",    "T^2",     "F23",          "F 2 3 1",          "F 2 2 3", useNumber)) return 195;
 	if (compareName(name, "197",    "T^3",     "I23",          "I 2 3 1",          "I 2 2 3", useNumber)) return 196;
 	if (compareName(name, "198",    "T^4",    "P213",         "P 21 3 1",      "P 2ac 2ab 3", useNumber)) return 197;
 	if (compareName(name, "199",    "T^5",    "I213",         "I 21 3 1",        "I 2b 2c 3", useNumber)) return 198;
@@ -2938,7 +2938,7 @@ void SpaceGroup::setByNumber(int number)
 	}
 	else if (number == 175)
 	{
-		setName("176", "C6h^3", "P63/m", "P 63/m 1 1", "-P 6c");
+		setName("176", "C6h^2", "P63/m", "P 63/m 1 1", "-P 6c");
 		setSymmetry(14, 2, 1, 0, -1, -1, -1, -1, LS_HEXAGONAL, LC_P);
 		setWyckoff(0, 0, 7, 12, 1, 5, 4, 34, 4, 0, 1, 41, 1, 42, 1, 0, 1, 12, -1, -1, \
 			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, \
@@ -3098,7 +3098,7 @@ void SpaceGroup::setByNumber(int number)
 	}
 	else if (number == 195)
 	{
-		setName("196", "T^3", "F23", "F 2 3 1", "F 2 2 3");
+		setName("196", "T^2", "F23", "F 2 3 1", "F 2 2 3");
 		setSymmetry(4, 0, 5, 0, 16, 0, -1, -1, LS_CUBIC, LC_F);
 		setWyckoff(0, 0, 5, 13, 5, 0, 14, 0, 1, 18, 1, 16, 1, 1, 1, 0, -1, -1, -1, -1, \
 			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, \
@@ -3991,7 +3991,7 @@ void SpaceGroup::printAll()
 	Output::newline(); Output::print("       173        P63           P 63 1 1          C6^6               P 6c");
 	Output::newline(); Output::print("       174        P-6           P -6 1 1         C3h^1               P -6");
 	Output::newline(); Output::print("       175       P6/m          P 6/m 1 1         C6h^1               -P 6");
-	Output::newline(); Output::print("       176      P63/m         P 63/m 1 1         C6h^3              -P 6c");
+	Output::newline(); Output::print("       176      P63/m         P 63/m 1 1         C6h^2              -P 6c");
 	Output::newline(); Output::print("       177       P622            P 6 2 2          D6^1              P 6 2");
 	Output::newline(); Output::print("       178      P6122           P 61 2 2          D6^2    P 61 2 (0 0 -1)");
 	Output::newline(); Output::print("       179      P6522           P 65 2 2          D6^3     P 65 2 (0 0 1)");
@@ -4011,7 +4011,7 @@ void SpaceGroup::printAll()
 	Output::newline(); Output::print("       193    P63/mcm     P 63/m 2/c 2/m         D6h^3            -P 6c 2");
 	Output::newline(); Output::print("       194    P63/mmc     P 63/m 2/m 2/c         D6h^4           -P 6c 2c");
 	Output::newline(); Output::print("       195        P23            P 2 3 1           T^1            P 2 2 3");
-	Output::newline(); Output::print("       196        F23            F 2 3 1           T^3            F 2 2 3");
+	Output::newline(); Output::print("       196        F23            F 2 3 1           T^2            F 2 2 3");
 	Output::newline(); Output::print("       197        I23            I 2 3 1           T^3            I 2 2 3");
 	Output::newline(); Output::print("       198       P213           P 21 3 1           T^4        P 2ac 2ab 3");
 	Output::newline(); Output::print("       199       I213           I 21 3 1           T^5          I 2b 2c 3");
