@@ -596,7 +596,7 @@ public:
 			bool reitveld = false, bool fitBfactors = false);
 	
 	// Call refinement
-	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings = true);
+	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool useReitveld = false, bool showWarnings = true);
 	
 	// Friendships
 	friend class RFactorFunctionModel;

@@ -2891,6 +2891,13 @@ void Launcher::refine(Storage& data, const Function& function)
 	int i;
 	if (data.diffraction().isSet())
 	{
+		// Checking input
+		bool reitveld = false;
+		for (int a=0; a<function.arguments().length(); a++) {
+			if (function.arguments()[a].equal("reitveld",4)) {
+				reitveld = true;
+			} 
+		}
 		
 		// Output
 		Output::newline();
@@ -2918,7 +2925,7 @@ void Launcher::refine(Storage& data, const Function& function)
 			}
 
 			// Refine the structure
-			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction());
+			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction(), reitveld);
 
 			// Add change to comment
 			data.history()[i] += tag;

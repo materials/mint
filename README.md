@@ -565,7 +565,7 @@ If the keyword "atom" is passed, then the following information for each selecte
 ### -refine
 
 ######General: 
-Refine the lattice vectors and atomic positions so that a set of
+Option #1: Refine the lattice vectors and atomic positions so that a set of
     symmetry operations that are satisfied only to some tolerance are made
     exact. A wide tolerance (e.g. 0.1 angstroms or higher, set with -tolerance)
     may be needed for structures that are slightly disordered. Once the
@@ -573,11 +573,6 @@ Refine the lattice vectors and atomic positions so that a set of
     the lattice symmetry that is found (e.g. cubic, tetragonal, etc.). Atomic
     positions are refined essentially by averaging over sites that are
     equivalent to one another under these symmetries.
-
-If a diffraction pattern has been supplied as input, the refinement
-    has a different purpose. In this case, the atomic coordinates are relaxed
-    so as to minimize the difference between the calculated and supplied
-    patterns.
 
 ######Arguments:
 - "atoms" or "positions" to refine positions only
@@ -590,6 +585,20 @@ Without arguments, positions and lattice parameters are both refined
     "-refine"       refine atomic positions and lattice vectors
     "-refine atoms" refine atomic positions only
     "-refine basis" refine lattice vectors only
+
+Option #2: If a diffraction pattern has been supplied as input, the refinement
+    has a different purpose. In this case, the atomic coordinates are relaxed
+    so as to minimize the difference between the calculated and supplied
+    patterns. 
+
+######Arguments:
+- "reitveld" to perform full-pattern refinement
+
+######Examples:
+    "-refine"       refine atomic positions and lattice vectors
+    "-refine atoms" refine atomic positions only
+    "-refine basis" refine lattice vectors only
+
 
 
 

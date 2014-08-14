@@ -539,10 +539,11 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
  * @param iso [in,out] Structure to be refined. Returns refined coordinates
  * @param symmetry [in,out] Symmetry information about structure. Returns refined coordinates
  * @param reference [in] Pattern to refine against
+ * @param reitveld [in] Whether to perform full-pattern refinement
  * @param showWarnings [in] Whether to print warnings
  * @return Optimized R Factor
  */
-double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool showWarnings) {
+double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool reitveld,  bool showWarnings) {
     // Clear out any old information
     clear();
     
@@ -563,9 +564,15 @@ double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction
     toRefine.insert(RF_POSITIONS);
 
     // Run refinement
-	matchPeaksToReference(reference);
-    refineParameters(&reference, toRefine);
-    double rFactor = getCurrentRFactor(reference, DR_ABS);
+	double rFactor;
+	if (reitveld) {
+		reitveldRefinement(reference, toRefine);
+		rFactor = getReitveldRFactor(reference, DR_ABS);
+	} else {
+		matchPeaksToReference(reference);
+		refineParameters(&reference, toRefine);
+		rFactor = getCurrentRFactor(reference, DR_ABS);
+	}
 
     // Output
     Output::newline();
