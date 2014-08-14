@@ -3172,15 +3172,20 @@ void Launcher::forces(Storage& data)
 
 
 /**
- * Calculate diffraction pattern
+ * Calculate diffraction pattern for a structure. 
+ * 
+ * continuous - Calculates intensity as a function of continuous angle (not just peak heights)
+ * 
+ * 
+ * @param data [in/out] Holds data used during mint run
+ * @param function [in] Arguments passed to this function
  */
 void Launcher::diffraction(Storage& data, const Function& function)
 {
 	
 	// Look over functions and check if there are any files that have been passed
-	int i;
 	OList<Text> files;
-	for (i = 0; i < function.arguments().length(); ++i)
+	for (int i = 0; i < function.arguments().length(); ++i)
 	{
 		
 		// Current argument is a file
@@ -3195,92 +3200,58 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	}
 	
 	// Loop over arguments and look for keywords
-	bool fwhmOn = false;
-	bool varOn = false;
-	bool resOn = false;
-	bool waveOn = false;
-	bool minOn = false;
-	bool maxOn = false;
-	bool accOn = false;
 	bool broaden = false;
-	bool useGaussians = false;
-	double fwhm = -1;
-	double variance = -1;
-	double resolution = -1;
-	double wavelength = -1;
-	double minTwoTheta = -1;
-	double maxTwoTheta = -1;
-	double accuracy = -1;
-	double temp;
-	for (i = 0; i < function.arguments().length(); ++i)
-	{
-		
-		// Found fwhm
-		if (function.arguments()[i].equal("fwhm", false))
-		{
-			fwhmOn = true;
-			useGaussians = true;
-		}
-		
-		// Found variance
-		else if (function.arguments()[i].equal("variance", false, 3))
-		{
-			varOn = true;
-			useGaussians = true;
-		}
-		
-		// Found resolution
-		else if (function.arguments()[i].equal("resolution", false, 3))
-			resOn = true;
-		
-		// Found wavelength
-		else if (function.arguments()[i].equal("wavelength", false, 4))
-			waveOn = true;
-		
-		// Found minimum
-		else if (function.arguments()[i].equal("minimum", false, 3))
-			minOn = true;
-		
-		// Found maximum
-		else if (function.arguments()[i].equal("maximum", false, 3))
-			maxOn = true;
-		
-		// Found maximum
-		else if (function.arguments()[i].equal("accuracy", false, 3))
-			accOn = true;
-		
-		// Found broaden
-		else if (function.arguments()[i].equal("broaden", false, 5))
-			broaden = true;
-		
-		// Found a number
-		else if (Language::isNumber(function.arguments()[i]))
-		{
-			temp = Language::fractionToNumber(function.arguments()[i]);
-			if (fwhmOn)
-				fwhm = temp;
-			else if (varOn)
-				variance = temp;
-			else if (resOn)
-				resolution = temp;
-			else if (waveOn)
-				wavelength = temp;
-			else if (minOn)
-				minTwoTheta = temp;
-			else if (maxOn)
-				maxTwoTheta = temp;
-			else if (accOn)
-				accuracy = temp;
-			else
-			{
-				Output::newline(ERROR);
-				Output::print("Found an unmatched number passed to diffraction function (");
-				Output::print(function.arguments()[i]);
-				Output::print(")");
-				Output::quit();
+	double resolution = 0.02;
+	double wavelength = 1.5418;
+	double minTwoTheta = 10;
+	double maxTwoTheta = 100;
+	int pos = 0;
+	try {
+		while(pos < function.arguments().length()) {
+
+			// Found resolution
+			if (function.arguments()[pos].equal("resolution", false, 3)) {
+				if (! Language::isNumber(function.arguments()[++pos])) {
+					throw 10;
+				}
+				resolution = Language::fractionToNumber(function.arguments()[pos]);
 			}
-			fwhmOn = varOn = resOn = waveOn = minOn = maxOn = accOn = false;
+
+			// Found wavelength
+			else if (function.arguments()[pos].equal("wavelength", false, 4)) {
+					if (! Language::isNumber(function.arguments()[++pos])) {
+					throw 10;
+				}
+				wavelength = Language::fractionToNumber(function.arguments()[pos]);
+			}
+
+			// Found minimum
+			else if (function.arguments()[pos].equal("minimum", false, 3)) {
+					if (! Language::isNumber(function.arguments()[++pos])) {
+					throw 10;
+				}
+				minTwoTheta = Language::fractionToNumber(function.arguments()[pos]);
+			}
+
+			// Found maximum
+			else if (function.arguments()[pos].equal("maximum", false, 3)) {
+				if (! Language::isNumber(function.arguments()[++pos])) {
+					throw 10;
+				}
+				maxTwoTheta = Language::fractionToNumber(function.arguments()[pos]);
+			}
+
+			// Found broaden
+			else if (function.arguments()[pos].equal("continuous", false, 4)) {
+				broaden = true;
+			}
+			
+			pos++;
 		}
+	} catch (int e) {
+		Output::newline(ERROR);
+		Output::print("Bad input to -diffraction command");
+		Output::quit();
 	}
 	
 	// Diffraction patterns have been set
@@ -3297,7 +3268,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		
 		// Loop over files and get overlaps
 		ExperimentalPattern comp;
-		for (i = 0; i < files.length(); ++i)
+		for (int i = 0; i < files.length(); ++i)
 		{
 			
 			// Output
@@ -3323,7 +3294,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		
 		// Print overlaps
 		PrintMethod origMethod = Output::method();
-		for (i = 0; i < overlaps.length(); ++i)
+		for (int i = 0; i < overlaps.length(); ++i)
 		{
 			Output::method(STANDARD);
 			Output::newline();
@@ -3357,8 +3328,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	// Loop over structures and get diffraction pattern
 	OList<CalculatedPattern> patterns(data.iso().length());
 	List<double> match(data.iso().length());
-	for (i = 0; i < data.iso().length(); ++i)
-	{
+	for (int i = 0; i < data.iso().length(); ++i) {
 		
 		// Output if there is more than one structure
 		if (data.iso().length() > 1)
@@ -3368,6 +3338,12 @@ void Launcher::diffraction(Storage& data, const Function& function)
 			Output::print(data.id()[i]);
 			Output::increase();
 		}
+		
+		// Set pattern parameters
+		patterns[i].setWavelength(wavelength);
+		patterns[i].setMinTwoTheta(minTwoTheta);
+		patterns[i].setMaxTwoTheta(maxTwoTheta);
+		patterns[i].setResolution(resolution);
 		
 		// Get match
 		if (data.diffraction().isSet())
@@ -3382,8 +3358,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 	
 	// Print each pattern
 	PrintMethod origMethod = Output::method();
-	for (i = 0; i < data.iso().length(); ++i)
-	{
+	for (int i = 0; i < data.iso().length(); ++i) {
 		
 		// Print pattern
 		data.printLabel(i);

@@ -239,7 +239,7 @@ protected:
     // Maximum angle at which diffracted intensities were measured
     double _maxTwoTheta;
     // Minimum distance between any two features in a diffraction pattern (degrees)
-    static double _resolution;
+    double _resolution;
 	
 	// ====================================
 	// Related to matching to other patterns
@@ -280,6 +280,7 @@ public:
 	void setMinTwoTheta(double input)	{ _minTwoTheta = input; }
 	void setMaxTwoTheta(double input)	{ _maxTwoTheta = input; }
 	void setOptimalScale(double input)	{ _optimalScale = input; }
+	void setResolution(double input)	{ _resolution = input; };
 	
 	// Setup functions
 	virtual void clear() {
@@ -292,7 +293,7 @@ public:
 	double rFactor(const Diffraction& reference);
 	
 	// Print functions
-	void print(const Word& file, bool broaden = false) const;
+	void print(const Word& file, bool continuous = false) const;
 	
 	// Access functions
 	PatternType patternType() { return _type; }
@@ -576,6 +577,7 @@ inline Diffraction::Diffraction()
 	_minTwoTheta = 10;
 	_maxTwoTheta = 100;
 	_optimalScale = 1.0;
+	_resolution = 0.02;
 }
 
 /**

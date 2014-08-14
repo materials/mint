@@ -709,26 +709,24 @@ none
 
 ######General: 
 Calculate the powder xray diffraction pattern for a structure. If a
-    diffraction pattern was supplied as input, the r-factor will be calculated
-    by optimizing the scaling between calculated and reference patterns, as well
-    as the atomic displacement factors for the atoms in the structure (see
-    -refine to optimize atomic positions).
+    diffraction pattern was supplied as input, the atomic displacement factors and other
+	pattern features (such as grain size and background signal) will be adjusted
+	to better match the supplied reference pattern. (-refine to optimize atomic positions).
 
 ######Arguments: 
 - additional xray patterns to compare to reference
-- "broaden" to print a broadened diffraction pattern
-- "wavelength" and number to set the xray wavelength
-- "fwhm" and number to set the FWHM for broadening (or use variance)
-- "variance" and number to set the variance for broadending (or use fwhm)
-- "resolution" and number to set resolution for printing broadened points
-- "minimum" and number to set the minimum two-theta value to calculate
+- "continuous" to print intensity as a function of continuous angle, not just peaks
+- "wavelength" and number to set the xray wavelength (default: 1.5418 &#8491;)
+- "grain size" and number (in &mu;m) used when calculating peak broadening (default: 1 &mu&m) [Not yet implemented!]
+- "resolution" and number (in degrees) to set resolution for printing broadened points (default: 0.02&deg;) 
+- "minimum" and number to set the minimum two-theta value to calculate (default: 
 - "maximum" and number to set the maximum two-theta value to calculate
 
 ######Examples:
-    "mint str -xray"        get diffraction pattern for structure in str
-    "mint x.in str -xray"   get diffraction pattern and compare to x.in
+    "mint str -xray"        get diffraction pattern for structure in str [Currently broken!]
+    "mint x.in str -xray"   get diffraction pattern, adjust to match x.in, print R factor
     "mint x.in -xray x2.in" compare patterns in x.in and x2.in
-    "-xray broaden"         print a broadened pattern
+    "-xray continuous"         print a broadened pattern
     "-xray wave 1.5"        set the xray wavelength to 1.5 Ang
     "-xray fwhm 0.5"        set the fwhm to 0.5 deg for broadending
     "-xray res 0.05"        print a point every 0.05 deg when broadending

@@ -32,9 +32,6 @@
 #include <algorithm>
 #include <numeric>
 
-
-double Diffraction::_resolution = 1e-2;
-
 /**
  * Define the structure used to generate a diffraction pattern. Also populates 
  * a list of atoms whose positions can be refined, and calculates locations at which
@@ -684,7 +681,7 @@ vector<double> ExperimentalPattern::getDiffractedIntensity(vector<double>& twoTh
 
 vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
 	Output::newline(ERROR);
-	Output::print("Not yet implemented");
+	Output::print("Printing continuous, calculated diffraction patterns not yet implemented");
 	Output::quit();
 }
 
@@ -1061,7 +1058,7 @@ void CalculatedPattern::setPositions(const Symmetry& symmetry, const Vector& pos
  */
 void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position) {
     int i, j;
-            Vector3D tempPos;
+	Vector3D tempPos;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
         for (j = 0; j < 3; ++j)
                 tempPos[j] = position[3 * i + j];
@@ -1788,10 +1785,10 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
  * Print diffraction data stored in this object to a file.
  * 
  * @param file [in] Name of file to receive output. Can be "stdout"
- * @param broaden [in] Whether to print the diffraction pattern as a continuous function (true),
+ * @param continuous [in] Whether to print the diffraction pattern as a continuous function (true),
  *    or only the peak centers and integrated intensities (false).
  */
-void Diffraction::print(const Word& file, bool broaden) const {
+void Diffraction::print(const Word& file, bool continuous) const {
 
     // Open file for writing if needed
     int origStream = Output::streamID();
@@ -1823,7 +1820,7 @@ void Diffraction::print(const Word& file, bool broaden) const {
     }
 
     // Add peaks
-    if (!broaden) {
+    if (!continuous) {
 		vector<DiffractionPeak> peaks = getDiffractedPeaks();
         message.addLines(peaks.size());
         for (int i = 0; i < peaks.size(); ++i) {
@@ -1838,7 +1835,7 @@ void Diffraction::print(const Word& file, bool broaden) const {
     else {
         vector<double> twoTheta;
 		twoTheta.reserve((_maxTwoTheta - _minTwoTheta) / _resolution);
-		for (int angle=_minTwoTheta; angle<=_maxTwoTheta; angle += _resolution) {
+		for (double angle=_minTwoTheta; angle<=_maxTwoTheta; angle += _resolution) {
 			twoTheta.push_back(angle);
 		}
 		vector<double> intensity = getDiffractedIntensity(twoTheta);
