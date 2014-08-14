@@ -70,7 +70,6 @@ void CalculatedPattern::defineReferencePattern(const Diffraction& reference) {
     _wavelength = reference.wavelength();
     _minTwoTheta = reference.minTwoTheta();
     _maxTwoTheta = reference.maxTwoTheta();
-	_measurementAngles = reference.getMeasurementAngles();
     // If a structure is defined, redefine peak locations
     if (structureIsDefined())
         calculatePeakLocations();
@@ -147,7 +146,7 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
 		if (reitveld) {
 			reitveldRefinement(*ref, toRefine);
 			getReitveldRFactor(*ref, DR_ABS);
-			
+			this->_measurementAngles = ref->getMeasurementAngles();
 			rFactor = getReitveldRFactor(*ref, DR_ABS);
 		} else {
 			// Refine the scale factor and B factors
