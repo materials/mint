@@ -1027,7 +1027,7 @@ double GAPredict::screen(ISOSymmetryPair& pair)
 	if (_screenMetric == GAPM_POTENTIAL)
 		_potential->single(pair.iso(), pair.symmetry(), &value, 0, false, true);
 	else if (_screenMetric == GAPM_DIFFRACTION)
-		value = _diffraction->set(pair.iso(), pair.symmetry(), _refDiffraction, true);
+		value = _diffraction->set(pair.iso(), pair.symmetry(), _refDiffraction, _useReitveld, true);
 	Output::quietOff();
 	return value;
 }

@@ -897,6 +897,7 @@ List of settings and brief descriptions (detailed descriptions follow):
        gaoptselection   Selection method to use during GA optimization
        gaoptenergytol   Tolerance for an energy to be a new best during GA
          gaoptdifftol   Tolerance for an r-factor to be a new best during GA
+	 gaoptusereitveld	Whether to use full-pattern matching during GA
     gaoptscreenmethod   Screening method used during GA optimization
        gaoptscreennum   Number of trial structures to screen during GA
           wyckoffbias   Biasing level for choosing random Wyckoff positions

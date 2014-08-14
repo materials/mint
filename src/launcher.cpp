@@ -3560,6 +3560,7 @@ void Launcher::optimize(Storage& data, const Function& function)
 	ga.selectionMethod(Settings::value<GASelectionMethod>(GAOPT_SELECTION));
 	ga.energyTolerance(Settings::value<double>(GAOPT_ENERGYTOL));
 	ga.diffractionTolerance(Settings::value<double>(GAOPT_DIFFRACTIONTOL));
+	ga.useReitveld(Settings::value<bool>(GAOPT_USEREITVELD) == 1);
 	
 	// Loop over function arguments to check for a metric to optimize
 	int i;

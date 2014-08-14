@@ -384,6 +384,9 @@ Settings::Helper::Helper()
 	// GAOPT_DIFFRACTIONTOL
 	Settings::_settings[(int)GAOPT_DIFFRACTIONTOL].setup(1e-4, "gaoptdifftol");
 	
+	// GAOPT_DIFFRACTIONMETHOD
+	Settings::_settings[(int)GAOPT_USEREITVELD].setup(false, "gausereitveld");
+	
 	// GAOPT_SCREENMETHOD
 	Settings::_settings[(int)GAOPT_SCREENMETHOD].setup(GAPM_UNKNOWN, "gaoptscreenmethod");
 	
