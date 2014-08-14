@@ -1317,6 +1317,10 @@ double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmet
 			denom += weight[i] * refIntensities[i] * refIntensities[i];
 		}
 		return sqrt(num / denom);
+	} else {
+		Output::newline(ERROR);
+		Output::print("Internal Error: Mint can't calculate a Reitveld R factor with that method");
+		Output::quit();
 	}
 }
 
