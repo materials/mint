@@ -419,6 +419,7 @@ double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction
     toRefine.insert(RF_POSITIONS);
 
     // Run refinement
+	matchPeaksToReference(reference);
     refineParameters(&reference, toRefine);
     double rFactor = getCurrentRFactor(reference, DR_ABS);
 
