@@ -282,6 +282,8 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 		Output::print("Refined B factors. Current R: ");
 		Output::print(curR, 4);
 	}
+	
+	Output::decrease();
 }
 
 /**
