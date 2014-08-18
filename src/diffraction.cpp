@@ -1141,7 +1141,7 @@ void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensit
 	}
 
 	// Save peaks if data is already processed
-	if ((maxDif > 1.1 * minDif) || (maxDif == 0)) {
+	if (((maxDif > 1.1 * minDif) || (maxDif == 0)) && twoTheta.size() < 500) {
 		_type = PT_EXP_INT;
 		// Talk about what we are doing here
 		Output::newline();
