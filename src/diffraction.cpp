@@ -173,8 +173,13 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
 		if (_reflections[i].getIntensity() > maxIntensity)
 			maxIntensity = _reflections[i].getIntensity();
 	}
+	
+	// If no reference pattern, set optimal scale to make the tallest reflection 1000
+	if (! ref) {
+		_optimalScale = 1000 / maxIntensity;
+	}
 
-    // Print intensities
+    // Print intensities (scaled to 1000)
     Output::newline();
     Output::print("Generated ");
     Output::print(_reflections.size());
@@ -2087,26 +2092,22 @@ void Diffraction::print(const Word& file, bool continuous) const {
 		vector<DiffractionPeak> peaks = getDiffractedPeaks();
         message.addLines(peaks.size());
         for (int i = 0; i < peaks.size(); ++i) {
-            if (peaks[i].getIntensity() < 1) 
+            if (peaks[i].getIntensity() * _optimalScale < 1) 
                 continue;
             message.addLine();
             message.add(peaks[i].getAngle(), 10);
-            message.add(peaks[i].getIntensity(), 10);
+            message.add(peaks[i].getIntensity() * _optimalScale, 10);
         }
     }
     // Add broadened data
     else {
-        vector<double> twoTheta;
-		twoTheta.reserve((_maxTwoTheta - _minTwoTheta) / _resolution);
-		for (double angle=_minTwoTheta; angle<=_maxTwoTheta; angle += _resolution) {
-			twoTheta.push_back(angle);
-		}
+        vector<double> twoTheta = getMeasurementAngles();
 		vector<double> intensity = getDiffractedIntensity(twoTheta);
         message.addLines(intensity.size());
         for (int i=0; i < intensity.size(); i++) {
             message.addLine();
             message.add(twoTheta[i], 10);
-            message.add(intensity[i], 10);
+            message.add(intensity[i] * _optimalScale, 10);
         }
     }
 
