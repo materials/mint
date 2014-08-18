@@ -747,7 +747,6 @@ class Fit
 	
 public:
 	
-	// Polynomial expansion
 	static Vector polynomial(const OList<List<double> >& data, int order0, int numTerms);
 	
 	// Levenberg–Marquardt for general fit
@@ -5237,11 +5236,16 @@ inline void Solve<Tclass>::sortVertices(OList<Vector>& vertices, List<double>& v
 // Fit
 // =====================================================================================================================
 
-/* inline Vector Fit::polynomial(const OList<List<double> >& data, int order0, int numTerms)
- *
- * Fit to polynomial expansion
+/* 
+ * Fit to polynomial expansion to data:
+ * 
+ * f(x) = c_0 * x ^ (order0 + 0) + ... + c_i * x ^ (order0 + i)
+ * 
+ * @param data [in] Data to which model will be fit ([0] == dependent, [1] == independent)
+ * @param order0 [in] First order of polynomial (does it start at x^0, x^1, ...)
+ * @param numTerms [in] Number of terms in polynomial
+ * @return Vector of polynomial terms
  */
-
 inline Vector Fit::polynomial(const OList<List<double> >& data, int order0, int numTerms)
 {
 	

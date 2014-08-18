@@ -37,7 +37,7 @@
 #include "output.h"
 
 // Set == 1 to print out diffraction pattern at each stage
-#define LW_EXCESSIVE_PRINTING 0
+#define DIFFRACTION_EXCESSIVE_PRINTING 0
 
 // Diffraction pattern determination methods
 enum Method {DM_XRAY, DM_NEUTRON, DM_SIMPLE, DM_NONE};
@@ -264,6 +264,10 @@ protected:
 	double getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
 	
 	double getCurrentRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
+	
+	// Debugging functions
+	void savePattern(const Word& filename, const vector<double>& twoTheta,
+			const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
                 
 public:
 	
@@ -380,10 +384,6 @@ private:
 	double PVderiv(const Vector& params, double twoTheta);
 	double compositePV(const Vector& params, double twoTheta);
 	Vector compositePVDerivs(const Vector& params, double twoTheta);
-
-	// Debugging functions
-	void savePattern(const Word& filename, const vector<double>& twoTheta,
-			const vector<double>& Intensity, const vector<double>& otherIntensity = vector<double>(0) );
 	
 public:
 
@@ -479,6 +479,8 @@ private:
     double _minBFactor;
     // Maximum allowed B factor
     double _maxBFactor;
+	// Number of background parameters;
+	int _numBackground;
 	// Parameters to background signal (0: a / 2Theta: 1-n: b * x^(n-1))
 	vector<double> _backgroundParameters;
 	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
@@ -518,6 +520,7 @@ private:
 	// --> Operation employed by user to refine a calculated pattern
     void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
 	void reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
+	vector<double> guessBackgroundParameters(vector<double>& twoTheta, vector<double>& referenceIntensities);
 	
 	// --> Operations are used when calculating peak intensities
     void calculatePeakIntensities();
@@ -584,6 +587,7 @@ public:
 		_U = 0.0;
 		_V = 0.0;
 		_W = 0.3;
+		_numBackground = 6;
 		_backgroundParameters.clear();
 	}
 	
@@ -591,6 +595,11 @@ public:
 		_U = u; _V = v; _W = w;
 	}	
 	
+	/**
+	 * Define the number of parameters to use in background function.
+     * @param input Desired number of parameters
+     */
+	void setNumBackground(int input)	{ _numBackground = input; }
 	
 	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, 
 			bool reitveld = false, bool fitBfactors = false);

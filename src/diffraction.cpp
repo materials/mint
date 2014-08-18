@@ -247,16 +247,33 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	_optimalScale = *max_element(refIntensities.begin(), refIntensities.end()) /
 			*max_element(thisIntensities.begin(), thisIntensities.end());
 	double curR = runRefinement(&referencePattern, true);
+	if (DIFFRACTION_EXCESSIVE_PRINTING) {
+		thisIntensities = getDiffractedIntensity(refAngles);
+		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
+		savePattern("reitveld-scale.pattern", refAngles, refIntensities, thisIntensities);
+	}
 	Output::newline();
 	Output::print("Refined scale factor. Current R: ");
 	Output::print(curR, 4);
 	
 	// Refine the background
-	int numBackground = 5; // Get initial guesses
+	_currentlyRefining.clear();
 	_backgroundParameters.clear();
-	_backgroundParameters.insert(_backgroundParameters.begin(), numBackground, 0.0);
 	_currentlyRefining.insert(RF_BACKGROUND);
+	_backgroundParameters = guessBackgroundParameters(refAngles, refIntensities);
 	curR = runRefinement(&referencePattern, true);
+	if (DIFFRACTION_EXCESSIVE_PRINTING) {
+		thisIntensities = getDiffractedIntensity(refAngles);
+		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
+		savePattern("reitveld-background-withoutscale.pattern", refAngles, refIntensities, thisIntensities);
+	}
+	_currentlyRefining.insert(RF_SCALE);
+	curR = runRefinement(&referencePattern, true);
+	if (DIFFRACTION_EXCESSIVE_PRINTING) {
+		thisIntensities = getDiffractedIntensity(refAngles);
+		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
+		savePattern("reitveld-background-withscale.pattern", refAngles, refIntensities, thisIntensities);
+	}
 	Output::newline();
 	Output::print("Refined background functions. Current R: ");
 	Output::print(curR, 4);
@@ -286,6 +303,12 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 		Output::newline();
 		Output::print("Refined B factors. Current R: ");
 		Output::print(curR, 4);
+	}
+	
+	if (DIFFRACTION_EXCESSIVE_PRINTING) {
+		thisIntensities = getDiffractedIntensity(refAngles);
+		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
+		savePattern("reitveld-final.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	
 	Output::decrease();
@@ -894,6 +917,36 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
 	return output;
 }
 
+/**
+ * Generates guess for background parameters. 
+ * @param twoTheta Angles at which to calculate error signal
+ * @param refIntensities Reference intensity value at those angles
+ * @return Guess for background signal
+ */
+vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta, vector<double>& refIntensities) {
+	
+	// Guess the terms using polynomial fitting
+	dlib::matrix<double> Y(refIntensities.size(), 1), A(refIntensities.size(), _numBackground);
+	for (int i=0; i<refIntensities.size(); i++) {
+		Y(i, 0) = refIntensities[i];
+		double x = 1.0 / twoTheta[i];
+		for (int j=0; j<_numBackground; j++) {
+			A(i,j) = x;
+			x *= twoTheta[i];
+		}
+	}
+	dlib::qr_decomposition<dlib::matrix<double> > solver(A);
+	dlib::matrix<double> params = solver.solve(Y);
+	
+	// Return new values
+	vector<double> output;
+	output.reserve(_numBackground);
+	for (int i=0; i<params.nr(); i++) {
+		output.push_back(params(i,0) / _optimalScale);
+	}
+	return output;
+}
+
 /** 
  * Get combined / scaled peaks for prettier output.
  */
@@ -1193,7 +1246,7 @@ void ExperimentalPattern::set(vector<double>& twoTheta, vector<double>& intensit
 		// Prepare data for peak fitting
 		smoothData(twoThetaCopy, intensityCopy);
 
-		if (LW_EXCESSIVE_PRINTING == 1)
+		if (DIFFRACTION_EXCESSIVE_PRINTING == 1)
 			savePattern("xray-smoothed.out", twoThetaCopy, intensityCopy);
 		removeBackground(twoThetaCopy, intensityCopy);
 
@@ -1674,7 +1727,7 @@ void ExperimentalPattern::removeBackground(vector<double>& rawTwoTheta, vector<d
 
 
     // If desired, print out background-less signal
-    if (LW_EXCESSIVE_PRINTING == 1)
+    if (DIFFRACTION_EXCESSIVE_PRINTING == 1)
 		savePattern("xray-nobackground.out", rawTwoTheta, rawIntensity, backgroundSignal);
 }
 
@@ -1708,13 +1761,13 @@ void ExperimentalPattern::locatePeaks(vector<vector<double> >& peakTwoTheta,
     // First derivative of intensity wrt twoTheta
     vector<double> firstDerivative = getFirstDerivative(rawTwoTheta, rawIntensity);
     smoothData(rawTwoTheta, firstDerivative, 3, 1.0);
-    if (LW_EXCESSIVE_PRINTING == 1)
+    if (DIFFRACTION_EXCESSIVE_PRINTING == 1)
     savePattern("xray-firstDerivative.out", rawTwoTheta, firstDerivative);
 
     // Second derivative of intensity wrt twoTheta
     vector<double> secondDerivative = getSecondDerivative(rawTwoTheta, rawIntensity);
     smoothData(rawTwoTheta, secondDerivative, 3, 1.0);
-    if (LW_EXCESSIVE_PRINTING == 1)
+    if (DIFFRACTION_EXCESSIVE_PRINTING == 1)
         savePattern("xray-secondDerivative.out", rawTwoTheta, secondDerivative);
             
     // Position of center of peaks
@@ -2034,7 +2087,7 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
     Output::decrease();
 
     // Now that we are done, print out all the data
-    if (LW_EXCESSIVE_PRINTING == 1) {
+    if (DIFFRACTION_EXCESSIVE_PRINTING == 1) {
         for (int peak = 0; peak < peakTwoTheta.size(); peak++) {
             vector<double> fittedIntensity(peakTwoTheta[peak].size());
             for (int pos = 0; pos < peakTwoTheta[peak].size(); pos++)
@@ -2487,7 +2540,7 @@ double CalculatedPeak::atomicScatteringFactor(List<double>& atfParams, double an
  * @param Intensity [in] Intensity measured at each angle
  * @param fittedIntensity [in] Optional: Some other function that should be expressed as a function of angle
  */
-void ExperimentalPattern::savePattern(const Word& filename, const vector<double>& twoTheta, \
+void Diffraction::savePattern(const Word& filename, const vector<double>& twoTheta, \
         const vector<double>& Intensity, const vector<double>& otherIntensity) {
     int origStream = Output::streamID();
             Output::setStream(Output::addStream(filename));
