@@ -481,7 +481,9 @@ private:
     double _maxBFactor;
 	// Number of background parameters;
 	int _numBackground;
-	// Parameters to background signal (0: a / 2Theta: 1-n: b * x^(n-1))
+	// Starting power of background signal
+	int _backgroundPolyStart;
+	// Parameters to background signal 
 	vector<double> _backgroundParameters;
 	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
 	double _U, _V, _W;
@@ -587,7 +589,8 @@ public:
 		_U = 0.0;
 		_V = 0.0;
 		_W = 0.3;
-		_numBackground = 6;
+		_numBackground = 5;
+		_backgroundPolyStart = -1;
 		_backgroundParameters.clear();
 	}
 	
@@ -609,7 +612,6 @@ public:
 	
 	// Friendships
 	friend class RFactorFunctionModel;
-	friend class ReitveldRFactorFunctionModel;
 };
 
 /**

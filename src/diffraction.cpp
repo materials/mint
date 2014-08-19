@@ -402,8 +402,8 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
     //   approximate derivatives are used, which seem to work well. 
     // RFactorDerivativeFunctionalModel der(this);
     dlib::find_min_box_constrained(dlib::bfgs_search_strategy(),
-            dlib::objective_delta_stop_strategy(1e-8),
-            f, dlib::derivative(f), params, x_low, x_high);
+            dlib::objective_delta_stop_strategy(1e-10),
+            f, dlib::derivative(f, 1e-6), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
 	if (reitveld) {
@@ -902,14 +902,10 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
 	vector<double> output;
 	output.insert(output.begin(), twoTheta.size(), 0.0);
 	if (_backgroundParameters.empty()) return output; // No background
-	// Add c_0 / x
-	for (int i=0; i<twoTheta.size(); i++) {
-		output[i] += _backgroundParameters[0] / twoTheta[i];
-	}
 	// Add in polynomial terms
 	for (int a=0; a<twoTheta.size(); a++) {
-		double x = 1.0;
-		for (int p=1; p<_backgroundParameters.size(); p++) {
+		double x = pow(twoTheta[a], _backgroundPolyStart);
+		for (int p=0; p<_backgroundParameters.size(); p++) {
 			output[a] += _backgroundParameters[p] * x;
 			x *= twoTheta[a];
 		}
@@ -929,7 +925,7 @@ vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoT
 	dlib::matrix<double> Y(refIntensities.size(), 1), A(refIntensities.size(), _numBackground);
 	for (int i=0; i<refIntensities.size(); i++) {
 		Y(i, 0) = refIntensities[i];
-		double x = 1.0 / twoTheta[i];
+		double x = pow(twoTheta[i], (double) _backgroundPolyStart);
 		for (int j=0; j<_numBackground; j++) {
 			A(i,j) = x;
 			x *= twoTheta[i];
