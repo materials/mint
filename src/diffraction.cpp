@@ -161,9 +161,8 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
         Output::print("Optimal R factor: ");
         Output::print(rFactor);
         Output::decrease();
-    }
-        // Calculate the peak intensities using initial guesses
-    else {
+    } else {
+		// Calculate the peak intensities using initial guesses
         calculatePeakIntensities();
     }
     
@@ -863,7 +862,6 @@ vector<double> ExperimentalPattern::getDiffractedIntensity(vector<double>& twoTh
 }
 
 vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
-	std::sort(twoTheta.begin(), twoTheta.end());
 	vector<double> output = generateBackgroundSignal(twoTheta);
 	// Useful constants 
 	double Cg = 4 * log(2);
@@ -1363,7 +1361,7 @@ double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmet
 	} else if (rMethod == DR_SQUARED) {
 		vector<double> weight; weight.reserve(twoTheta.size());
 		for (int i=0; i<refIntensities.size(); i++) {
-			weight.push_back(1.0 / refIntensities[i]);
+			weight.push_back(refIntensities[i] > 0 ? 1.0 / refIntensities[i] : 0.0);
 		}
 		double denom = 0.0, num = 0.0, diff = 0.0;
 		for (int i=0; i<weight.size(); i++) {
