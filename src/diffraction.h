@@ -286,7 +286,7 @@ public:
 	
 	/**
 	 * Get the angles at which diffracted intensity was measured
-     * @return List of Bragg angles in degrees
+     * @return List of Bragg angles in degrees (must be ascending!)
      */
 	virtual vector<double> getMeasurementAngles() const = 0;
 	
