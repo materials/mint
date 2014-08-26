@@ -304,6 +304,13 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 		Output::print(curR, 4);
 	}
 	
+	// Refine everything else:
+	_currentlyRefining.insert(RF_UVFACTORS);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined all broadening factors. Current R: ");
+	Output::print(curR, 4);
+	
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
@@ -418,6 +425,7 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
  * <ol>
  * <li>Scale factor</li>
  * <li>Background parameters</li>
+ * <li>Angle-depedent peak broadening terms</li>
  * <li>Angle-independent peak broadening term</li>
  * <li>Atomic positions</li>
  * <li>Thermal factors</li>
@@ -433,6 +441,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
 		for (int p=0; p<_backgroundParameters.size(); p++) {
 			params.push(_backgroundParameters[p]);
 		}
+	}
+	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
+		params.push(_U); params.push(_V);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
 		params.push(_W);
@@ -474,6 +485,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
 			params.push(-1e100);
 		}
 	}
+	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
+		params.push(-1e100); params.push(-1e100);
+	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
 		params.push(0);
 	}
@@ -507,6 +521,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 		for (int i=0; i<_backgroundParameters.size(); i++) {
 			params.push(1e100);
 		}
+	}
+	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
+		params.push(1e100); params.push(1e100);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
 		params.push(20);
@@ -543,6 +560,10 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
 		for (int i=0; i<_backgroundParameters.size(); i++) {
 			_backgroundParameters[i] = params(position++);
 		}
+	}
+	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
+		_U = params(position++);
+		_V = params(position++);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
 		_W = params(position++);
@@ -1342,7 +1363,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * 
  * @param referencePattern [in] Pattern against which data is compared
  * @param rMethod [in] Method used to calculate R factor
- * @return 
+ * @return R factor
  */
 double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
 	// Get reference pattern

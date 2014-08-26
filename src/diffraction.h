@@ -498,6 +498,7 @@ private:
 	enum RefinementParameters { RF_SCALE, // Scale factor (only for full pattern)
 		RF_BACKGROUND, // Background signal (only for full pattern)
 		RF_WFACTOR, // Angle-independent peak broadening term
+		RF_UVFACTORS, // Angle-dependent peak broadening terms
 		RF_BFACTORS, // Isotropic thermal factors
 		RF_POSITIONS };// Atomic positions
 	// Parameters that are currently being refined
