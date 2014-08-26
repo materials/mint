@@ -261,8 +261,6 @@ protected:
 	
 	virtual void matchPeaksToReference(const Diffraction& referencePattern);
 	
-	double getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
-	
 	double getCurrentRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
 	
 	// Debugging functions
@@ -522,6 +520,7 @@ private:
 	// --> Operation employed by user to refine a calculated pattern
     void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
 	void reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
+	double getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
 	vector<double> guessBackgroundParameters(vector<double>& twoTheta, vector<double>& referenceIntensities);
 	
 	// --> Operations are used when calculating peak intensities

@@ -1336,7 +1336,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * 
  * Ways to calculate R factor:
  * <ul>
- * <li><b>DR_ABS</b>: Is exactly the R<sub>p</sub>, profile reliability factor
+ * <li><b>DR_ABS</b>: Is exactly the R<sub>p</sub>, profile reliability factor. Note, this subtracts background signals
  * <li><b>DR_SQUARED</b>: Is exactly the weighted profile residual
  * </ul>
  * 
@@ -1344,7 +1344,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * @param rMethod [in] Method used to calculate R factor
  * @return 
  */
-double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
+double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
 	// Get reference pattern
 	vector<double> twoTheta = referencePattern.getMeasurementAngles();
 	vector<double> refIntensities = referencePattern.getMeasuredIntensities();
@@ -1352,12 +1352,17 @@ double Diffraction::getReitveldRFactor(const Diffraction& referencePattern, Rmet
 	vector<double> thisIntensities = getDiffractedIntensity(twoTheta);
 	
 	if (rMethod == DR_ABS) {
-		double denom = accumulate(refIntensities.begin(), refIntensities.end(), 0);
+		vector<double> background = generateBackgroundSignal(twoTheta);
 		double num = 0;
+		double denom = 0;
 		for (int i=0; i<thisIntensities.size(); i++) {
-			num += abs(refIntensities[i] - _optimalScale * thisIntensities[i]);
+			double refI = refIntensities[i] - _optimalScale * background[i];
+			if (refI <= 0) continue; // Don't consider regions outside of background
+			double thisI = thisIntensities[i] - background[i];
+			num += abs(refI - _optimalScale * thisI);
+			denom += refI;
 		}
-		return num / denom;
+		return denom > 0 ? num / denom : 1;
 	} else if (rMethod == DR_SQUARED) {
 		vector<double> weight; weight.reserve(twoTheta.size());
 		for (int i=0; i<refIntensities.size(); i++) {
@@ -1612,7 +1617,6 @@ void ExperimentalPattern::set(const Text& text) {
 				Output::print("s");
 				Output::increase();
 		for (i = 0; i < peaks.size(); ++i) {
-
 			Output::newline();
 			Output::print("Two-theta and intensity of ");
 			Output::print(peaks[i].getAngle());
@@ -2062,6 +2066,7 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
 				Output::newline(WARNING);
 				Output::print("Failure during peak integration - Negative intensity found near: ");
 				Output::print(location, 3);
+				Output::decrease();
 				throw 10;
 			}
 			
@@ -2070,6 +2075,7 @@ void ExperimentalPattern::getPeakIntensities(const vector<vector<double> >& peak
 				Output::newline(WARNING);
 				Output::print("Failure during peak integration - Peak maximum outside of measured range: ");
 				Output::print(location, 3);
+				Output::decrease();
 				throw 10;
 			}
             
