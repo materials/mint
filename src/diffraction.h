@@ -132,8 +132,7 @@ public:
      * For computational efficiency, this constructor assumes many of the parameters
      * related to symmetry have already been calculated. 
      * 
-     * Developer's note: Since the Bragg angle and reciprocal lattice vectors are supplied,
-     *  peaks diffraction angles will not change if the lattice parameters
+     * Developer's note: Peak diffraction angles will not change if the lattice parameters
      *  of the structure used to generate this object are changed.
 	 * 
 	 * @param method Method used to compute diffraction peaks
@@ -142,8 +141,6 @@ public:
      * @param wavelength Wavelength of incident radiation
      * @param multiplicity Multiplicity factor for this peak
      * @param hkl A plane index that represents this peak
-     * @param reciprocalLatticeVectors Reciprocal lattice vectors of all planes
-     *   contributing to this peak
      */
     CalculatedPeak(Method method, const ISO* structure, const Symmetry* symmetry, double wavelength, 
 			Vector3D hkl, std::vector<Vector3D> equivHKL) :	DiffractionPeak(-1, -1) {
@@ -157,9 +154,14 @@ public:
         this->hkl = hkl;
         this->equivHKL = equivHKL;
         this->lpFactor = getLPFactor(_twoThetaRad / 2.0);
+		this->recipLatVecs.clear(); this->recipLatVecs.reserve(equivHKL.size());
+		for (int i=0; i<equivHKL.size(); i++) {
+			recipLatVecs.push_back(structure->basis().inverse() * equivHKL[i]);
+		}
     }
 
-    void updateCalculatedIntensity(vector<double> BFactors, List<double>::D2 atfParams);
+    void updateCalculatedIntensity(vector<double>& BFactors, List<double>::D2& atfParams, 
+		Vector3D& preferredOrientation, double texturingFactor);
 	
 	static double getDiffractionAngle(const Basis& basis, const Vector3D& hkl, double wavelength);	
 	
@@ -189,8 +191,10 @@ private:
     double wavelength;
     // Index of family of planes which result in this peak
     Vector3D hkl;
-    // Reciprocal lattice vectors of each member of the family of planes
+    // Equivalent planes
     std::vector<Vector3D> equivHKL;
+	// Reciprocal lattice vectors associate with this plane
+	std::vector<Vector3D> recipLatVecs;
     // Lorentz polarization factor for this peak
     double lpFactor;
     // Multiplicity for this peak
@@ -200,7 +204,7 @@ private:
     static double getLPFactor(double angle);
     static double thermalFactor(double angle, double wavelength, double Bfactor = 1);
     static double getAbsorptionFactor(double angle, double uEff);
-    static double getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors );
+    static double getTexturingFactor(Vector3D& preferredOrientation, double tau, vector<Vector3D>& recipLatticeVectors );
     static double structureFactorSquared(Method method, double wavelength, const Symmetry& symmetry, double angle, \
 			const Vector3D& hkl, vector<double> BFactors, List<double>::D2 atfParams);
     static double atomicScatteringFactor(List<double>& atfParams, double angle, double wavelength);
@@ -487,6 +491,9 @@ private:
 	double _U, _V, _W;
 	// Angles at which intensities were measured in reference pattern
 	vector<double> _measurementAngles;
+	// Preferred orientation of grains. Represented as reciprocal lattice vector 
+	//  where magnitude of vector is strength of texturing.
+	Vector3D _preferredOrientation;
 	
 	vector<double> generateBackgroundSignal(vector<double>& twoTheta) const;
 	
@@ -500,6 +507,7 @@ private:
 		RF_WFACTOR, // Angle-independent peak broadening term
 		RF_UVFACTORS, // Angle-dependent peak broadening terms
 		RF_BFACTORS, // Isotropic thermal factors
+		RF_TEXTURE, // Preferred crystal orientation of sample
 		RF_POSITIONS };// Atomic positions
 	// Parameters that are currently being refined
     std::set<RefinementParameters> _currentlyRefining;
@@ -579,6 +587,7 @@ public:
 		_structure = 0;
 		_backgroundParameters.clear();
 		_measurementAngles.clear();
+		_preferredOrientation.set(1,0,0);
 	}
 	
 	CalculatedPattern() {
@@ -592,6 +601,7 @@ public:
 		_numBackground = 5;
 		_backgroundPolyStart = -1;
 		_backgroundParameters.clear();
+		_preferredOrientation.set(1,0,0);
 	}
 	
 	void setPeakBroadeningParameters(double u, double v, double w) {
@@ -721,23 +731,25 @@ inline double CalculatedPeak::getAbsorptionFactor(double angle, double uEff) {
  * 
  * Currently uses the March-Dollase function: <br> 
  * <code>T_hkl = 1 / N * sum_i{ ( tau^2 * cos(phi^i_hkl)^2 + 1 / tau * sin(phi^i_hkl)^2 )^-(3/2) }</code>
+ * 
  * @param preferredOrientation Reciprocal lattice vector of preferred orientation
  * @param tau Texturing parameter (generally, 1 means no texturing effect)
  * @param recipLatticeVectors Reciprocal lattice vectors of all planes contributing
  *  to this diffraction peak
  * @return Texturing factor
  */
-inline double CalculatedPeak::getTexturingFactor(Vector3D preferredOrientation, double tau, Linked<Vector3D> recipLatticeVectors) {
+inline double CalculatedPeak::getTexturingFactor(Vector3D& preferredOrientation, double tau, 
+		vector<Vector3D>& recipLatticeVectors) {
     double output = 0.0;
     double preNorm = preferredOrientation.magnitude();
-    for (Linked<Vector3D>::iterator iter = recipLatticeVectors.begin(); 
-            iter != recipLatticeVectors.end(); iter++) {
-        double cosphi = preferredOrientation * *iter / preNorm / (*iter).magnitude();
+    for (int i=0; i < recipLatticeVectors.size(); i++) {
+        double cosphi = preferredOrientation * recipLatticeVectors[i] 
+			/ preNorm / recipLatticeVectors[i].magnitude();
         cosphi *= cosphi;
-        output += pow(1 + (tau * tau - 1) * cosphi, -0.5);
-        // output += pow(tau * tau * cosphi + (1 - cosphi) / tau, -1.5);
+        // output += pow(1 + (tau * tau - 1) * cosphi, -0.5); // Elliptical function
+        output += pow(tau * tau * cosphi + (1 - cosphi) / tau, -1.5); // March-Dollase function
     }
-    output /= (double) recipLatticeVectors.length();
+    output /= (double) recipLatticeVectors.size();
     return output;
 }
 

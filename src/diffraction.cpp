@@ -295,6 +295,15 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 		Output::print(curR, 4);
 	}
 	
+	// Refine preferred orientation factor
+	_currentlyRefining.insert(RF_TEXTURE);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined preferred orientation factor. Magnitude is ");
+	Output::print(_preferredOrientation.magnitude(), 3);
+	Output::print(". Current R: ");
+	Output::print(curR, 4);
+	
 	// Refine B factors, if desired
 	if (willRefine(RF_BFACTORS, toRefine)) {
 		_currentlyRefining.insert(RF_BFACTORS);
@@ -429,6 +438,7 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
  * <li>Angle-independent peak broadening term</li>
  * <li>Atomic positions</li>
  * <li>Thermal factors</li>
+ * <li>Texturing parameters</li>
  * </ol>
  * @return Current values of parameters to be optimized
  */
@@ -459,6 +469,11 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
         for (int i = 0; i < _BFactors.size(); i++)
             params.push(_BFactors[i]);
     }
+	if (willRefine(RF_TEXTURE, _currentlyRefining)) {
+		for (int i = 0; i < 3; i++) {
+			params.push(_preferredOrientation[i]);
+		}
+	}
 
     // Copy parameters to an appropriate container
     int nParams = params.size();
@@ -497,6 +512,11 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
     if (willRefine(RF_BFACTORS, _currentlyRefining))
         for (int i = 0; i < _BFactors.size(); i++)
             params.push(_minBFactor);
+	if (willRefine(RF_TEXTURE, _currentlyRefining)) {
+		for (int i = 0; i < 3; i++) {
+			params.push(-10);
+		}
+	}
     // Copy parameters to an appropriate container
     int nParams = params.size();
     column_vector output(nParams);
@@ -534,6 +554,11 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
     if (willRefine(RF_BFACTORS, _currentlyRefining))
         for (int i = 0; i < _BFactors.size(); i++)
             params.push(_maxBFactor);
+	if (willRefine(RF_TEXTURE, _currentlyRefining)) {
+		for (int i = 0; i < 3; i++) {
+			params.push(10);
+		}
+	}
     // Copy parameters to an appropriate container
     int nParams = params.size();
     column_vector output(nParams);
@@ -580,6 +605,11 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
         for (int i = 0; i < _BFactors.size(); i++)
             _BFactors[i] = params(position++);
     }
+	if (willRefine(RF_TEXTURE, _currentlyRefining)) {
+		for (int i = 0; i < 3; i++) {
+			_preferredOrientation[i] = params(position++);
+		}
+	}
 }
 
 /**
@@ -812,8 +842,9 @@ void CalculatedPattern::calculatePeakLocations() {
  * resulting peak heights internally. 
  */
 void CalculatedPattern::calculatePeakIntensities() {
+	double texturingParameter = _preferredOrientation.magnitude();
     for (int i = 0; i < _reflections.size(); i++) {
-        _reflections[i].updateCalculatedIntensity(_BFactors, _atfParams);
+        _reflections[i].updateCalculatedIntensity(_BFactors, _atfParams, _preferredOrientation, texturingParameter);
     }
 }
 
@@ -824,17 +855,16 @@ void CalculatedPattern::calculatePeakIntensities() {
  * @param BFactors [in] B Factors for each site
  * @param atfParams [in] Atomic form factors for each element (stored as a property of the pattern to conserve memory)
  */
-void CalculatedPeak::updateCalculatedIntensity(vector<double> BFactors, List<double>::D2 atfParams) {
+void CalculatedPeak::updateCalculatedIntensity(vector<double>& BFactors, List<double>::D2& atfParams,
+		Vector3D& preferredOrientation, double texturingStrength) {
     // Calculate integrated intensity. (Note absence of scale factor, which 
     //  is always optimized when calculating R factor)
     peakIntensity = CalculatedPeak::structureFactorSquared(method, wavelength, *symmetry, 
 			_twoThetaRad / 2, hkl, BFactors, atfParams);
     // Everything but the structure factor
-    double otherFactors = multiplicity * lpFactor;
-    peakIntensity *= otherFactors;
-	
-	// Not currently in use, but might be useful eventually
-    // otherFactors *= getTexturingFactor(preferredOrientation, 1.666, _peaks[i][j].recipLatticeVectors);
+    peakIntensity *= lpFactor;
+	peakIntensity *= multiplicity;
+	peakIntensity *= getTexturingFactor(preferredOrientation, texturingStrength, recipLatVecs);
 }
 
 vector<DiffractionPeak> ExperimentalPattern::getDiffractedPeaks() const {
