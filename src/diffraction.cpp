@@ -951,13 +951,28 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
 	vector<double> output;
 	output.insert(output.begin(), twoTheta.size(), 0.0);
 	if (_backgroundParameters.empty()) return output; // No background
+	// Create array used when computing Chebyshev polynomial values
+	double chebyshev[_numBackground];
+	chebyshev[0] = 1;
 	// Add in polynomial terms
-	for (int a=0; a<twoTheta.size(); a++) {
-		double x = pow(twoTheta[a], _backgroundPolyStart);
-		for (int p=0; p<_backgroundParameters.size(); p++) {
-			output[a] += _backgroundParameters[p] * x;
-			x *= twoTheta[a];
-		}
+	for (int a=0; a<twoTheta.size(); a++) {		
+		if (_useChebyshev) {
+			output[a] += _backgroundParameters[0];
+			if (_backgroundParameters.size() == 1) continue;
+			double x = 2 * (twoTheta[a] - _minTwoTheta) / (_maxTwoTheta - _minTwoTheta) - 1;
+			chebyshev[1] = x;
+			output[a] += _backgroundParameters[1] * chebyshev[1];
+			for (int t=2; t<_backgroundParameters.size(); t++) {
+				chebyshev[t] = 2 * x * chebyshev[t-1] - chebyshev[t-2];
+				output[a] += _backgroundParameters[t] * chebyshev[t];
+			}
+		} else {
+			double x = pow(twoTheta[a], _backgroundPolyStart);
+			for (int p=0; p<_backgroundParameters.size(); p++) {
+				output[a] += _backgroundParameters[p] * x;
+				x *= twoTheta[a];
+			}
+		} 
 	}
 	return output;
 }
@@ -968,17 +983,26 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
  * @param refIntensities Reference intensity value at those angles
  * @return Guess for background signal
  */
-vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta, vector<double>& refIntensities) {
-	
+vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta, vector<double>& refIntensities) {	
 	// Guess the terms using polynomial fitting
 	dlib::matrix<double> Y(refIntensities.size(), 1), A(refIntensities.size(), _numBackground);
 	for (int i=0; i<refIntensities.size(); i++) {
 		Y(i, 0) = refIntensities[i];
-		double x = pow(twoTheta[i], (double) _backgroundPolyStart);
-		for (int j=0; j<_numBackground; j++) {
-			A(i,j) = x;
-			x *= twoTheta[i];
-		}
+		if (_useChebyshev) {
+			A(i,0) = 1;
+			if (_numBackground < 2) continue;
+			double x = 2 * (twoTheta[i] - _minTwoTheta) / (_maxTwoTheta - _minTwoTheta) - 1;
+			A(i,1) = x;
+			for (int j=2; j<_numBackground; j++) {
+				A(i,j) = 2 * x * A(i,j-1) - A(i,j-2);
+			}
+		} else {
+			double x = pow(twoTheta[i], (double) _backgroundPolyStart);
+			for (int j=0; j<_numBackground; j++) {
+				A(i,j) = x;
+				x *= twoTheta[i];
+			}
+		} 
 	}
 	dlib::qr_decomposition<dlib::matrix<double> > solver(A);
 	dlib::matrix<double> params = solver.solve(Y);

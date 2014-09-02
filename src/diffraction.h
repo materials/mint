@@ -481,6 +481,8 @@ private:
     double _minBFactor;
     // Maximum allowed B factor
     double _maxBFactor;
+	// Whether to use Chebyshev polynomials for the background
+	bool _useChebyshev;
 	// Number of background parameters;
 	int _numBackground;
 	// Starting power of background signal
@@ -602,6 +604,7 @@ public:
 		_backgroundPolyStart = -1;
 		_backgroundParameters.clear();
 		_preferredOrientation.set(1,0,0);
+		_useChebyshev = true;
 	}
 	
 	void setPeakBroadeningParameters(double u, double v, double w) {
