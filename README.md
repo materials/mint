@@ -905,6 +905,7 @@ List of settings and brief descriptions (detailed descriptions follow):
       maxjumpdistance   Maximum jump distance when generating jumps between sites
       kmcjumpsperatom   Number of jumps in a KMC simulation per atom
           kmcconverge   Convergence for a KMC simulation to be complete
+	 xrdnumbackground	Number of background functions used during Reitveld refinement
 
 
 

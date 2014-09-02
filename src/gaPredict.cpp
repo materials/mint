@@ -27,6 +27,7 @@
 #include "language.h"
 #include "output.h"
 #include "num.h"
+#include "settings.h"
 
 
 
@@ -237,6 +238,9 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	// Create diffraction object
 	CalculatedPattern curDiffraction;
 	_diffraction = &curDiffraction;
+	
+	// Define any pattern calculation settings
+	curDiffraction.setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 	
 	// Loop over number of simulations to run
 	int j, k, m;

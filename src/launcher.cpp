@@ -2925,6 +2925,7 @@ void Launcher::refine(Storage& data, const Function& function)
 			}
 
 			// Refine the structure
+			tempPattern.setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction(), reitveld);
 
 			// Add change to comment
@@ -3361,6 +3362,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		patterns[i].setMaxTwoTheta(maxTwoTheta);
 		patterns[i].setResolution(resolution);
 		patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
+		patterns[i].setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 		
 		// Get match
 		if (data.diffraction().isSet())

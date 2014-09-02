@@ -18,6 +18,24 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * =========================
+ *  Developer's guide 
+ * =========================
+ * 
+ * --> How to add a new setting
+ * 
+ * 1. Add a new SettingsLabel
+ * 2. Increase number of slots in which to store settings
+ *		a. Look for "const int Settings::_numSettings =" in settings.cpp
+ * 3. Assign a name for this setting and a default value in the constructor
+ *    of Settings::Help (look in settings.cpp)
+ * 
+ * --> How to use settings
+ * 
+ * Easy enough, just call "Settings::value([SettingsLabel], [variable in which to store value])"
+ *   or "Settings::value<[type of setting (i.e. double)]>([SettingLabel])"
+ */
 
 
 #ifndef SETTINGS_H
@@ -41,7 +59,7 @@ enum SettingsLabel {NUMPROCS, OUTPUT_LEVEL, OUTPUT_TAB, TIME_SHOW, TIME_PRECISIO
 	GAOPT_NUMSIM, GAOPT_POPSIZE, GAOPT_CELLMUTPROB, GAOPT_POSMUTPROB, GAOPT_WYCKMUTPROB, GAOPT_METRICTOOPT, \
 	GAOPT_CONVERGEOVER, GAOPT_MAXGENS, GAOPT_NUMTOKEEP, GAOPT_SELECTION, GAOPT_ENERGYTOL, GAOPT_DIFFRACTIONTOL, \
 	GAOPT_USEREITVELD, GAOPT_SCREENMETHOD, GAOPT_SCREENNUM, WYCKOFFBIAS, MINIMAGEDISTANCE, MAXJUMPDISTANCE, \
-	KMC_JUMPSPERATOM, KMC_CONVERGENCE};
+	KMC_JUMPSPERATOM, KMC_CONVERGENCE, XRD_BACKGROUNDCOUNT};
 
 
 
@@ -131,7 +149,7 @@ class Settings
 	
 	// Settings objects
 	static const int _numSettings;
-	static Setting _settings[35];
+	static Setting * _settings;
 	
 	// Local of global settings file
 	static Word _globalFile;

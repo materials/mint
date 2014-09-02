@@ -26,6 +26,7 @@
 #include "output.h"
 #include <cmath>
 #include <cstdlib>
+#include <new>
 
 
 
@@ -290,8 +291,8 @@ void Setting::error(const OList<Word>& input)
 
 // Static member values of Settings
 Word Settings::_globalFile;
-const int Settings::_numSettings = 35;
-Setting Settings::_settings[Settings::_numSettings];
+const int Settings::_numSettings = 36;
+Setting* Settings::_settings = new Setting[Settings::_numSettings];
 
 
 
@@ -407,6 +408,9 @@ Settings::Helper::Helper()
 	
 	// KMC_CONVERGENCE
 	Settings::_settings[(int)KMC_CONVERGENCE].setup(.5, "kmcconverge");
+	
+	// XRD_BACKGROUNDCOUNT
+	Settings::_settings[(int)XRD_BACKGROUNDCOUNT].setup(4, "xrdbackgroundcount");
 }
 
 
