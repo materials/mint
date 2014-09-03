@@ -256,22 +256,18 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	Output::print(curR, 4);
 	
 	// Refine the background
-	_currentlyRefining.clear();
-	_backgroundParameters.clear();
 	_currentlyRefining.insert(RF_BACKGROUND);
 	_backgroundParameters = guessBackgroundParameters(refAngles, refIntensities);
-	curR = runRefinement(&referencePattern, true);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-background-withoutscale.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("reitveld-background-guess.pattern", refAngles, refIntensities, thisIntensities);
 	}
-	_currentlyRefining.insert(RF_SCALE);
 	curR = runRefinement(&referencePattern, true);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-background-withscale.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("reitveld-background-fitted.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	Output::newline();
 	Output::print("Refined background functions. Current R: ");
@@ -984,23 +980,39 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
  * @return Guess for background signal
  */
 vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta, vector<double>& refIntensities) {	
+	// Mark which entries to use in fitting
+	vector<double> fitAngles, fitIntensities;
+	fitAngles.reserve(twoTheta.size());
+	fitIntensities.reserve(twoTheta.size());
+	int pos = 0;
+	for (int peak=0; peak < _reflections.size(); peak++) {
+		while (twoTheta[pos] < _reflections[peak].getAngle() - 0.5) {
+			fitAngles.push_back(twoTheta[pos]);
+			fitIntensities.push_back(refIntensities[pos]);
+			pos++;
+		}
+		while (twoTheta[pos] < _reflections[peak].getAngle() + 0.5) {
+			pos++;
+		}
+	}
+	
 	// Guess the terms using polynomial fitting
-	dlib::matrix<double> Y(refIntensities.size(), 1), A(refIntensities.size(), _numBackground);
-	for (int i=0; i<refIntensities.size(); i++) {
-		Y(i, 0) = refIntensities[i];
+	dlib::matrix<double> Y(fitIntensities.size(), 1), A(fitIntensities.size(), _numBackground);
+	for (int i=0; i<fitIntensities.size(); i++) {
+		Y(i, 0) = fitIntensities[i];
 		if (_useChebyshev) {
 			A(i,0) = 1;
 			if (_numBackground < 2) continue;
-			double x = 2 * (twoTheta[i] - _minTwoTheta) / (_maxTwoTheta - _minTwoTheta) - 1;
+			double x = 2 * (fitAngles[i] - _minTwoTheta) / (_maxTwoTheta - _minTwoTheta) - 1;
 			A(i,1) = x;
 			for (int j=2; j<_numBackground; j++) {
 				A(i,j) = 2 * x * A(i,j-1) - A(i,j-2);
 			}
 		} else {
-			double x = pow(twoTheta[i], (double) _backgroundPolyStart);
+			double x = pow(fitAngles[i], (double) _backgroundPolyStart);
 			for (int j=0; j<_numBackground; j++) {
 				A(i,j) = x;
-				x *= twoTheta[i];
+				x *= fitAngles[i];
 			}
 		} 
 	}
