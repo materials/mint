@@ -37,7 +37,7 @@
 #include "output.h"
 
 // Set == 1 to print out diffraction pattern at each stage
-#define DIFFRACTION_EXCESSIVE_PRINTING 0
+#define DIFFRACTION_EXCESSIVE_PRINTING 1
 
 // Diffraction pattern determination methods
 enum Method {DM_XRAY, DM_NEUTRON, DM_SIMPLE, DM_NONE};
@@ -491,6 +491,8 @@ private:
 	vector<double> _backgroundParameters;
 	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
 	double _U, _V, _W;
+	// Mixing parameters for the psuedo-Voight function (see Perchasky pg. 171)
+	double _eta0, _eta1, _eta2;
 	// Angles at which intensities were measured in reference pattern
 	vector<double> _measurementAngles;
 	// Preferred orientation of grains. Represented as reciprocal lattice vector 
@@ -597,9 +599,8 @@ public:
         _structure = 0;
 		_minBFactor = 0.1;
 		_maxBFactor = 4.0;
-		_U = 0.0;
-		_V = 0.0;
-		_W = 0.3;
+		_U = 0.0; _V = 0.0; _W = 0.3;
+		_eta0 = 0.5; _eta1 = 0.0; _eta2 = 0.0;
 		_numBackground = 5;
 		_backgroundPolyStart = -1;
 		_backgroundParameters.clear();
@@ -607,9 +608,23 @@ public:
 		_useChebyshev = true;
 	}
 	
+	/**
+	 * Define the parameters that control peak width. As described in Perchasky's 
+	 *  text, the full width at half maximum, H, is:
+	 * 
+	 * <code> (u * tan(theta)^2 + v * tan(theta) + w) </code>
+     */
 	void setPeakBroadeningParameters(double u, double v, double w) {
 		_U = u; _V = v; _W = w;
-	}	
+	}
+	
+	/**
+	 * Define the parameters that control peak shape. These three parameters define
+	 *  the mixing between the Lorentzian and Gaussian shape functions.
+     */
+	void setPeakShapeParameters(double eta0, double eta1, double eta2) {
+		_eta0 = eta0; _eta1 = eta1; _eta2 = eta2;
+	}
 	
 	/**
 	 * Define the number of parameters to use in background function.

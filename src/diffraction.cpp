@@ -430,8 +430,8 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
  * <ol>
  * <li>Scale factor</li>
  * <li>Background parameters</li>
- * <li>Angle-depedent peak broadening terms</li>
- * <li>Angle-independent peak broadening term</li>
+ * <li>Angle-dependent peak broadening/shape terms (U,V,eta1,eta2) </li>
+ * <li>Angle-independent peak broadening/shape term (W, eta0)</li>
  * <li>Atomic positions</li>
  * <li>Thermal factors</li>
  * <li>Texturing parameters</li>
@@ -450,9 +450,10 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
 	}
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(_U); params.push(_V);
+		params.push(_eta1); params.push(_eta2);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
-		params.push(_W);
+		params.push(_W); params.push(_eta0);
 	}
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         for (int orbit = 0; orbit < _symmetry->orbits().length(); orbit++)
@@ -498,9 +499,10 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
 	}
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(-1e100); params.push(-1e100);
+		params.push(-1e100); params.push(-1e100);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
-		params.push(0);
+		params.push(0); params.push(0);
 	}
     if (willRefine(RF_POSITIONS, _currentlyRefining))
         for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
@@ -540,9 +542,10 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 	}
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(1e100); params.push(1e100);
+		params.push(1e100); params.push(1e100);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
-		params.push(20);
+		params.push(20); params.push(1);
 	}
     if (willRefine(RF_POSITIONS, _currentlyRefining))
         for (int i = 0; i < _symmetry->orbits().length() * 3; i++)
@@ -585,9 +588,11 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		_U = params(position++);
 		_V = params(position++);
+		_eta1 = params(position++);
+		_eta2 = params(position++);
 	}
 	if (willRefine(RF_WFACTOR, _currentlyRefining)) {
-		_W = params(position++);
+		_W = params(position++); _eta0 = params(position++);
 	}
     if (willRefine(RF_POSITIONS, _currentlyRefining)) {
         Vector newPositions(_symmetry->orbits().length()*3);
@@ -917,16 +922,22 @@ vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoThet
 	// Add in signal from each peak
 	for (int p=0; p<_reflections.size(); p++) {
 		double center = _reflections[p].getAngle();
+		// Compute peak-broadening terms
 		double H = _W + tan(_reflections[p].getAngleRadians() / 2) 
 				* (_V + _U * tan(_reflections[p].getAngleRadians() / 2));
 		H = sqrt(H);
-		double minAngle = center - 2.5 * H;
-		double maxAngle = center + 2.5 * H;
+		// Compute mixing parameters
+		double eta = _eta0 + center * (_eta1 + center * _eta2);
+		// Determine the range on which we will bother computing the integral;
+		double minAngle = center - 6.0 * H;
+		double maxAngle = center + 6.0 * H;
 		int a = 0;
 		double intensity = _reflections[p].getIntensity();
 		while (twoTheta[++a] < minAngle) continue;
 		while (twoTheta[a] < maxAngle && a < twoTheta.size()) {
-			output[a] += intensity * rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
+			double gaussian = rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
+			double lorentzian = 2.0 / M_PI / H / (1 + 4.0 * pow((twoTheta[a] - center) / H, 2.0));
+			output[a] += intensity * (eta * gaussian + (1 - eta) * lorentzian);
 			a++;
 		}
 	}
