@@ -255,6 +255,13 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	Output::print("Refined scale factor. Current R: ");
 	Output::print(curR, 4);
 	
+	// Refine specimen displacement
+	_currentlyRefining.insert(RF_SPECDISP);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined specimen displacement. Current R: ");
+	Output::print(curR, 4);
+	
 	// Refine the background
 	_currentlyRefining.insert(RF_BACKGROUND);
 	_backgroundParameters = guessBackgroundParameters(refAngles, refIntensities);
@@ -314,6 +321,12 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	curR = runRefinement(&referencePattern, true);
 	Output::newline();
 	Output::print("Refined all broadening factors. Current R: ");
+	Output::print(curR, 4);
+	
+	_currentlyRefining.insert(RF_ZEROSHIFT);
+	curR = runRefinement(&referencePattern, true);
+	Output::newline();
+	Output::print("Refined zero shift. Current R: ");
 	Output::print(curR, 4);
 	
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
@@ -429,12 +442,14 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
  *  in the following order:
  * <ol>
  * <li>Scale factor</li>
+ * <li>Specimen displacement parameter</li>
  * <li>Background parameters</li>
  * <li>Angle-dependent peak broadening/shape terms (U,V,eta1,eta2) </li>
  * <li>Angle-independent peak broadening/shape term (W, eta0)</li>
  * <li>Atomic positions</li>
  * <li>Thermal factors</li>
  * <li>Texturing parameters</li>
+ * <li>Zero shift parameter</li>
  * </ol>
  * @return Current values of parameters to be optimized
  */
@@ -442,6 +457,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
     queue<double> params;
 	if (willRefine(RF_SCALE, _currentlyRefining)) {
 		params.push(_optimalScale);
+	}
+	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
+		params.push(_shiftParameters[4]);
 	}
 	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
 		for (int p=0; p<_backgroundParameters.size(); p++) {
@@ -471,6 +489,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
 			params.push(_preferredOrientation[i]);
 		}
 	}
+	if (willRefine(RF_ZEROSHIFT, _currentlyRefining)) {
+		params.push(_shiftParameters[5]);
+	}
 
     // Copy parameters to an appropriate container
     int nParams = params.size();
@@ -491,6 +512,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
     queue<double> params;
 	if (willRefine(RF_SCALE, _currentlyRefining)) {
 		params.push(0);
+	}
+	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
+		params.push(-0.1);
 	}
 	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
 		for (int i=0; i<_backgroundParameters.size(); i++) {
@@ -514,6 +538,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
 		for (int i = 0; i < 3; i++) {
 			params.push(-10);
 		}
+	}
+	if (willRefine(RF_ZEROSHIFT, _currentlyRefining)) {
+		params.push(-0.1);
 	}
     // Copy parameters to an appropriate container
     int nParams = params.size();
@@ -540,6 +567,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 			params.push(1e100);
 		}
 	}
+	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
+		params.push(0.1);
+	}
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(1e100); params.push(1e100);
 		params.push(1e100); params.push(1e100);
@@ -557,6 +587,9 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 		for (int i = 0; i < 3; i++) {
 			params.push(10);
 		}
+	}
+	if (willRefine(RF_ZEROSHIFT, _currentlyRefining)) {
+		params.push(0.1);
 	}
     // Copy parameters to an appropriate container
     int nParams = params.size();
@@ -579,6 +612,9 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
     int position = 0;
 	if (willRefine(RF_SCALE, _currentlyRefining)) {
 		_optimalScale = params(position++);
+	}
+	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
+		_shiftParameters[4] = params(position++);
 	}
 	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
 		for (int i=0; i<_backgroundParameters.size(); i++) {
@@ -610,6 +646,9 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
 		for (int i = 0; i < 3; i++) {
 			_preferredOrientation[i] = params(position++);
 		}
+	}
+	if (willRefine(RF_ZEROSHIFT, _currentlyRefining)) {
+		_shiftParameters[5] = params(position++);
 	}
 }
 
@@ -915,6 +954,20 @@ vector<double> ExperimentalPattern::getDiffractedIntensity(vector<double>& twoTh
 
 vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoTheta) const {
 	vector<double> output = generateBackgroundSignal(twoTheta);
+	vector<double> signal = generatePeakSignal(twoTheta);
+	for (int i=0; i<output.size(); i++) {
+		output[i] += signal[i];
+	}
+	return output;
+}
+
+/**
+ * Generate the diffraction signal associated with diffraction peaks
+ * @param twoTheta [in] Angle at which peak intensity will be calculated
+ * @return Peak intensity at those angles
+ */
+vector<double> CalculatedPattern::generatePeakSignal(vector<double>& twoTheta) const {
+	vector<double> output; output.insert(output.begin(), twoTheta.size(), 0);
 	// Useful constants 
 	double Cg = 4 * log(2);
 	double rCg = sqrt(Cg);
@@ -922,12 +975,18 @@ vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoThet
 	// Add in signal from each peak
 	for (int p=0; p<_reflections.size(); p++) {
 		double center = _reflections[p].getAngle();
+		double centerRad = _reflections[p].getAngleRadians();
 		// Compute peak-broadening terms
-		double H = _W + tan(_reflections[p].getAngleRadians() / 2) 
-				* (_V + _U * tan(_reflections[p].getAngleRadians() / 2));
+		double H = _W + tan(centerRad / 2) 
+				* (_V + _U * tan(centerRad / 2));
 		H = sqrt(H);
 		// Compute mixing parameters
 		double eta = _eta0 + center * (_eta1 + center * _eta2);
+		// Compute peak shift (from calculated to observed position)
+		double shift = _shiftParameters[0] / tan(centerRad) + _shiftParameters[1] / sin(centerRad)
+				+ _shiftParameters[2] / tan(centerRad / 2) + _shiftParameters[3] * sin(centerRad)
+				+ _shiftParameters[4] * cos(centerRad) + _shiftParameters[5];
+		center += shift;
 		// Determine the range on which we will bother computing the integral;
 		double minAngle = center - 6.0 * H;
 		double maxAngle = center + 6.0 * H;
@@ -943,6 +1002,7 @@ vector<double> CalculatedPattern::getDiffractedIntensity(vector<double>& twoThet
 	}
 	return output;
 }
+
 
 /**
  * Calculate the background signal as a function of angle. Functional form:
@@ -1430,41 +1490,46 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
 }
 
 /**
- * Calculate a pattern match where the entire pattern (background and all is taken into account). 
+ * Calculate a pattern match where the entire pattern
  * 
  * Ways to calculate R factor:
  * <ul>
- * <li><b>DR_ABS</b>: Is exactly the R<sub>p</sub>, profile reliability factor. Note, this subtracts background signals
- * <li><b>DR_SQUARED</b>: Is exactly the weighted profile residual
+ * <li><b>DR_ABS</b>: Is the R<sub>p</sub>, profile reliability factor
+ * <li><b>DR_SQUARED</b>: Is the weighted profile residual
  * </ul>
+ * 
+ * See doi:10.1107/S0021889893012348 for a good discussion of Reitveld R factors
  * 
  * @param referencePattern [in] Pattern against which data is compared
  * @param rMethod [in] Method used to calculate R factor
  * @return R factor
  */
 double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
-	// Get reference pattern
+	// Get reference pattern less the background signal
 	vector<double> twoTheta = referencePattern.getMeasurementAngles();
-	vector<double> refIntensities = referencePattern.getMeasuredIntensities();
-	// Get this pattern
-	vector<double> thisIntensities = getDiffractedIntensity(twoTheta);
+	vector<double> rawRefIntensities = referencePattern.getMeasuredIntensities();
+	vector<double> refIntensities; refIntensities.reserve(twoTheta.size());
+	vector<double> background = generateBackgroundSignal(twoTheta);
+	for (int i=0; i<twoTheta.size(); i++) {
+		refIntensities.push_back(rawRefIntensities[i] - _optimalScale * background[i]);
+	}
+	// Get computed pattern
+	vector<double> thisIntensities = generatePeakSignal(twoTheta);
 	
-	if (rMethod == DR_ABS) {
-		vector<double> background = generateBackgroundSignal(twoTheta);
+	if (rMethod == DR_ABS) {	
 		double num = 0;
 		double denom = 0;
 		for (int i=0; i<thisIntensities.size(); i++) {
-			double refI = refIntensities[i] - _optimalScale * background[i];
+			double refI = refIntensities[i];
 			if (refI <= 0) continue; // Don't consider regions outside of background
-			double thisI = thisIntensities[i] - background[i];
-			num += abs(refI - _optimalScale * thisI);
+			num += abs(refI - _optimalScale * thisIntensities[i]);
 			denom += refI;
 		}
 		return denom > 0 ? num / denom : 1;
-	} else if (rMethod == DR_SQUARED) {
+	} else if (rMethod == DR_SQUARED || rMethod == DR_REITVELD) {
 		vector<double> weight; weight.reserve(twoTheta.size());
 		for (int i=0; i<refIntensities.size(); i++) {
-			weight.push_back(refIntensities[i] > 0 ? 1.0 / refIntensities[i] : 0.0);
+			weight.push_back(rawRefIntensities[i] > 0 ? 1.0 / rawRefIntensities[i] : 0.0);
 		}
 		double denom = 0.0, num = 0.0, diff = 0.0;
 		for (int i=0; i<weight.size(); i++) {
@@ -1472,7 +1537,7 @@ double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern
 			num += weight[i] * diff * diff;
 			denom += weight[i] * refIntensities[i] * refIntensities[i];
 		}
-		return sqrt(num / denom);
+		return rMethod == DR_SQUARED ? sqrt(num/denom) : num;
 	} else {
 		Output::newline(ERROR);
 		Output::print("Internal Error: Mint can't calculate a Reitveld R factor with that method");

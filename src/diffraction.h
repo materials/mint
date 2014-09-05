@@ -226,9 +226,10 @@ public:
 	// Methods for calculating R factors
     enum Rmethod {DR_ABS, /** Method often used to report matches in lit : <br>
                            * R = sum(|I_ref - scale * I_calc|) / sum(I_ref) */
-    DR_SQUARED /** Method used in refinement with integrated intensities 
+    DR_SQUARED, /** Method used in refinement with integrated intensities 
                 * (because it is differentiable):<br>
                 * R = sum[ (I_ref - I_calc) ^ 2 ] / sum[ I_ref^2 ] */
+	DR_REITVELD // Only good for Reitveld refinement
     };
         
 protected:
@@ -489,6 +490,8 @@ private:
 	int _backgroundPolyStart;
 	// Parameters to background signal 
 	vector<double> _backgroundParameters;
+	// Peak position parameters (see Pecharsky pg. 165)
+	double _shiftParameters[6];
 	// Peak broadening parameters (see: http://pd.chem.ucl.ac.uk/pdnn/refine1/rietveld.htm)
 	double _U, _V, _W;
 	// Mixing parameters for the psuedo-Voight function (see Perchasky pg. 171)
@@ -500,6 +503,7 @@ private:
 	Vector3D _preferredOrientation;
 	
 	vector<double> generateBackgroundSignal(vector<double>& twoTheta) const;
+	vector<double> generatePeakSignal(vector<double>& twoTheta) const;
 	
 	// ==============================================================
 	// Parameters used when refining structural model against pattern
@@ -508,6 +512,8 @@ private:
 	// Parameters that can be refined
 	enum RefinementParameters { RF_SCALE, // Scale factor (only for full pattern)
 		RF_BACKGROUND, // Background signal (only for full pattern)
+		RF_SPECDISP, // Displacement of sample from goniometer axis (_shiftParameter[4])
+		RF_ZEROSHIFT, // Zero shift of Bragg peaks (_shiftParameter[5])
 		RF_WFACTOR, // Angle-independent peak broadening term
 		RF_UVFACTORS, // Angle-dependent peak broadening terms
 		RF_BFACTORS, // Isotropic thermal factors
@@ -589,6 +595,7 @@ public:
 		Diffraction::clear();
 		_symmetry = 0;
 		_structure = 0;
+		std::fill_n(_shiftParameters, 6, 0);
 		_backgroundParameters.clear();
 		_measurementAngles.clear();
 		_preferredOrientation.set(1,0,0);
@@ -601,6 +608,7 @@ public:
 		_maxBFactor = 4.0;
 		_U = 0.0; _V = 0.0; _W = 0.3;
 		_eta0 = 0.5; _eta1 = 0.0; _eta2 = 0.0;
+		std::fill_n(_shiftParameters, 6, 0);
 		_numBackground = 5;
 		_backgroundPolyStart = -1;
 		_backgroundParameters.clear();
@@ -669,7 +677,7 @@ public:
         _toRefine->calculatePeakIntensities();
         // Get the current R factor
 		if (_reitveld) {
-			return _toRefine->getReitveldRFactor(*_referencePattern, Diffraction::DR_SQUARED);
+			return _toRefine->getReitveldRFactor(*_referencePattern, Diffraction::DR_REITVELD);
 		} else {
 			return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
 		}
