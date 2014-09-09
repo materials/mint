@@ -426,7 +426,7 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
     //   approximate derivatives are used, which seem to work well. 
     // RFactorDerivativeFunctionalModel der(this);
     dlib::find_min_box_constrained(dlib::bfgs_search_strategy(),
-            dlib::objective_delta_stop_strategy(1e-10),
+            dlib::objective_delta_stop_strategy(1e-10, params.nr() * 30),
             f, dlib::derivative(f, 1e-6), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
