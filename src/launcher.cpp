@@ -3564,6 +3564,9 @@ void Launcher::optimize(Storage& data, const Function& function)
 	ga.diffractionTolerance(Settings::value<double>(GAOPT_DIFFRACTIONTOL));
 	ga.useReitveld(Settings::value<bool>(GAOPT_USEREITVELD) == 1);
 	
+	// Determine whether to write restart information, allow restarting
+	bool allow_restarts = Settings::value<bool>(GAOPT_ALLOWRESTART);
+	
 	// Loop over function arguments to check for a metric to optimize
 	int i;
 	GAPredictMetric curMetric;
@@ -3595,11 +3598,11 @@ void Launcher::optimize(Storage& data, const Function& function)
 		// Set directory for run
 		directory = Directory::makePath(origDir, Word("OPT_STR_"));
 		directory += Language::numberToWord(data.id()[i]);
-		Directory::create(directory, true);
+		Directory::create(directory, !allow_restarts);
 		Directory::change(directory);
 		
 		// Optimize structure
-		ga.run(data.iso()[i], data.random(), &data.potential(), &data.diffraction());
+		ga.run(data.iso()[i], data.random(), allow_restarts, &data.potential(), &data.diffraction());
 		
 		// Add change to comment
 		data.history()[i] += " > optimized";

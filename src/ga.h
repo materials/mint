@@ -102,7 +102,7 @@ public:
 	void setFitness();
 	
 	// Access functions
-	bool isConverged() const		{ return _isConverged; }
+	bool isConverged() const		{ return _gensSinceLastBest >= _convergeOver; }
 	OList<T>& population()			{ return _population; }
 	Fitness& fitness()				{ return _fitness; }
 	Selection& selection()			{ return _selection; }
@@ -116,6 +116,14 @@ public:
 	int numGenerations() const		{ return _numGenerations; }
 	int gensSinceLastBest() const	{ return _gensSinceLastBest; }
 	int maxGenerations() const		{ return _maxGenerations; }
+	
+	// Operations used when restarting operation
+	void setGensSinceLastBest(int input) { _gensSinceLastBest = input; }
+	void setGenNumber(int input) { _numGenerations = input; }
+	void setBestIndividual(T individual, double fitness) {
+		_bestIndividual = individual;
+		_bestFitness = fitness;
+	}
 	
 	// Static member functions
 	static GASelectionMethod selection(const Word& input);
@@ -466,11 +474,9 @@ void GeneticAlgorithm<T, FunClass>::advance(Random& random)
 
 
 
-/* void GeneticAlgorithm::setFitness()
- *
+/**
  * Sort fitness values and check for convergence
  */
-
 template <class T, class FunClass>
 void GeneticAlgorithm<T, FunClass>::setFitness()
 {

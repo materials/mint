@@ -68,7 +68,6 @@ class RandomStructure
 	static void recurseAllowedWyckoff(Linked<List<int>::D2>& res, const List<Atom*>::D2& atomsToAssign, \
 		const List<Wyckoff*>::D2 wyckoffGroups, const List<bool>& limited, const List<int>& numUsed, \
 		const List<int>::D2& curList, int curAtom, int curGroup);
-	static void setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry);
 	
 public:
 	
@@ -92,6 +91,9 @@ public:
 	static void generate(ISO& iso, Random& random, Symmetry* symmetry)
 		{ generate(iso, random, 1, symmetry); }
 	static void generate(ISO& iso, Random& random, double bias, Symmetry* symmetry);
+	
+	// Useful operations
+	static void setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry);
 };
 
 

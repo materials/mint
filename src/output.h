@@ -181,6 +181,7 @@ public:
 	static bool ordinaryOn() 		{ return _streams[_curStream].ordinaryOn(); }
 	static bool warningsOn() 		{ return _streams[_curStream].warningsOn(); }
 	static bool errorsOn() 			{ return _streams[_curStream].errorsOn(); }
+	/** Get ID of currently-active output stream */
 	static int streamID() 			{ return _ids[_curStream]; }
 	static int primaryStreamID() 	{ return _ids[_primary]; }
 	static PrintMethod method()		{ return _streams[_curStream].method(); }

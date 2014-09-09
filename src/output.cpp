@@ -375,11 +375,14 @@ void Output::addTab()
 
 
 
-/* int Output::addStream(ostream* input, int numBlankLinesAtStart, int numBlankLinesAtEnd)
- *
- * Add a new stream
+/** 
+ * Add a new stream to available output streams
+ * 
+ * @param input Pointer to an output stream
+ * @param numBlankLinesAtStart Number of blank lines to insert at head of file
+ * @param numBlankLinesAtEnd Number of blank lines to insert when closing file
+ * @return ID number of new stream
  */
-
 int Output::addStream(ostream* input, int numBlankLinesAtStart, int numBlankLinesAtEnd)
 {
 
@@ -393,12 +396,14 @@ int Output::addStream(ostream* input, int numBlankLinesAtStart, int numBlankLine
 }
 
 
-
-/* int Output::addStream(const Word& input, int numBlankLinesAtStart, int numBlankLinesAtEnd)
- *
- * Add a new stream from file
+/** 
+ * Add a new file to available output streams
+ * 
+ * @param input Path to file 
+ * @param numBlankLinesAtStart Number of blank lines to insert at head of file
+ * @param numBlankLinesAtEnd Number of blank lines to insert when closing file
+ * @return ID number of new stream
  */
-
 int Output::addStream(const Word& input, int numBlankLinesAtStart, int numBlankLinesAtEnd)
 {
 

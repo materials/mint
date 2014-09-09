@@ -900,6 +900,7 @@ List of settings and brief descriptions (detailed descriptions follow):
 	 gaoptusereitveld	Whether to use full-pattern matching during GA
     gaoptscreenmethod   Screening method used during GA optimization
        gaoptscreennum   Number of trial structures to screen during GA
+	gaoptallowrestart   Allow optimization to be restarted (default = No)
           wyckoffbias   Biasing level for choosing random Wyckoff positions
           minimagedis   Minimum image distance when generating supercells
       maxjumpdistance   Maximum jump distance when generating jumps between sites
@@ -1264,6 +1265,10 @@ Metric to optimize during GA-based structure prediction/solution. While
     will be the one that has the lowest energy or lowest R-factor (depending on
     which metric is passed to this setting). This can also be controlled from
     the command line using the -optimize function.
+
+It is possible to restart an optimization by first running a simulation with 
+	"gaoptallowrestart true" in the settings file, and then calling the same
+    mint command again.
 
 ######Values:
 - "energy" or "potential" to optimize the energy

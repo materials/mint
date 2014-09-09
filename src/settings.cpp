@@ -291,7 +291,7 @@ void Setting::error(const OList<Word>& input)
 
 // Static member values of Settings
 Word Settings::_globalFile;
-const int Settings::_numSettings = 36;
+const int Settings::_numSettings = 37;
 Setting* Settings::_settings = new Setting[Settings::_numSettings];
 
 
@@ -393,6 +393,9 @@ Settings::Helper::Helper()
 	
 	// GAOPT_SCREENNUM
 	Settings::_settings[(int)GAOPT_SCREENNUM].setup(0, "gaoptscreennum");
+	
+	// GAOPT_ALLOWRESTART
+	Settings::_settings[(int)GAOPT_ALLOWRESTART].setup(false, "gaoptallowrestarts");
 	
 	// WYCKOFFBIAS
 	Settings::_settings[(int)WYCKOFFBIAS].setup(0.5, "wyckoffbias");

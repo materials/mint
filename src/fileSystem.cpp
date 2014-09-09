@@ -33,11 +33,12 @@
 
 
 
-/* Text Read::text(const Word& file)
- *
+/**
  * Read text file into memory
+ * 
+ * @param file Path to file to be read
+ * @return Text object describing the contents
  */
-
 Text Read::text(const Word& file)
 {
 	

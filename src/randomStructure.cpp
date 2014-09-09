@@ -306,11 +306,14 @@ void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, double mi
 
 
 
-/* void RandomStructure::generate(ISO& iso, Random& random, double bias, Symmetry* symmetry)
- *
+/**
  * Generate random structure
+ *
+ * @param iso [in/out] Structure object to be randomized.
+ * @param random [in/out] Random number generator
+ * @param bias [in] Amount to bias selection of Wyckoff site selection
+ * @param symmetry [in] Pointer to object that stores symmetry info of iso, will be modified
  */
-
 void RandomStructure::generate(ISO& iso, Random& random, double bias, Symmetry* symmetry)
 {
 	
@@ -364,15 +367,17 @@ void RandomStructure::generateWithoutSymmetry(ISO& iso, double targetVolume, Ran
 
 
 
-/* void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random& random, double bias,
- *		Symmetry* symmetry)
- *
+/**
  * Generate a random structure within a set space group
+ * 
+ * @param iso [in/out] Structure object to be randomized.
+ * @param targetVolume [in] Desired volume of structure
+ * @param random [in/out] Random number generator
+ * @param bias [in] Amount to bias selection of Wyckoff site selection
+ * @param symmetry [in] Pointer to object that stores symmetry info of iso, will be modified
  */
-
-void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random& random, double bias, \
-	Symmetry* symmetry)
-{
+void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random& random, \
+		double bias, Symmetry* symmetry) {
 	
 	// Output
 	Output::newline();
@@ -1324,11 +1329,15 @@ void RandomStructure::recurseAllowedWyckoff(Linked<List<int>::D2>& res, const Li
 
 
 
-/* void RandomStructure::setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry)
- *
+/**
  * Set symmetry of sites that are already in structure
+ * 
+ * LW 9Sept14: This should probably be moved to symmetry (kind of like setToP1).
+ * 
+ * @param iso [in] Input structure
+ * @param spaceGroup [in] Desired spacegroup
+ * @param symmetry [out] Atoms from iso will be assigned to orbits consistant with spaceGroup
  */
-
 void RandomStructure::setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry)
 {
 	

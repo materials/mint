@@ -88,13 +88,17 @@ ISOSymmetryPair& ISOSymmetryPair::operator= (const ISOSymmetryPair& rhs)
 
 
 
-/* void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction* diffraction)
- *
- * Run structure prediction using genetic algorithm
+/**
+ * Run structure prediction/solution using genetic algorithm
+ * 
+ * @param iso [in/out] Structure to be optimized
+ * @param random [in/out] Random number generator
+ * @param restartable [in] Whether to write restart information / allow restarting
+ * @param potential [in] Potential used to compute energy (Optional)
+ * @param diffraction [in] Diffraction pattern to compare predicted structures against
  */
-
-void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction* diffraction)
-{
+void GAPredict::run(ISO& iso, Random& random, bool restartable, Potential* potential,
+		Diffraction* diffraction) {
 	
 	// Figure out which metrics to run
 	_metrics.length(0);
@@ -215,6 +219,7 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	}
 	
 	// Check if Gaussian comparisons should be used for diffraction
+	//  LW 8Sept14: I don't think this feature was ever implemented.
 	bool uesGaussianMatch = true;
 	for (i = 0; i < 3; ++i)
 	{
@@ -243,46 +248,49 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	curDiffraction.setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 	
 	// Loop over number of simulations to run
-	int j, k, m;
+	int k, m;
 	double bestMetric;
 	Word curDir;
 	ISO bestStructure = iso;
-	for (i = 0; i < _numSimulations; ++i)
-	{
-		
+	for (i = 0; i < _numSimulations; ++i) {
 		// Reset ga
 		_ga.initNewRun();
 		
 		// Create directory for current run
 		curDir = Directory::makePath(origDir, Word("OPT_"));
 		curDir += Language::numberToWord(i+1);
-		Directory::create(curDir, true);
+		Directory::create(curDir, !restartable);
 		Directory::change(curDir);
 		
-		// Open startup stream
-		startID = Output::addStream("start.out");
-		Output::setStream(startID);
-		Output::method(RESTRICTED);
-		
-		// Output
-		Output::newline();
-		Output::print("Initializing structure");
-		if (_ga.population().length() != 1)
-			Output::print("s");
-		Output::increase();
-		
-		// Generate structures
-		for (j = 0; j < _ga.population().length(); ++j)
-		{
-			_ga.population()[j].iso() = iso;
-			RandomStructure::generate(_ga.population()[j].iso(), random, _wyckoffBias, \
-				&_ga.population()[j].symmetry());
+		// Check if there is a "restart" directory
+		if (Directory::exists("restart") && restartable) {
+			readRestartInformation(iso);
+		} else {
+			// Open startup stream
+			startID = Output::addStream("start.out");
+			Output::setStream(startID);
+			Output::method(RESTRICTED);
+			
+			// Generate
+			Output::newline();
+			Output::print("Initializing structure");
+			if (_ga.population().length() != 1)
+				Output::print("s");
+			Output::increase();
+
+			// Generate structures
+			for (int j = 0; j < _ga.population().length(); ++j)
+			{
+				_ga.population()[j].iso() = iso;
+				RandomStructure::generate(_ga.population()[j].iso(), random, _wyckoffBias, \
+					&_ga.population()[j].symmetry());
+			}
+
+			// Output
+			Output::decrease();
 		}
 		
-		// Output
-		Output::decrease();
-		
-		// Open log steeam
+		// Open log stream
 		logID = Output::addStream("log.out");
 		Output::setStream(logID);
 		Output::removeStream(startID);
@@ -297,16 +305,21 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 		Output::increase();
 		
 		// Loop until max generations is reached
-		for (j = 1; j <= _ga.maxGenerations(); ++j)
+		while (_ga.numGenerations() <= _ga.maxGenerations() && 
+				! _ga.isConverged())
 		{
 			
 			// Advance the GA
 			_ga.advance(random);
 			
+			// Write out structures in this generation (and other restart information)
+			if (restartable)
+				writeRestartInformation();
+			
 			// Output
 			Output::newline();
 			Output::print("Calculating properties of structures in generation ");
-			Output::print(j);
+			Output::print(_ga.numGenerations());
 			Output::increase();
 			
 			// Calculate the fitness of each structure
@@ -380,15 +393,15 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	
 			// Print the fitness
 			Output::setStream(fitnessID);
-			printFitness(j);
+			printFitness(_ga.numGenerations());
 			Output::setStream(logID);
 			
 			// Output
 			Output::newline();
 			Output::print("Best structure after ");
-			Output::print(j);
+			Output::print(_ga.numGenerations());
 			Output::print(" generation");
-			if (j != 1)
+			if (_ga.numGenerations() != 1)
 				Output::print("s");
 			Output::print(": ");
 			if (_ga.fitness().names()[metToOptNumber].length())
@@ -413,7 +426,7 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 		Output::decrease();
 		
 		// Print convergence
-		if (j >= _ga.maxGenerations())
+		if (_ga.numGenerations() >= _ga.maxGenerations())
 		{
 			Output::newline();
 			Output::print("Reached the maximum number of generations (");
@@ -424,9 +437,9 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 		{
 			Output::newline();
 			Output::print("Reached convergence criterion after ");
-			Output::print(j);
+			Output::print(_ga.numGenerations());
 			Output::print(" generation");
-			if (j != 1)
+			if (_ga.numGenerations() != 1)
 				Output::print("s");
 		}
 		
@@ -465,12 +478,12 @@ void GAPredict::run(ISO& iso, Random& random, Potential* potential, Diffraction*
 	else
 		Output::print("Fitness");
 	Output::print(" of optimal structure: ");
-	Output::print(bestMetric);
+	Output::print(_ga.bestFitness());
 	Output::print(" ");
 	Output::print(_ga.fitness().units()[metToOptNumber]);
 	
 	// Save the result
-	iso = bestStructure;
+	iso = _ga.bestIndividual().iso();
 }
 
 
@@ -1107,3 +1120,133 @@ void GAPredict::printFitness(int generation)
 	Output::newline();
 	Output::print(message, RIGHT);
 }
+
+/**
+ * Write out information necessary to restart an optimization: 
+ * 
+ * 1. Generation number (to status.out)
+ * 2. Number of generations since last best solution (to status.out)
+ * 3. Current best solution (to best.mint)
+ *	a. Fitness of best solution (to status.out)
+ * 4. All structures in the current generation
+ * 
+ * All of this gets written to a new directory "restart" inside of current directory
+ */
+void GAPredict::writeRestartInformation() {
+	// Create the new directory
+	Directory::create("restart", true);
+	
+	// Write out the current generation number / number since last best
+	int newStream = Output::addStream("restart/status.out");
+	int oldStream = Output::streamID();
+	Output::setStream(newStream);
+	
+	Output::newline(ORDINARY);
+	Output::print("curgen "); Output::print(_ga.numGenerations());
+	
+	Output::newline(ORDINARY);
+	Output::print("sincelastbest "); Output::print(_ga.gensSinceLastBest());
+	
+	Output::newline();
+	Output::print("bestfitness "); Output::printSci(_ga.bestFitness());
+	
+	// Write out the best solution
+	StructureIO::write("restart/best.mint", _ga.bestIndividual().iso(), SF_MINT);
+	
+	// Write out the current generation
+	for (int i=0; i<_ga.population().length(); i++) {
+		Word path = "restart/population.";
+		path += Language::numberToWord(i);
+		path += ".mint";
+		StructureIO::write(path, _ga.population()[i].iso(), SF_MINT);
+	}
+	
+	// Restore output stream
+	Output::setStream(oldStream);
+	Output::removeStream(newStream);
+}
+
+/**
+ * Read in information from restart directory, configure GAPredict object accordingly.
+ * 
+ * Assumes that user is in "OPT_*" directory and that _ga.initNewRun() has been called.
+ * 
+ * @param inputStrc [in] Defines input structure
+ */
+void GAPredict::readRestartInformation(ISO& inputStrc) {
+	// Write out the current generation number / number since last best
+	int newStream = Output::addStream("restart.out");
+	int oldStream = Output::streamID();
+	Output::setStream(newStream);
+	Output::method(RESTRICTED);
+	
+	// Read in generation number etc.
+	Output::newline();
+	Output::print("Reading in status information");
+	Output::increase();
+	
+	Text status = Read::text("restart/status.out");
+	
+	Output::newline();
+	Output::print("Number of generations completed: ");
+	_ga.setGenNumber(atoi(status[0][1].array()));
+	Output::print(_ga.numGenerations());
+	
+	Output::newline();
+	Output::print("Number of generations since last best individual: ");
+	_ga.setGensSinceLastBest(atoi(status[1][1].array()));
+	Output::print(_ga.gensSinceLastBest());
+	double bestFitness = atof(status[2][1].array());
+	Output::decrease();
+	
+	// Read in best answer thus far
+	Output::newline();
+	Output::print("Reading in best individual");
+	Output::increase();
+	ISOSymmetryPair best = _ga.bestIndividual();
+	best.iso() = StructureIO::read("restart/best.mint", SF_MINT);
+	_ga.setBestIndividual(best, bestFitness);
+	Output::decrease();
+	
+	// Read in the population
+	Output::newline();
+	Output::print("Reading in population");
+	Output::increase();
+	for (int i=0; i<_ga.population().length(); i++) {
+		Output::newline();
+		Output::print("Reading in individual #");
+		Output::print(i);
+		Output::increase();
+		
+		// Get path to structure file
+		Word path = "restart/population.";
+		path += Language::numberToWord(i);
+		path += ".mint";
+		
+		ISO iso = StructureIO::read(path, SF_MINT);
+		_ga.population()[i].iso() = iso;
+		
+		// Recompute symmetry information
+		if (inputStrc.spaceGroup().length() > 0) {
+			// Get the space group
+			SpaceGroup spaceGroup(inputStrc.spaceGroup(), true, true);
+			iso.basis().latticeSystem(spaceGroup.system());
+			_ga.population()[i].symmetry().clear();
+			// Set symmetry operations for GA
+			_ga.population()[i].symmetry().operations(spaceGroup.symmetry());
+			// Assign atoms to orbits
+			RandomStructure::setSiteSymmetry(_ga.population()[i].iso(), spaceGroup, 
+					&_ga.population()[i].symmetry());
+		} else {
+			// Ensure the iso we just read in is treated as P1
+			_ga.population()[i].symmetry().setToP1(_ga.population()[i].iso());
+		}
+		Output::decrease();
+	}
+	Output::decrease();
+	
+	// Restore output stream
+	Output::setStream(oldStream);
+	Output::removeStream(newStream);
+}
+

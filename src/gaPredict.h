@@ -138,7 +138,11 @@ public:
 	void selectionMethod(GASelectionMethod input)	{ _ga.selection().set(input); }
 	
 	// Run functions
-	void run(ISO& iso, Random& random, Potential* potential = 0, Diffraction* diffraction = 0);
+	void run(ISO& iso, Random& random, bool restartable = false, Potential* potential = 0, Diffraction* diffraction = 0);
+	
+	// Used for restarting old runs
+	void writeRestartInformation();
+	void readRestartInformation(ISO& inputStrc);
 	
 	// Static member functions
 	static GAPredictMetric metric(const Word& input);
