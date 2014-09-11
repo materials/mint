@@ -562,13 +562,13 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 	if (willRefine(RF_SCALE, _currentlyRefining)) {
 		params.push(1e100);
 	}
+	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
+		params.push(0.1);
+	}
 	if (willRefine(RF_BACKGROUND, _currentlyRefining)) {
 		for (int i=0; i<_backgroundParameters.size(); i++) {
 			params.push(1e100);
 		}
-	}
-	if (willRefine(RF_SPECDISP, _currentlyRefining)) {
-		params.push(0.1);
 	}
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(1e100); params.push(1e100);
@@ -973,6 +973,7 @@ vector<double> CalculatedPattern::generatePeakSignal(vector<double>& twoTheta) c
 	double rCg = sqrt(Cg);
 	double rPI = sqrt(M_PI);
 	// Add in signal from each peak
+	int startAngle = 0;
 	for (int p=0; p<_reflections.size(); p++) {
 		double center = _reflections[p].getAngle();
 		double centerRad = _reflections[p].getAngleRadians();
@@ -980,22 +981,32 @@ vector<double> CalculatedPattern::generatePeakSignal(vector<double>& twoTheta) c
 		double H = _W + tan(centerRad / 2) 
 				* (_V + _U * tan(centerRad / 2));
 		H = sqrt(H);
+		
 		// Compute mixing parameters
 		double eta = _eta0 + center * (_eta1 + center * _eta2);
+		
 		// Compute peak shift (from calculated to observed position)
 		double shift = _shiftParameters[0] / tan(centerRad) + _shiftParameters[1] / sin(centerRad)
 				+ _shiftParameters[2] / tan(centerRad / 2) + _shiftParameters[3] * sin(centerRad)
 				+ _shiftParameters[4] * cos(centerRad) + _shiftParameters[5];
 		center += shift;
+		
 		// Determine the range on which we will bother computing the integral;
 		double minAngle = center - 6.0 * H;
 		double maxAngle = center + 6.0 * H;
-		int a = 0;
+		if (minAngle >= maxTwoTheta()) continue;
+		
+		// Compute broadened pattern
+		int a = startAngle;
 		double intensity = _reflections[p].getIntensity();
 		while (twoTheta[++a] < minAngle) continue;
+		startAngle = a;
+		double x, gaussian, lorentzian;
+		double gPrefactor = rCg / rPI / H, lPrefactor = 2.0 / M_PI / H;
 		while (twoTheta[a] < maxAngle && a < twoTheta.size()) {
-			double gaussian = rCg / rPI / H * exp(-Cg * pow((twoTheta[a] - center) / H, 2.0));
-			double lorentzian = 2.0 / M_PI / H / (1 + 4.0 * pow((twoTheta[a] - center) / H, 2.0));
+			x = pow((twoTheta[a] - center) / H, 2.0);
+			gaussian = gPrefactor * exp(-Cg * x);
+			lorentzian = lPrefactor / (1 + 4.0 * x);
 			output[a] += intensity * (eta * gaussian + (1 - eta) * lorentzian);
 			a++;
 		}
@@ -1015,12 +1026,15 @@ vector<double> CalculatedPattern::generatePeakSignal(vector<double>& twoTheta) c
  * @return Background intensity at each point
  */
 vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTheta) const {
+	// Initialize blank output
 	vector<double> output;
 	output.insert(output.begin(), twoTheta.size(), 0.0);
 	if (_backgroundParameters.empty()) return output; // No background
+	
 	// Create array used when computing Chebyshev polynomial values
 	double chebyshev[_numBackground];
 	chebyshev[0] = 1;
+	
 	// Add in polynomial terms
 	for (int a=0; a<twoTheta.size(); a++) {		
 		if (_useChebyshev) {
@@ -1101,6 +1115,7 @@ vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoT
 
 /** 
  * Get combined / scaled peaks for prettier output.
+ * @return List of peaks corresponding to summed groups of reflections
  */
 vector<DiffractionPeak> CalculatedPattern::getCombinedPeaks() const {
     vector<double> tempTwoTheta; tempTwoTheta.reserve(_reflections.size());
@@ -1496,6 +1511,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * <ul>
  * <li><b>DR_ABS</b>: Is the R<sub>p</sub>, profile reliability factor
  * <li><b>DR_SQUARED</b>: Is the weighted profile residual
+ * <li><b>DR_REITVELD</b>: Unnormalzied version of DR_SQUARED
  * </ul>
  * 
  * See doi:10.1107/S0021889893012348 for a good discussion of Reitveld R factors
