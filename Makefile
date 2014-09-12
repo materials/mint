@@ -114,6 +114,9 @@ $(OBJD)/crystalMaker.o : crystalMaker.cpp crystalMaker.h bonds.h language.h num.
 $(OBJD)/diffraction.o : diffraction.cpp multi.h diffraction.h language.h output.h text.h num.h iso.h elements.h symmetry.h fileSystem.h list.h constants.h 
 	@mkdir -p $(@D)
 	$(CC) $(FALL) $(SRCD)/diffraction.cpp -o $@
+$(OBJD)/electrostatic.o : electrostatic.cpp electrostatic.h ewald.h locPotential.h text.h
+	@mkdir -p $(@D)
+	$(CC) $(FALL) $(SRCD)/electrostatic.cpp -o $@
 $(OBJD)/elements.o : elements.cpp elements.h output.h text.h num.h list.h constants.h 
 	@mkdir -p $(@D)
 	$(CC) $(FALL) $(SRCD)/elements.cpp -o $@
@@ -230,7 +233,7 @@ $(OBJD)/vasp.o : vasp.cpp multi.h num.h vasp.h kpoints.h structureIO.h language.
 	$(CC) $(FALL) $(SRCD)/vasp.cpp -o $@
 
 # Linker
-$(EXE) : $(OBJD)/mint.o $(OBJD)/multi.o $(OBJD)/output.o $(OBJD)/launcher.o $(OBJD)/text.o $(OBJD)/iso.o $(OBJD)/structureIO.o $(OBJD)/symmetry.o $(OBJD)/potential.o $(OBJD)/phonons.o $(OBJD)/kmc.o $(OBJD)/diffraction.o $(OBJD)/random.o $(OBJD)/elements.o $(OBJD)/constants.o $(OBJD)/fileSystem.o $(OBJD)/mtwist.o $(OBJD)/randistrs.o $(OBJD)/language.o $(OBJD)/settings.o $(OBJD)/about.o $(OBJD)/help.o $(OBJD)/randomStructure.o $(OBJD)/unique.o $(OBJD)/pointGroup.o $(OBJD)/spaceGroup.o $(OBJD)/interstitial.o $(OBJD)/gaPredict.o $(OBJD)/pdf.o $(OBJD)/timer.o $(OBJD)/mintStructure.o $(OBJD)/crystalMaker.o $(OBJD)/vasp.o $(OBJD)/findsym.o $(OBJD)/espresso.o $(OBJD)/json.o $(OBJD)/cif.o $(OBJD)/kpoints.o $(OBJD)/locPotential.o $(OBJD)/extPotential.o $(OBJD)/bonds.o $(OBJD)/pairPotential.o $(OBJD)/ewald.o $(OBJD)/relax.o
+$(EXE) : $(OBJD)/mint.o $(OBJD)/multi.o $(OBJD)/output.o $(OBJD)/launcher.o $(OBJD)/text.o $(OBJD)/iso.o $(OBJD)/structureIO.o $(OBJD)/symmetry.o $(OBJD)/potential.o $(OBJD)/phonons.o $(OBJD)/kmc.o $(OBJD)/diffraction.o $(OBJD)/random.o $(OBJD)/elements.o $(OBJD)/constants.o $(OBJD)/fileSystem.o $(OBJD)/mtwist.o $(OBJD)/randistrs.o $(OBJD)/language.o $(OBJD)/settings.o $(OBJD)/about.o $(OBJD)/help.o $(OBJD)/randomStructure.o $(OBJD)/unique.o $(OBJD)/pointGroup.o $(OBJD)/spaceGroup.o $(OBJD)/interstitial.o $(OBJD)/gaPredict.o $(OBJD)/pdf.o $(OBJD)/timer.o $(OBJD)/mintStructure.o $(OBJD)/crystalMaker.o $(OBJD)/vasp.o $(OBJD)/findsym.o $(OBJD)/espresso.o $(OBJD)/json.o $(OBJD)/cif.o $(OBJD)/kpoints.o $(OBJD)/locPotential.o $(OBJD)/extPotential.o $(OBJD)/bonds.o $(OBJD)/pairPotential.o $(OBJD)/ewald.o $(OBJD)/relax.o $(OBJD)/electrostatic.o
 	$(CC) $(LINK) $(BLAS) $(LAPACK) $(OPT) $(OBJD)/mint.o $(OBJD)/multi.o $(OBJD)/output.o $(OBJD)/launcher.o $(OBJD)/text.o $(OBJD)/iso.o $(OBJD)/structureIO.o $(OBJD)/symmetry.o $(OBJD)/potential.o $(OBJD)/phonons.o $(OBJD)/kmc.o $(OBJD)/diffraction.o $(OBJD)/random.o $(OBJD)/elements.o $(OBJD)/constants.o $(OBJD)/fileSystem.o $(OBJD)/mtwist.o $(OBJD)/randistrs.o $(OBJD)/language.o $(OBJD)/settings.o $(OBJD)/about.o $(OBJD)/help.o $(OBJD)/randomStructure.o $(OBJD)/unique.o $(OBJD)/pointGroup.o $(OBJD)/spaceGroup.o $(OBJD)/interstitial.o $(OBJD)/gaPredict.o $(OBJD)/pdf.o $(OBJD)/timer.o $(OBJD)/mintStructure.o $(OBJD)/crystalMaker.o $(OBJD)/vasp.o $(OBJD)/findsym.o $(OBJD)/espresso.o $(OBJD)/json.o $(OBJD)/cif.o $(OBJD)/kpoints.o $(OBJD)/locPotential.o $(OBJD)/extPotential.o $(OBJD)/bonds.o $(OBJD)/pairPotential.o $(OBJD)/ewald.o $(OBJD)/relax.o -o $@
 
 # Clean
