@@ -438,6 +438,10 @@ PotentialType Potential::potentialType(const Word& word)
 	if (word.equal("ewald", false, 5))
 		return PT_EWALD;
 	
+	// Found electrostatic
+	if (word.equal("electrostatic"), 7)
+		return PT_ELECTROSTATIC;
+	
 	// Found lennard jones
 	if (word.equal("lennard", false, 4))
 		return PT_LENNARDJONES;

@@ -25,6 +25,7 @@
 #include "ewald.h"
 #include "relax.h"
 #include "output.h"
+#include "electrostatic.h"
 
 
 
@@ -60,6 +61,10 @@ void LocalPotential::add(const Text& input, PotentialType type)
 	// Ewald potential
 	if (type == PT_EWALD)
 		_potentials += new Ewald;
+	
+	// Electrostatic (PEGS) potential
+	if (type == PT_ELECTROSTATIC)
+		_potentials += new Electrostatic;
 		
 	// Lennard-Jones potential
 	else if (type == PT_LENNARDJONES)

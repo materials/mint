@@ -27,17 +27,20 @@
 #include "output.h"
 #include <cstdlib>
 
-
-
-/* void Ewald::set(const Text& input)
+/**
  *
- * Set Ewald parameters
+ * Set Ewald parameters. Expected format of line #1
+ *	ewald <element #1 symbol> <element #1 charge> <element #2 symbol> <element #2 charge> <...>
+ * 
+ * Subsequent options:
+ *	accuracy [number] - Accuracy of summation
+ *  permittivity [value] - Value of permittivity constant in eV*Angstrom
+ *  relative [value] - Permittivity relative to epsilon_0
  */
-
 void Ewald::set(const Text& input)
 {
 	
-	// Finished if emtpy
+	// Finished if empty
 	if (!input.length())
 		return;
 	
@@ -76,57 +79,8 @@ void Ewald::set(const Text& input)
 		Output::quit();
 	}
 	
-	// Look for other values
-	for (i = 1; i < input.length(); ++i)
-	{
-		
-		// Line is empty
-		if (!input[i].length())
-			continue;
-		
-		// Found a comment
-		if (Language::isComment(input[i][0]))
-			continue;
-		
-		// Line is too short
-		if (input[i].length() < 2)
-			readError(input[i]);
-		
-		// Found accuracy
-		if (input[i][0].equal("accuracy", false, 3))
-		{
-			if (Language::isNumber(input[i][1]))
-				_accuracy = atof(input[i][1].array());
-			else
-				readError(input[i]);
-		}
-		
-		// Found permitivity
-		else if (input[i][0].equal("permitivity", false, 4))
-		{
-			{
-				if (Language::isNumber(input[i][1]))
-					_perm = atof(input[i][1].array());
-				else
-					readError(input[i]);
-			}
-		}
-		
-		// Found relative permitivity
-		else if (input[i][0].equal("relative", false, 3))
-		{
-			{
-				if (Language::isNumber(input[i][1]))
-					_perm = Constants::eps0 * atof(input[i][1].array());
-				else
-					readError(input[i]);
-			}
-		}
-		
-		// Anything else
-		else
-			readError(input[i]);
-	}
+	// Set general options
+	setEwaldOptions(input, false);
 	
 	// Print elements and charges
 	for (i = 0; i < _elements.length(); ++i)
@@ -152,6 +106,60 @@ void Ewald::set(const Text& input)
 	
 	// Output
 	Output::decrease();
+}
+
+/**
+ * Set options for the Ewald summation, given text input.
+ * 
+ * See documentation of set for those options
+ * @param input Options for ewald potential, as read from file
+ * @param forgiving Whether to crash on unrecognized option
+ */
+void Ewald::setEwaldOptions(const Text& input, bool forgiving) {
+	// Look for other values
+	for (int i = 1; i < input.length(); ++i) {
+
+		// Line is empty
+		if (!input[i].length())
+			continue;
+
+		// Found a comment
+		if (Language::isComment(input[i][0]))
+			continue;
+
+		// Line is too short
+		if (input[i].length() < 2)
+			readError(input[i]);
+
+		// Found accuracy
+		if (input[i][0].equal("accuracy", false, 3)) {
+			if (Language::isNumber(input[i][1]))
+				_accuracy = atof(input[i][1].array());
+			else
+				readError(input[i]);
+		}
+			// Found permittivity
+		else if (input[i][0].equal("permittivity", false, 4)) {
+			{
+				if (Language::isNumber(input[i][1]))
+					_perm = atof(input[i][1].array());
+				else
+					readError(input[i]);
+			}
+		}
+			// Found relative permittivity
+		else if (input[i][0].equal("relative", false, 3)) {
+			{
+				if (Language::isNumber(input[i][1]))
+					_perm = Constants::eps0 * atof(input[i][1].array());
+				else
+					readError(input[i]);
+			}
+		}
+			// Anything else
+		else if (! forgiving)
+			readError(input[i]);
+	}
 }
 
 

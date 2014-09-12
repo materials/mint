@@ -39,6 +39,10 @@
 class Ewald : public SingleLocalPotential
 {
 	
+protected:
+	// Set Ewald options
+	void setEwaldOptions(const Text& input, bool forgiving);
+	
 	// Elements and charges
 	List<double> _charges;
 	OList<Element> _elements;

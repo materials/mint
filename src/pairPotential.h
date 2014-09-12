@@ -57,8 +57,11 @@ protected:
 	void print();
 	
 	// Virtual functions
+	/** Compute energy as a function of distance */
 	virtual double pairEnergy(double distance) const = 0;
+	/** Compute force as a function of distance */
 	virtual double pairForce(double distance) const = 0;
+	/** Compute "tail" energy based on density of element within a solid */
 	virtual double tail(const ISO& iso, const Element& elem2) const = 0;
 	
 public:
@@ -69,6 +72,9 @@ public:
 	// Setup by file input
 	virtual void set(const Text& input);
 	
+	virtual void setElementOne(const Element& input) { _element1 = input; }
+	virtual void setElementTwo(const Element& input) { _element2 = input; }
+	
 	// Evaluation functions
 	void evaluate(const ISO& iso, double* totalEnergy = 0, OList<Vector3D >* totalForces = 0) const;
 	void evaluate(const ISO& iso, const Symmetry& symmetry, double* energy = 0, OList<Vector3D>* forces = 0) const;
@@ -76,7 +82,13 @@ public:
 
 
 
-// Class to store lennard jones potential
+/**
+ * Lennard jones potential
+ * 
+ * E(r) = 4 * eps * ((sig / R)^12 - (sig / R)^6)
+ * 
+ * Input format: eps sigma
+ */
 class LennardJones : public PairPotential
 {
 	
@@ -106,7 +118,13 @@ public:
 
 
 
-// Buckingham potential
+/**
+ * Buckingham potential
+ * 
+ * E(r) = A * exp(-R/rho) - C * R ^-6
+ * 
+ * Input format: A rho C
+ */
 class Buckingham : public PairPotential
 {
 	
@@ -138,7 +156,14 @@ public:
 
 
 
-// Power potential
+/**
+ * Power potential. E(r) = eps * (sigma / distance) ^ power
+ * 
+ * Format in input file: 
+ *	&lt;element #1&gt; &lt;element #2&gt; &lt;power&gt; &lt;epsilon&gt; &lt;sigma&gt;
+ *  {options consistant with pair potential}
+ * 
+ */
 class Power : public PairPotential
 {
 	
@@ -169,7 +194,13 @@ public:
 
 
 
-// Exponential potential
+/**
+ *  Exponential potential
+ * 
+ * E(R) = A * exp(-R/rho)
+ * 
+ * Input format: A rho
+ */
 class Exponential : public PairPotential
 {
 	
@@ -199,7 +230,13 @@ public:
 
 
 
-// Covalent potential
+/**
+ * Covalent potential
+ * 
+ * E(r) = -A * exp(-B * (r - R*)^2/2R)
+ * 
+ * Input Format: A B
+ */
 class Covalent : public PairPotential
 {
 	
@@ -230,16 +267,54 @@ public:
 };
 
 
+/**
+ * Potential used to describe hard-sphere interaction
+ * 
+ * E(R) = R &lt; R_HS ? a * (exp((R - R_HS) ^ 2) - 1) : 0
+ * 
+ * Input format: a R_HS
+ * 
+ */
+class HardSphere : public PairPotential {
+	
+	double _force;
+	double _radius;
+	
+public:
+	
+	virtual void set(const Text& input);
+	
+	void setForce(double input) { _force = input; }
+	
+	void setRadius(double input) { _radius = input; _cutoff = input; }
+	
+	double pairEnergy(double distance) const {
+		return distance < _radius ? _force * (exp((distance - _radius) 
+				* (distance - _radius)) - 1) : 0.0;
+	}
+	
+	double pairForce(double distance) const {
+		return distance < _radius ? 2 * _force * (distance - _radius) * 
+				exp((distance - _radius) * (distance - _radius)) : 0.0;
+	}
+
+	double tail(const ISO& iso, const Element& elem2) const {
+		return 0.0;
+	}
+
+};
+
+
 
 // =====================================================================================================================
 // Pair potential
 // =====================================================================================================================
 
-/* inline double PairPotential::density(const ISO& iso, const Element& elem2) const
+/**
+ * inline double PairPotential::density(const ISO& iso, const Element& elem2) const
  *
  * Return the density of atoms of second element
  */
-
 inline double PairPotential::density(const ISO& iso, const Element& elem2) const
 {
 	for (int i = 0; i < iso.atoms().length(); ++i)
