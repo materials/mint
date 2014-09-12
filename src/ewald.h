@@ -35,9 +35,12 @@
 
 
 
-// Ewald object
-class Ewald : public SingleLocalPotential
-{
+/**
+ * Potential that calculates the Ewald energy of a structure.
+ * 
+ * For a review of Ewald summation, see: http://protomol.sourceforge.net/ewald.pdf
+ */
+class Ewald : public SingleLocalPotential {
 	
 protected:
 	// Set Ewald options
@@ -52,15 +55,20 @@ protected:
 	double _accuracy;
 	
 	// Helper variables
+	// Mixing parameter between short/long range terms
 	mutable double _alpha;
 	mutable ImageIterator _realIterator;
-	mutable List<double> _recipFactors;
+	// For each recipVector, 1/(4*e_0*V*|k|^2) * exp(-|k|^2/4/alpha^2)
+	mutable List<double> _recipFactors; 
 	mutable Linked<Vector3D > _recipVectors;
 	
 	// Functions
 	void initialize(const ISO& iso, int numUniqueAtoms) const;
 	double realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const;
+	Vector3D realForce(const ISO& iso, Atom* atom) const;
 	double recipEnergy(const ISO& iso) const;
+	Vector3D recipForce(const ISO& iso, Atom* atom) const;
+	void computeForces(const ISO& iso, OList<Vector3D >* totalForces) const;
 	double selfEnergy(const ISO& iso) const;
 	double chargedEnergy(const ISO& iso) const;
 	double realEnergy(double distance) const	{ return erfc(_alpha * distance) / distance; }

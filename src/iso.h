@@ -352,6 +352,10 @@ public:
 	// Access functions
 	const Words& comment() const	{ return _comment; }
 	const Basis& basis() const		{ return _basis; }
+	/**
+	 * Get a list of all atoms of each element type
+     * @return 2D List: [element type][atom number]
+     */
 	const Atoms& atoms() const		{ return _atoms; }
 	const Word& spaceGroup() const	{ return _spaceGroup; }
 	int numAtoms() const			{ return _numAtoms; }
@@ -378,7 +382,21 @@ public:
 
 
 
-// Class to store image iterator
+/**
+ * Iterator used to loop over vectors between an atom and all periodic images 
+ *  of another atom within a certain distance
+ * 
+ * How to use it:
+ *	1. Create new instance and supply basis of structure and maximum distance
+ *		a. There is a special constructor for this
+ *  2. Initialize the iterator by defining the atoms (or sites, if that is language
+ *		you prefer) using the "reset()" operation
+ *  3. Use a while loop that increments the iterator using the ++ operator until
+ *     finished() is true
+ *		a. Note: This operator returns the distance between central atoms and current image
+ *	4. While in the while loop, you can access the distance between atom in fractional,
+ *		real, and cell coordinates
+ */
 class ImageIterator
 {
 	
@@ -916,11 +934,11 @@ inline void ImageIterator::setCell(const Basis& basis, double maxDistance)
 
 
 
-/* inline void ImageIterator::initialize(const Vector3D& site1, const Vector3D& site2)
- *
+/**
  * Initialize image iterator
+ * @param site1 [in] Fraction coordinates of atom #1
+ * @param site2 [in] Fraction coordinates of atom #2
  */
-
 inline void ImageIterator::reset(const Vector3D& site1, const Vector3D& site2)
 {
 	

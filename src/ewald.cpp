@@ -26,6 +26,7 @@
 #include "language.h"
 #include "output.h"
 #include <cstdlib>
+#include <cmath>
 
 /**
  *
@@ -164,11 +165,12 @@ void Ewald::setEwaldOptions(const Text& input, bool forgiving) {
 
 
 
-/* void Ewald::evaluate(const ISO& iso, double* totalEnergy, OList<Vector3D >* totalForces) const
- *
- * Return the Ewald energy
+/**
+ * Compute the Ewald energy
+ * @param iso [in] System to evaluate
+ * @param totalEnergy [out] Total energy, Ewald energy will be added to this value
+ * @param totalForces [out] For on each atom, Ewald force will be added to this value
  */
-
 void Ewald::evaluate(const ISO& iso, double* totalEnergy, OList<Vector3D >* totalForces) const
 {
 	
@@ -205,23 +207,21 @@ void Ewald::evaluate(const ISO& iso, double* totalEnergy, OList<Vector3D >* tota
 		}
 		*totalEnergy += recipEnergy(iso) - selfEnergy(iso) - chargedEnergy(iso);
 	}
+	
+	if (totalForces) {
+		computeForces(iso, totalForces);	
+	}
 }
 
-
-
-/* void Ewald::evaluate(const ISO& iso, const Symmetry& symmetry, double* totalEnergy,
- *		OList<Vector3D >* totalForces) const
- *
- * Return the ewald energy using symmetry
+/** 
+ * Compute the Ewald energy using symmetry
  */
-
 void Ewald::evaluate(const ISO& iso, const Symmetry& symmetry, double* totalEnergy, \
 	OList<Vector3D >* totalForces) const
 {
 	
 	// Do not use symmetry unless if reduces the number of atoms by at least a factor of two
-	if (iso.numAtoms() / symmetry.orbits().length() < 2)
-	{
+	if (iso.numAtoms() / symmetry.orbits().length() < 2) {
 		evaluate(iso, totalEnergy, totalForces);
 		return;
 	}
@@ -255,15 +255,35 @@ void Ewald::evaluate(const ISO& iso, const Symmetry& symmetry, double* totalEner
 		}
 		*totalEnergy += recipEnergy(iso) - selfEnergy(iso) - chargedEnergy(iso);
 	}
+	
+	if (totalForces) {
+		computeForces(iso, totalForces);
+	}
 }
 
-
-
-/* void Ewald::initialize(const ISO& iso, int numUniqueAtoms) const
- *
- * Set the cells to iterate over in real and reciprocal space for Ewald potential
+/**
+ * Compute the forces on each atom using 
+ * @param iso [in] Structure being evaluated
+ * @param totalForces [in/out] Forces on each atom, will be added to
  */
+void Ewald::computeForces(const ISO& iso, OList<Vector3D>* totalForces) const {
+	for (int e=0; e<iso.atoms().length(); e++) {
+		for (int i=0; i<iso.atoms()[e].length(); i++) {
+			int id = iso.atoms()[e][i].atomNumber();
+			(*totalForces)[id] += realForce(iso, &iso.atoms()[e][i]) 
+					+ recipForce(iso, &iso.atoms()[e][i]);
+		}
+	}
+}
 
+/**
+ * Precompute parameters needed for the Ewald sum, such as:
+ *  - Determining optimal mixing parameter (alpha)
+ *  - Computing cutoffs in real/reciprocal space for desired accuracy
+ *  - Creating an iterator to move over images of atoms in real space
+ *  - Determining which reciprocal space vectors to use 
+ *  - Computing prefactors used for reciprocal space summation
+ */
 void Ewald::initialize(const ISO& iso, int numUniqueAtoms) const
 {
 	
@@ -315,11 +335,13 @@ void Ewald::initialize(const ISO& iso, int numUniqueAtoms) const
 
 
 
-/* double Ewald::realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const
- *
- * Return the energy of an atom in Ewald summation
+/**
+ * Compute the real-space contribution to the Ewald energy from a single atom
+ * @param iso [in] Structure being evaluated
+ * @param atom [in] Pointer to atom being considered
+ * @param skipLowerAtoms [in] Whether to compute contributions from interactions 
+ *  with atoms with a lower index (false when symmetry is used)
  */
-
 double Ewald::realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const
 {
 	
@@ -385,15 +407,55 @@ double Ewald::realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const
 	return real / (4 * Constants::pi * _perm);
 }
 
-
-
-/* double Ewald::recipEnergy(const ISO& iso) const
- *
- * Return the reciprocal space energy
+/**
+ * Compute the real-space contribution to force on a single atom
+ * @param iso [in] Structure being evaluated
+ * @param atom [in] Atom on which force is active
+ * @return Force in each directory
  */
+Vector3D Ewald::realForce(const ISO& iso, Atom* atom) const {
+	Vector3D force(0.0);
+	// Get the charge of the current atom
+	double atomCharge = getCharge(atom->element());
+	if (atomCharge == 0)
+		return force;
+	
+	// Compute useful prefactors
+	double twoAoverRootPi = 2 * _alpha / sqrt(Constants::pi);
+	double alphaSquared = _alpha * _alpha;
+	
+	// Loop over every element type
+	for (int e=0; e < iso.atoms().length(); e++) { 
+		// Get the charge of this atom
+		double curCharge = getCharge(iso.atoms()[e][0].element());
+		if (curCharge == 0)
+			continue;
+		
+		// Loop over all atoms of that element
+		for (int j=0; j < iso.atoms()[e].length(); j++) {
+			
+			_realIterator.reset(atom->fractional(), iso.atoms()[e][j].fractional());
+			// Loop over all images of that atom
+			while (!_realIterator.finished()) {
+				if (++_realIterator < 1e-8) continue; 
+				
+				double distance = _realIterator.distance();
+				double mag = erfc(_alpha * distance) / distance
+					+ twoAoverRootPi * exp(-1 * alphaSquared * distance * distance);
+				force += _realIterator.cartVector() * mag * curCharge / distance / distance;
+			}
+		}
+	}
+	
+	// Return the real energy
+	return force * (atomCharge / 4 / Constants::pi / _perm);
+}
 
-double Ewald::recipEnergy(const ISO& iso) const
-{
+/**
+ * Compute the reciprocal space term of the Ewald summation
+ * 
+ */
+double Ewald::recipEnergy(const ISO& iso) const {
 	
 	// Loop over reciprocal space lattice vectors
 	int i, j, k;
@@ -451,13 +513,58 @@ double Ewald::recipEnergy(const ISO& iso) const
 	return recip / 2;
 }
 
-
-
-/* double Ewald::selfEnergy(const ISO& iso) const
- *
- * Return the self energy
+/**
+ * Compute the reciprocal space contribution to Ewald force on an atom
+ * @param iso [in] Structure being evaluated
+ * @param atom [in] Atom on which force is acting
+ * @return Force acting on that atom
  */
+Vector3D Ewald::recipForce(const ISO& iso, Atom* atom) const {
+	Vector3D force(0.0);
+	// Get the charge of the current atom
+	double atomCharge = getCharge(atom->element());
+	if (atomCharge == 0)
+		return force;
+	
+	// Loop over reciprocal space vectors
+	Linked<Vector3D >::iterator itVector = _recipVectors.begin();
+	for (int i = 0; itVector != _recipVectors.end(); ++itVector, ++i) {
+		// Get dot product between this reciprocal lattice factor and the atom
+		double atomDot = *itVector * atom->fractional();
+		
+		// Get the current reciprocal space vector in Cartesian units
+		Vector3D recipVector = iso.basis().inverse() * *itVector;
+		
+		double cosTerm = 0, sinTerm = 0;
+		// Loop over all atom types
+		for (int e=0; e < iso.atoms().length(); e++) {
+			double curCharge = getCharge(iso.atoms()[e][0].element());
+			
+			// Loop over all atoms of that type
+			for (int j=0; j < iso.atoms()[e].length(); j++) {
+				double dot = *itVector * iso.atoms()[e][j].fractional();
+				
+				cosTerm += curCharge * cos(dot);
+				sinTerm += curCharge * sin(dot);
+			}
+		}
+		
+		// Add contribution from this k-point to total forces
+		
+		force += recipVector * (atomCharge * _recipFactors[i] * (sin(atomDot) * cosTerm +
+				cos(atomDot) * sinTerm));
+	}
+	
+	return force;
+}
 
+
+
+/**
+ * Compute the self energy term of the Ewald summation
+ * @param iso [in] Structure from which to compute energies
+ * @return Self energy of system
+ */
 double Ewald::selfEnergy(const ISO& iso) const
 {
 	
