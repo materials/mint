@@ -439,7 +439,7 @@ PotentialType Potential::potentialType(const Word& word)
 		return PT_EWALD;
 	
 	// Found electrostatic
-	if (word.equal("electrostatic"), 7)
+	if (word.equal("electrostatic", false, 7))
 		return PT_ELECTROSTATIC;
 	
 	// Found lennard jones
