@@ -270,7 +270,7 @@ public:
 /**
  * Potential used to describe hard-sphere interaction
  * 
- * E(R) = R &lt; R_HS ? a * (exp((R - R_HS) ^ 2) - 1) : 0
+ * E(R) = R &lt; R_HS ? a * (1 - sec(pi / 2 / R_HS * (R - R_HS)) : 0.0
  * 
  * Input format: a R_HS
  * 
@@ -279,6 +279,7 @@ class HardSphere : public PairPotential {
 	
 	double _force;
 	double _radius;
+	double _constant;
 	
 public:
 	
@@ -286,16 +287,19 @@ public:
 	
 	void setForce(double input) { _force = input; }
 	
-	void setRadius(double input) { _radius = input; _cutoff = input; }
+	void setRadius(double input) { 
+		_radius = input;
+		_cutoff = input;
+		_constant = M_PI_2 / _radius;
+	}
 	
 	double pairEnergy(double distance) const {
-		return distance < _radius ? _force * (exp((distance - _radius) 
-				* (distance - _radius)) - 1) : 0.0;
+		return _force * (1.0 / cos(_constant * (distance - _radius)) - 1);
 	}
 	
 	double pairForce(double distance) const {
-		return distance < _radius ? 2 * _force * (distance - _radius) * 
-				exp((distance - _radius) * (distance - _radius)) : 0.0;
+		double x = _constant * (distance - _radius);
+		return -1 * _force * _constant * tan(x) / cos(x);
 	}
 
 	double tail(const ISO& iso, const Element& elem2) const {

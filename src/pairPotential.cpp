@@ -694,16 +694,12 @@ void HardSphere::set(const Text& input) {
 	// Get epsilon
 	if (!Language::isNumber(input[0][3]))
 		readError(input[0]);
-	_force = atof(input[0][3].array());
+	setForce(atof(input[0][3].array()));
 
 	// Get sigma
 	if (!Language::isNumber(input[0][4]))
 		readError(input[1]);
-	_radius = atof(input[0][4].array());
-
-	// Set cutoff
-	if (_cutoff == -1)
-		_cutoff = _radius;
+	setRadius(_radius = atof(input[0][4].array()));
 
 	// Output
 	Output::newline();

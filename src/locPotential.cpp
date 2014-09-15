@@ -63,7 +63,7 @@ void LocalPotential::add(const Text& input, PotentialType type)
 		_potentials += new Ewald;
 	
 	// Electrostatic (PEGS) potential
-	if (type == PT_ELECTROSTATIC)
+	else if (type == PT_ELECTROSTATIC)
 		_potentials += new Electrostatic;
 		
 	// Lennard-Jones potential
