@@ -58,7 +58,7 @@ protected:
 	// Mixing parameter between short/long range terms
 	mutable double _alpha;
 	mutable ImageIterator _realIterator;
-	// For each recipVector, 1/(4*e_0*V*|k|^2) * exp(-|k|^2/4/alpha^2)
+	// For each recipVector, 1/(e_0*V*|k|^2) * exp(-|k|^2/4/alpha^2)
 	mutable List<double> _recipFactors; 
 	mutable Linked<Vector3D > _recipVectors;
 	

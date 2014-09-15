@@ -169,7 +169,7 @@ void Ewald::setEwaldOptions(const Text& input, bool forgiving) {
  * Compute the Ewald energy
  * @param iso [in] System to evaluate
  * @param totalEnergy [out] Total energy, Ewald energy will be added to this value
- * @param totalForces [out] For on each atom, Ewald force will be added to this value
+ * @param totalForces [out] For on each atom, Ewald force (in fractional units) will be added to this value
  */
 void Ewald::evaluate(const ISO& iso, double* totalEnergy, OList<Vector3D >* totalForces) const
 {
@@ -270,8 +270,12 @@ void Ewald::computeForces(const ISO& iso, OList<Vector3D>* totalForces) const {
 	for (int e=0; e<iso.atoms().length(); e++) {
 		for (int i=0; i<iso.atoms()[e].length(); i++) {
 			int id = iso.atoms()[e][i].atomNumber();
-			(*totalForces)[id] += realForce(iso, &iso.atoms()[e][i]) 
-					+ recipForce(iso, &iso.atoms()[e][i]);
+			Vector3D real = realForce(iso, &iso.atoms()[e][i]);
+			Vector3D recip  = recipForce(iso, &iso.atoms()[e][i]);
+			Vector3D tempForce = (recip + real) * -1;
+			iso.basis().toFractional(tempForce);
+			(*totalForces)[id] += tempForce;
+			
 		}
 	}
 }
@@ -342,7 +346,7 @@ void Ewald::initialize(const ISO& iso, int numUniqueAtoms) const
  * @param skipLowerAtoms [in] Whether to compute contributions from interactions 
  *  with atoms with a lower index (false when symmetry is used)
  */
-double Ewald::realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const
+double Ewald::realEnergy(const ISO& iso, Atom* atom, bool skipLowerAtoms) const 
 {
 	
 	// Get the charge of the current atom
@@ -442,12 +446,12 @@ Vector3D Ewald::realForce(const ISO& iso, Atom* atom) const {
 				double distance = _realIterator.distance();
 				double mag = erfc(_alpha * distance) / distance
 					+ twoAoverRootPi * exp(-1 * alphaSquared * distance * distance);
-				force += _realIterator.cartVector() * mag * curCharge / distance / distance;
+				force -= _realIterator.cartVector() * mag * curCharge / distance / distance;
 			}
 		}
 	}
 	
-	// Return the real energy
+	// Return the real component force
 	return force * (atomCharge / 4 / Constants::pi / _perm);
 }
 
@@ -539,6 +543,7 @@ Vector3D Ewald::recipForce(const ISO& iso, Atom* atom) const {
 		// Loop over all atom types
 		for (int e=0; e < iso.atoms().length(); e++) {
 			double curCharge = getCharge(iso.atoms()[e][0].element());
+			if (curCharge == 0) continue;
 			
 			// Loop over all atoms of that type
 			for (int j=0; j < iso.atoms()[e].length(); j++) {
@@ -550,12 +555,11 @@ Vector3D Ewald::recipForce(const ISO& iso, Atom* atom) const {
 		}
 		
 		// Add contribution from this k-point to total forces
-		
-		force += recipVector * (atomCharge * _recipFactors[i] * (sin(atomDot) * cosTerm +
-				cos(atomDot) * sinTerm));
+		force += recipVector * (_recipFactors[i] * (sin(atomDot) * cosTerm -
+				cos(atomDot) * sinTerm)) / 2 / Constants::pi;
 	}
 	
-	return force;
+	return force * atomCharge;
 }
 
 
