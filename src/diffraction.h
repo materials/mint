@@ -229,7 +229,7 @@ public:
     DR_SQUARED, /** Method used in refinement with integrated intensities 
                 * (because it is differentiable):<br>
                 * R = sum[ (I_ref - I_calc) ^ 2 ] / sum[ I_ref^2 ] */
-	DR_REITVELD // Only good for Reitveld refinement
+	DR_rietveld // Only good for rietveld refinement
     };
         
 protected:
@@ -538,8 +538,8 @@ private:
 	
 	// --> Operation employed by user to refine a calculated pattern
     void refineParameters(const Diffraction* referencePattern, std::set<RefinementParameters> toRefine);
-	void reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
-	double getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
+	void rietveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
+	double getRietveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
 	vector<double> guessBackgroundParameters(vector<double>& twoTheta, vector<double>& referenceIntensities);
 	
 	// --> Operations are used when calculating peak intensities
@@ -548,7 +548,7 @@ private:
 	
 	// --> Operations used directly by refineStructure
     bool willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine);
-    double runRefinement(const Diffraction* ref, bool reitveld);
+    double runRefinement(const Diffraction* ref, bool rietveld);
     column_vector getRefinementParameters();
     column_vector getRefinementParameterDerivatives(column_vector x);
     column_vector getRefinementParameterLowerBoundary();
@@ -641,10 +641,10 @@ public:
 	void setNumBackground(int input)	{ _numBackground = input; }
 	
 	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, 
-			bool reitveld = false, bool fitBfactors = false);
+			bool rietveld = false, bool fitBfactors = false);
 	
 	// Call refinement
-	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool useReitveld = false, bool showWarnings = true);
+	double refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool userietveld = false, bool showWarnings = true);
 	
 	// Friendships
 	friend class RFactorFunctionModel;
@@ -659,15 +659,15 @@ public:
  * 
  * @param toRefine Diffraction pattern that will be refined.
  * @param reference Reference diffraction pattern
- * @param reitveld Whether to perform full pattern refinement
+ * @param rietveld Whether to perform full pattern refinement
  */
 class RFactorFunctionModel {
 public:
     RFactorFunctionModel (CalculatedPattern* toRefine, 
-			const Diffraction* reference, bool reitveld) {
+			const Diffraction* reference, bool rietveld) {
         _toRefine = toRefine;
 		_referencePattern = reference;
-		_reitveld = reitveld;
+		_rietveld = rietveld;
     }
     
     virtual double operator() (const CalculatedPattern::column_vector& arg) const {
@@ -676,8 +676,8 @@ public:
         // Recalculate peak intensities
         _toRefine->calculatePeakIntensities();
         // Get the current R factor
-		if (_reitveld) {
-			return _toRefine->getReitveldRFactor(*_referencePattern, Diffraction::DR_REITVELD);
+		if (_rietveld) {
+			return _toRefine->getRietveldRFactor(*_referencePattern, Diffraction::DR_rietveld);
 		} else {
 			return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
 		}
@@ -686,7 +686,7 @@ public:
 private:
     CalculatedPattern* _toRefine;
 	const Diffraction* _referencePattern;
-	bool _reitveld;
+	bool _rietveld;
 };
 
 /**

@@ -333,7 +333,7 @@ void GAPredict::run(ISO& iso, Random& random, bool restartable, Potential* poten
 						&_ga.fitness().values()[metToOptNumber][k], 0, false, true);
 				else if (metToOpt == GAPM_DIFFRACTION)
 					_ga.fitness().values()[metToOptNumber][k] = curDiffraction.refine(_ga.population()[k].iso(), \
-						_ga.population()[k].symmetry(), *diffraction, _useReitveld, false);
+						_ga.population()[k].symmetry(), *diffraction, _userietveld, false);
 				Output::quietOff();
 				
 				// Print metric value
@@ -365,7 +365,7 @@ void GAPredict::run(ISO& iso, Random& random, bool restartable, Potential* poten
 							&_ga.fitness().values()[m][k], 0, false, true);
 					else if (_metrics[m] == GAPM_DIFFRACTION)
 						_ga.fitness().values()[m][k] = curDiffraction.set(_ga.population()[k].iso(), \
-							_ga.population()[k].symmetry(), diffraction, _useReitveld, true);
+							_ga.population()[k].symmetry(), diffraction, _userietveld, true);
 					Output::quietOff();
 					
 					// Print metric value
@@ -1044,7 +1044,7 @@ double GAPredict::screen(ISOSymmetryPair& pair)
 	if (_screenMetric == GAPM_POTENTIAL)
 		_potential->single(pair.iso(), pair.symmetry(), &value, 0, false, true);
 	else if (_screenMetric == GAPM_DIFFRACTION)
-		value = _diffraction->set(pair.iso(), pair.symmetry(), _refDiffraction, _useReitveld, true);
+		value = _diffraction->set(pair.iso(), pair.symmetry(), _refDiffraction, _userietveld, true);
 	Output::quietOff();
 	return value;
 }

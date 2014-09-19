@@ -2892,10 +2892,10 @@ void Launcher::refine(Storage& data, const Function& function)
 	if (data.diffraction().isSet())
 	{
 		// Checking input
-		bool reitveld = false;
+		bool rietveld = false;
 		for (int a=0; a<function.arguments().length(); a++) {
-			if (function.arguments()[a].equal("reitveld",4)) {
-				reitveld = true;
+			if (function.arguments()[a].equal("rietveld",4)) {
+				rietveld = true;
 			} 
 		}
 		
@@ -2926,7 +2926,7 @@ void Launcher::refine(Storage& data, const Function& function)
 
 			// Refine the structure
 			tempPattern.setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
-			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction(), reitveld);
+			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction(), rietveld);
 
 			// Add change to comment
 			data.history()[i] += tag;
@@ -3562,7 +3562,7 @@ void Launcher::optimize(Storage& data, const Function& function)
 	ga.selectionMethod(Settings::value<GASelectionMethod>(GAOPT_SELECTION));
 	ga.energyTolerance(Settings::value<double>(GAOPT_ENERGYTOL));
 	ga.diffractionTolerance(Settings::value<double>(GAOPT_DIFFRACTIONTOL));
-	ga.useReitveld(Settings::value<bool>(GAOPT_USEREITVELD) == 1);
+	ga.userietveld(Settings::value<bool>(GAOPT_USErietveld) == 1);
 	
 	// Determine whether to write restart information, allow restarting
 	bool allow_restarts = Settings::value<bool>(GAOPT_ALLOWRESTART);

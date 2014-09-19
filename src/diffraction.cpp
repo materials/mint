@@ -108,12 +108,12 @@ bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<Refi
  * @param iso [in] Structure from which to calculate diffraction pattern
  * @param symmetry [in] Describes symmetry of structure 
  * @param ref [in] Reference pattern to fit intensities and (if desired) BFactors against. Equals 0 if no pattern supplied
- * @param reitveld [in] Use full-pattern refinement (requires intensity measured a function of angle)
+ * @param rietveld [in] Use full-pattern refinement (requires intensity measured a function of angle)
  * @param fitBFactors [in] Whether to fit B factors (if pattern provided)
  * @return R factor (if pattern provided)
  */
 double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, 
-		bool reitveld, bool fitBfactors) {
+		bool rietveld, bool fitBfactors) {
 	_type = PT_CALCULATED;
     // Clear space
     clear();
@@ -143,11 +143,11 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
 		if (fitBfactors)
 			toRefine.insert(RF_BFACTORS);
 		
-		if (reitveld) {
-			reitveldRefinement(*ref, toRefine);
-			getReitveldRFactor(*ref, DR_ABS);
+		if (rietveld) {
+			rietveldRefinement(*ref, toRefine);
+			getRietveldRFactor(*ref, DR_ABS);
 			this->_measurementAngles = ref->getMeasurementAngles();
-			rFactor = getReitveldRFactor(*ref, DR_ABS);
+			rFactor = getRietveldRFactor(*ref, DR_ABS);
 		} else {
 			// Refine the scale factor and B factors
 			matchPeaksToReference(*ref);
@@ -225,7 +225,7 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
  * @param toRefine [in] What parameters should be refined (besides background)
  * @return Optimized R Factor
  */
-void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine) {
+void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine) {
 	if (!structureIsDefined()) {
         Output::newline(ERROR);
         Output::print("Internal Error: Structure not yet defined.");
@@ -243,13 +243,14 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	
 	// Refine the scale factor
 	_currentlyRefining.insert(RF_SCALE);
-	_optimalScale = *max_element(refIntensities.begin(), refIntensities.end()) /
+	double scaleGuess = *max_element(refIntensities.begin(), refIntensities.end()) /
 			*max_element(thisIntensities.begin(), thisIntensities.end());
+	_optimalScale = scaleGuess;
 	double curR = runRefinement(&referencePattern, true);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-scale.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("rietveld-scale.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	Output::newline();
 	Output::print("Refined scale factor. Current R: ");
@@ -268,13 +269,13 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-background-guess.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("rietveld-background-guess.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	curR = runRefinement(&referencePattern, true);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-background-fitted.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("rietveld-background-fitted.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	Output::newline();
 	Output::print("Refined background functions. Current R: ");
@@ -332,7 +333,7 @@ void CalculatedPattern::reitveldRefinement(const Diffraction& referencePattern, 
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
-		savePattern("reitveld-final.pattern", refAngles, refIntensities, thisIntensities);
+		savePattern("rietveld-final.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	
 	Output::decrease();
@@ -409,15 +410,15 @@ void CalculatedPattern::refineParameters(const Diffraction* reference, std::set<
  * Called from refineParameters. Refine any parameters currently defined in 
  *  _currentlyRefining.
  * @param reference [in] Pattern to refine against
- * @param reitveld [in] Whether to do full-pattern refinement
+ * @param rietveld [in] Whether to do full-pattern refinement
  * @return Minimal R factor (using DR_ABS)
  */
-double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitveld) {
+double CalculatedPattern::runRefinement(const Diffraction* reference, bool rietveld) {
     column_vector params;
     column_vector x_low = getRefinementParameterLowerBoundary();
     column_vector x_high = getRefinementParameterUpperBoundary();
     params = getRefinementParameters();
-    RFactorFunctionModel f(this, reference, reitveld);
+    RFactorFunctionModel f(this, reference, rietveld);
     // Technical issue (as of 12Mar14): 
     //  Derivatives calculated during getCurrentRFactor are wrong. That function 
     //   sets the "optimal scale factor," but assumes it is constant as we adjust 
@@ -430,8 +431,8 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool reitv
             f, dlib::derivative(f, 1e-6), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
-	if (reitveld) {
-		return getReitveldRFactor(*reference, DR_ABS);
+	if (rietveld) {
+		return getRietveldRFactor(*reference, DR_ABS);
 	} else {
 		return getCurrentRFactor(*reference, DR_ABS);
 	}
@@ -658,17 +659,17 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
  * @param iso [in,out] Structure to be refined. Returns refined coordinates
  * @param symmetry [in,out] Symmetry information about structure. Returns refined coordinates
  * @param reference [in] Pattern to refine against
- * @param reitveld [in] Whether to perform full-pattern refinement
+ * @param rietveld [in] Whether to perform full-pattern refinement
  * @param showWarnings [in] Whether to print warnings
  * @return Optimized R Factor
  */
-double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool reitveld,  bool showWarnings) {
+double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction& reference, bool rietveld,  bool showWarnings) {
     // Clear out any old information
     clear();
     
     // Store the pattern information  
     defineReferencePattern(reference);
-    
+	
     // Store structure and initialize guesses
     defineStructure(iso, symmetry);
 
@@ -684,9 +685,9 @@ double CalculatedPattern::refine(ISO& iso, Symmetry& symmetry, const Diffraction
 
     // Run refinement
 	double rFactor;
-	if (reitveld) {
-		reitveldRefinement(reference, toRefine);
-		rFactor = getReitveldRFactor(reference, DR_ABS);
+	if (rietveld) {
+		rietveldRefinement(reference, toRefine);
+		rFactor = getRietveldRFactor(reference, DR_ABS);
 	} else {
 		matchPeaksToReference(reference);
 		refineParameters(&reference, toRefine);
@@ -1511,16 +1512,16 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * <ul>
  * <li><b>DR_ABS</b>: Is the R<sub>p</sub>, profile reliability factor
  * <li><b>DR_SQUARED</b>: Is the weighted profile residual
- * <li><b>DR_REITVELD</b>: Unnormalzied version of DR_SQUARED
+ * <li><b>DR_rietveld</b>: Unnormalzied, version of DR_SQUARED taken over whole pattern
  * </ul>
  * 
- * See doi:10.1107/S0021889893012348 for a good discussion of Reitveld R factors
+ * See doi:10.1107/S0021889893012348 for a good discussion of rietveld R factors
  * 
  * @param referencePattern [in] Pattern against which data is compared
  * @param rMethod [in] Method used to calculate R factor
  * @return R factor
  */
-double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
+double CalculatedPattern::getRietveldRFactor(const Diffraction& referencePattern, Rmethod rMethod) {
 	// Get reference pattern less the background signal
 	vector<double> twoTheta = referencePattern.getMeasurementAngles();
 	vector<double> rawRefIntensities = referencePattern.getMeasuredIntensities();
@@ -1542,7 +1543,7 @@ double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern
 			denom += refI;
 		}
 		return denom > 0 ? num / denom : 1;
-	} else if (rMethod == DR_SQUARED || rMethod == DR_REITVELD) {
+	} else if (rMethod == DR_SQUARED || rMethod == DR_rietveld) {
 		vector<double> weight; weight.reserve(twoTheta.size());
 		for (int i=0; i<refIntensities.size(); i++) {
 			weight.push_back(rawRefIntensities[i] > 0 ? 1.0 / rawRefIntensities[i] : 0.0);
@@ -1556,7 +1557,7 @@ double CalculatedPattern::getReitveldRFactor(const Diffraction& referencePattern
 		return rMethod == DR_SQUARED ? sqrt(num/denom) : num;
 	} else {
 		Output::newline(ERROR);
-		Output::print("Internal Error: Mint can't calculate a Reitveld R factor with that method");
+		Output::print("Internal Error: Mint can't calculate a rietveld R factor with that method");
 		Output::quit();
 		return 0;
 	}

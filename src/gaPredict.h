@@ -76,7 +76,7 @@ class GAPredict
 	double _wyckMutationProb;
 	double _energyTolerance;
 	double _diffractionTolerance;
-	bool _useReitveld;
+	bool _userietveld;
 	GAPredictMetric _optMetric;
 	GAPredictMetric _screenMetric;
 	
@@ -126,7 +126,7 @@ public:
 	void metricToScreen(GAPredictMetric input)		{ _screenMetric = input; }
 	void energyTolerance(double input)				{ _energyTolerance = input; }
 	void diffractionTolerance(double input)			{ _diffractionTolerance = input; }
-	void useReitveld(bool input)					{ _useReitveld = input; }
+	void userietveld(bool input)					{ _userietveld = input; }
 	
 	// GA settings functions
 	void populationSize(int input)	{ _ga.populationSize(input); }

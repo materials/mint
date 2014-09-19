@@ -592,7 +592,7 @@ Option #2: If a diffraction pattern has been supplied as input, the refinement
     patterns. 
 
 ######Arguments:
-- "reitveld" to perform refinement against full diffraction pattern
+- "rietveld" to perform refinement against full diffraction pattern
 
 ######Example:
     "strc.in xray.in -refine"       Adjust positions to better match diffraction pattern
@@ -897,7 +897,7 @@ List of settings and brief descriptions (detailed descriptions follow):
        gaoptselection   Selection method to use during GA optimization
        gaoptenergytol   Tolerance for an energy to be a new best during GA
          gaoptdifftol   Tolerance for an r-factor to be a new best during GA
-	 gaoptusereitveld	Whether to use full-pattern matching during GA
+	 gaoptuserietveld	Whether to use full-pattern matching during GA
     gaoptscreenmethod   Screening method used during GA optimization
        gaoptscreennum   Number of trial structures to screen during GA
 	gaoptallowrestart   Allow optimization to be restarted (default = No)
@@ -906,7 +906,7 @@ List of settings and brief descriptions (detailed descriptions follow):
       maxjumpdistance   Maximum jump distance when generating jumps between sites
       kmcjumpsperatom   Number of jumps in a KMC simulation per atom
           kmcconverge   Convergence for a KMC simulation to be complete
-	 xrdnumbackground	Number of background functions used during Reitveld refinement
+	 xrdnumbackground	Number of background functions used during Rietveld refinement
 
 
 
