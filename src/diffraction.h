@@ -229,7 +229,7 @@ public:
     DR_SQUARED, /** Method used in refinement with integrated intensities 
                 * (because it is differentiable):<br>
                 * R = sum[ (I_ref - I_calc) ^ 2 ] / sum[ I_ref^2 ] */
-	DR_rietveld // Only good for rietveld refinement
+	DR_RIETVELD // Only good for rietveld refinement
     };
         
 protected:
@@ -677,7 +677,7 @@ public:
         _toRefine->calculatePeakIntensities();
         // Get the current R factor
 		if (_rietveld) {
-			return _toRefine->getRietveldRFactor(*_referencePattern, Diffraction::DR_rietveld);
+			return _toRefine->getRietveldRFactor(*_referencePattern, Diffraction::DR_RIETVELD);
 		} else {
 			return _toRefine->getCurrentRFactor(*_referencePattern, Diffraction::DR_SQUARED);
 		}

@@ -1527,9 +1527,12 @@ double CalculatedPattern::getRietveldRFactor(const Diffraction& referencePattern
 	vector<double> rawRefIntensities = referencePattern.getMeasuredIntensities();
 	vector<double> refIntensities; refIntensities.reserve(twoTheta.size());
 	vector<double> background = generateBackgroundSignal(twoTheta);
-	for (int i=0; i<twoTheta.size(); i++) {
-		refIntensities.push_back(rawRefIntensities[i] - _optimalScale * background[i]);
+	if (rMethod != DR_RIETVELD) {
+		for (int i=0; i<twoTheta.size(); i++) {
+			refIntensities.push_back(rawRefIntensities[i] - _optimalScale * background[i]);
+		}
 	}
+	
 	// Get computed pattern
 	vector<double> thisIntensities = generatePeakSignal(twoTheta);
 	
@@ -1543,7 +1546,7 @@ double CalculatedPattern::getRietveldRFactor(const Diffraction& referencePattern
 			denom += refI;
 		}
 		return denom > 0 ? num / denom : 1;
-	} else if (rMethod == DR_SQUARED || rMethod == DR_rietveld) {
+	} else if (rMethod == DR_SQUARED) {
 		vector<double> weight; weight.reserve(twoTheta.size());
 		for (int i=0; i<refIntensities.size(); i++) {
 			weight.push_back(rawRefIntensities[i] > 0 ? 1.0 / rawRefIntensities[i] : 0.0);
@@ -1554,7 +1557,18 @@ double CalculatedPattern::getRietveldRFactor(const Diffraction& referencePattern
 			num += weight[i] * diff * diff;
 			denom += weight[i] * refIntensities[i] * refIntensities[i];
 		}
-		return rMethod == DR_SQUARED ? sqrt(num/denom) : num;
+		return sqrt(num/denom);
+	} else if (rMethod == DR_RIETVELD) {
+		vector<double> weight; weight.reserve(twoTheta.size());
+		for (int i=0; i<rawRefIntensities.size(); i++) {
+			weight.push_back(rawRefIntensities[i] > 0 ? 1.0 / rawRefIntensities[i] : 0.0);
+		}
+		double num = 0.0, diff = 0.0;
+		for (int i=0; i<weight.size(); i++) {
+			diff = rawRefIntensities[i] - _optimalScale * (thisIntensities[i] + background[i]);
+			num += weight[i] * diff * diff;
+		}
+		return num;
 	} else {
 		Output::newline(ERROR);
 		Output::print("Internal Error: Mint can't calculate a rietveld R factor with that method");
