@@ -272,7 +272,7 @@ void Ewald::computeForces(const ISO& iso, OList<Vector3D>* totalForces) const {
 			int id = iso.atoms()[e][i].atomNumber();
 			Vector3D real = realForce(iso, &iso.atoms()[e][i]);
 			Vector3D recip  = recipForce(iso, &iso.atoms()[e][i]);
-			Vector3D tempForce = (recip + real) * -1;
+			Vector3D tempForce = recip - real;
 			iso.basis().toFractional(tempForce);
 			(*totalForces)[id] += tempForce;
 			
@@ -446,7 +446,7 @@ Vector3D Ewald::realForce(const ISO& iso, Atom* atom) const {
 				double distance = _realIterator.distance();
 				double mag = erfc(_alpha * distance) / distance
 					+ twoAoverRootPi * exp(-1 * alphaSquared * distance * distance);
-				force -= _realIterator.cartVector() * mag * curCharge / distance / distance;
+				force += _realIterator.cartVector() * mag * curCharge / distance / distance;
 			}
 		}
 	}
@@ -556,7 +556,7 @@ Vector3D Ewald::recipForce(const ISO& iso, Atom* atom) const {
 		
 		// Add contribution from this k-point to total forces
 		force += recipVector * (_recipFactors[i] * (sin(atomDot) * cosTerm -
-				cos(atomDot) * sinTerm)) / 2 / Constants::pi;
+				cos(atomDot) * sinTerm));
 	}
 	
 	return force * atomCharge;
