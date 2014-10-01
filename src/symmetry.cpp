@@ -1443,18 +1443,19 @@ int Symmetry::getConventionalCellUniqueSymmetryAxis(const OList<Matrix3D>& rotat
 
 
 
-/* void Symmetry::confineBasis(Vector3D& lengths, Vector3D& angles, LatticeSystem latticeSystem)
- *
+/**
  * Adjust cell so that it satisfies lattice symmetry
+ * @param lengths [in/out] Unit cell side lengths to be adjusted
+ * @param angles [in/out] Angles between axes to be adjusted
+ * @param latticeSystem [in] Lattice system of crystal
  */
-
 void Symmetry::confineBasis(Vector3D& lengths, Vector3D& angles, LatticeSystem latticeSystem)
 {
 	
 	// Confine to cubic system
 	if (latticeSystem == LS_CUBIC)
 	{
-		lengths[0] = lengths[1] = lengths[2] = (lengths[0] + lengths[1] + lengths[2]) / 2;
+		lengths[0] = lengths[1] = lengths[2] = (lengths[0] + lengths[1] + lengths[2]) / 3;
 		angles[0] = angles[1] = angles[2] = Constants::pi / 2;
 	}
 	
