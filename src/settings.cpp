@@ -30,20 +30,19 @@
 
 
 
-/* bool Setting::set(const OList<Word>& input)
- *
- * Get setting from file
+/**
+ * Define setting from text input. Only works if input[0] is the "tag" of this setting
+ *  and input[1] is a valid value for that setting.
+ * @param input [in] List of words describing a setting
+ * @return Whether input is a properly-formed for this setting
  */
-
 bool Setting::set(const OList<Word>& input)
-{
+{	
 	
 	// Check if first word is the tag
-	if (!input.length())
-		return false;
 	if (!isTag(input[0]))
 		return false;
-	
+
 	// Value is a bool
 	if (_valueType == VT_BOOL)
 	{
@@ -417,27 +416,38 @@ Settings::Helper::Helper()
 }
 
 
-
-/* void Settings::set(const Text& content)
- *
+/**
  * Set settings from file contents
+ * @param content [in] Content of a settings file
  */
+void Settings::set(const Text& content) {
 
-void Settings::set(const Text& content)
-{
-	
-	// Loop over file contents
-	int i, j;
-	for (i = 0; i < content.length(); ++i)
-	{
+    // Loop over file contents
+    int i, j;
+    for (i = 0; i < content.length(); ++i) {
 		
-		// Loop over settings and save
-		for (j = 0; j < _numSettings; ++j)
-		{
-			if (_settings[j].set(content[i]))
-				break;
-		}
-	}
+		// Skip empty lines
+		if (!content[i].length())
+			continue;
+		// Skip comments
+		if (Language::isComment(content[i][0])) 
+			continue;
+
+        // Loop over settings and save
+        bool found = false;
+        for (j = 0; j < _numSettings; ++j) {
+            if (_settings[j].set(content[i])) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            Output::newline(ERROR);
+            Output::print("Error when reading settings file. Unrecognized setting: ");
+            Output::print(content[i][0]);
+            Output::quit();
+        }
+    }
 }
 
 
