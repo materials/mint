@@ -282,8 +282,10 @@ void GAPredict::run(ISO& iso, Random& random, bool restartable, Potential* poten
 			for (int j = 0; j < _ga.population().length(); ++j)
 			{
 				_ga.population()[j].iso() = iso;
-				RandomStructure::generate(_ga.population()[j].iso(), random, _wyckoffBias, \
-					&_ga.population()[j].symmetry());
+				if (!RandomStructure::generate(_ga.population()[j].iso(), random, _wyckoffBias, \
+					&_ga.population()[j].symmetry())) {
+					Output::quit();
+				}
 			}
 
 			// Output
