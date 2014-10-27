@@ -58,7 +58,7 @@ class RandomStructure
 	static void generatePositions(ISO& iso, Random& random);
 	
 	// Generate structure with symmetry
-	static void generateWithSymmetry(ISO& iso, double targetVolume, Random& random, double bias, Symmetry* symmetry);
+	static bool generateWithSymmetry(ISO& iso, double targetVolume, Random& random, double bias, Symmetry* symmetry);
 	static void generatePositions(ISO& iso, Random& random, const SpaceGroup& spaceGroup, double bias, \
 		Symmetry* symmetry);
 	static List<Wyckoff*>::D2 getWyckoffGroups(const ISO& iso, const SpaceGroup& spaceGroup, double minRadius);
@@ -84,16 +84,16 @@ public:
 	static void perturbAtoms(ISO& iso, const Symmetry& symmetry, double min, double max, Random& random);
 	
 	// Generate structure
-	static void generate(ISO& iso, Random& random)
-		{ generate(iso, random, 1, 0); }
-	static void generate(ISO& iso, Random& random, double bias)
-		{ generate(iso, random, bias, 0); }
-	static void generate(ISO& iso, Random& random, Symmetry* symmetry)
-		{ generate(iso, random, 1, symmetry); }
-	static void generate(ISO& iso, Random& random, double bias, Symmetry* symmetry);
+	static bool generate(ISO& iso, Random& random)
+		{ return generate(iso, random, 1, 0); }
+	static bool generate(ISO& iso, Random& random, double bias)
+		{ return generate(iso, random, bias, 0); }
+	static bool generate(ISO& iso, Random& random, Symmetry* symmetry)
+		{ return generate(iso, random, 1, symmetry); }
+	static bool generate(ISO& iso, Random& random, double bias, Symmetry* symmetry);
 	
 	// Useful operations
-	static void setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry);
+	static bool setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry);
 };
 
 

@@ -1448,7 +1448,10 @@ void Launcher::generateStructure(Storage& data, bool keepFree)
 			}
 			
 			// Generate structure
-			RandomStructure::generate(data.iso()[i], data.random(), Settings::value<double>(WYCKOFFBIAS));
+			if (!RandomStructure::generate(data.iso()[i], data.random(),
+					Settings::value<double>(WYCKOFFBIAS))) {
+				Output::quit();
+			}
 			
 			// Add change to comment
 			data.history()[i] += " > randomly generated";

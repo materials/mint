@@ -313,9 +313,10 @@ void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, double mi
  * @param random [in/out] Random number generator
  * @param bias [in] Amount to bias selection of Wyckoff site selection
  * @param symmetry [in] Pointer to object that stores symmetry info of iso, will be modified
+ * @return Whether structure was successfully generated
  */
-void RandomStructure::generate(ISO& iso, Random& random, double bias, Symmetry* symmetry)
-{
+bool RandomStructure::generate(ISO& iso, Random& random, 
+		double bias, Symmetry* symmetry) {
 	
 	// Calculate the total target volume
 	double targetVolume = 0;
@@ -324,11 +325,12 @@ void RandomStructure::generate(ISO& iso, Random& random, double bias, Symmetry* 
 	
 	// Space group has been set
 	if (iso.spaceGroup().length() > 0)
-		generateWithSymmetry(iso, targetVolume, random, bias, symmetry);
+		return generateWithSymmetry(iso, targetVolume, random, bias, symmetry);
 	
 	// Space group has not been set
 	else
 		generateWithoutSymmetry(iso, targetVolume, random, symmetry);
+	return true;
 }
 
 
@@ -375,8 +377,9 @@ void RandomStructure::generateWithoutSymmetry(ISO& iso, double targetVolume, Ran
  * @param random [in/out] Random number generator
  * @param bias [in] Amount to bias selection of Wyckoff site selection
  * @param symmetry [in] Pointer to object that stores symmetry info of iso, will be modified
+ * @return Whether structure was generated correctly
  */
-void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random& random, \
+bool RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random& random, \
 		double bias, Symmetry* symmetry) {
 	
 	// Output
@@ -399,7 +402,10 @@ void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random
 		symmetry->clear();
 		symmetry->operations(spaceGroup.symmetry());
 	}
-	setSiteSymmetry(iso, spaceGroup, symmetry);
+	if (!setSiteSymmetry(iso, spaceGroup, symmetry)) {
+		Output::decrease();
+		return false;
+	}
 	
 	// Generate the positions
 	if (iso.anyUnset())
@@ -407,6 +413,7 @@ void RandomStructure::generateWithSymmetry(ISO& iso, double targetVolume, Random
 	
 	// Output
 	Output::decrease();
+	return true;
 }
 
 
@@ -1336,10 +1343,12 @@ void RandomStructure::recurseAllowedWyckoff(Linked<List<int>::D2>& res, const Li
  * 
  * @param iso [in] Input structure
  * @param spaceGroup [in] Desired spacegroup
- * @param symmetry [out] Atoms from iso will be assigned to orbits consistant with spaceGroup
+ * @param symmetry [out] Atoms from iso will be assigned to
+ *  orbits consistent with spaceGroup
+ * @return Whether operation was successful
  */
-void RandomStructure::setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGroup, Symmetry* symmetry)
-{
+bool RandomStructure::setSiteSymmetry(const ISO& iso,
+		const SpaceGroup& spaceGroup, Symmetry* symmetry) {
 	
 	// Loop over elements
 	int i, j, k;
@@ -1446,7 +1455,7 @@ void RandomStructure::setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGro
 					{
 						Output::newline(ERROR);
 						Output::print("Atoms in structure do not fit space group symmetry");
-						Output::quit();
+						return false;
 					}
 				}
 			}
@@ -1493,4 +1502,5 @@ void RandomStructure::setSiteSymmetry(const ISO& iso, const SpaceGroup& spaceGro
 			} while (found);
 		}
 	}
+	return true;
 }

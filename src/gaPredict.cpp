@@ -488,15 +488,15 @@ void GAPredict::run(ISO& iso, Random& random, bool restartable, Potential* poten
 
 
 
-/* void GAPredict::mutateBasis(ISOSymmetryPair& pair, Random& random)
- *
+/**
  * Basis mutation
+ * @param pair [in/out] Basis set to be permuted
+ * @param random [in/out] Random number generator
  */
-
-void GAPredict::mutateBasis(ISOSymmetryPair& pair, Random& random)
-{
+void GAPredict::mutateBasis(ISOSymmetryPair& pair, Random& random) {
 	Output::quietOn();
-	RandomStructure::perturbBasis(pair.iso(), pair.symmetry(), .1, .5, random);
+	double mag = pow(pair.iso().basis().volume(), 1/3);
+	RandomStructure::perturbBasis(pair.iso(), pair.symmetry(), mag * 0.01, mag * 0.1, random);
 	Output::quietOff();
 }
 
@@ -516,50 +516,55 @@ void GAPredict::mutatePositions(ISOSymmetryPair& pair, Random& random)
 
 
 
-/* void GAPredict::mutateWyckoff(ISOSymmetryPair& pair, Random& random)
- *
+/**
  * Mutate which Wyckoff positions are occupied
+ * 
  */
-
-void GAPredict::mutateWyckoff(ISOSymmetryPair& pair, Random& random)
-{
+void GAPredict::mutateWyckoff(ISOSymmetryPair& pair, Random& random) {
 	
 	// Turn on quiet
 	Output::quietOn();
 	
-	// Loop until at least one position is mutated
-	int i, j;
-	int numSelected = 0;
-	double selectionProb = 0.5;
-	for (int trial = 0; trial < 10; ++trial)
-	{
-		
-		// Loop over orbits
-		for (i = 0; i < pair.symmetry().orbits().length(); ++i)
-		{
-			
-			// Check whether any atoms in the orbit are fixed
-			if (pair.symmetry().orbits()[i].anyAtomsFixed())
-				continue;
-			
-			// Pick whether orbit will be changed
-			if (random.decimal(0, 1) < selectionProb)
-			{
-				
-				// Set that all atoms in orbit will be assigned new positions
-				++numSelected;
-				for (j = 0; j < pair.symmetry().orbits()[i].atoms().length(); ++j)
-					pair.symmetry().orbits()[i].atoms()[j]->assigned(false);
-			}
-		}
-		
-		// Break if any positions were selected
-		if (numSelected > 0)
-			break;
-	}
+	// Make copy of the symmetry object
+	Symmetry tempSym = pair.symmetry();
 	
-	// Generate new positions
-	RandomStructure::generate(pair.iso(), random, _wyckoffBias, &pair.symmetry());
+	// Generate new positions (runs until generation was successful)
+	do {
+		// Reset symmetry to original
+		pair.symmetry() = tempSym;
+		
+		// Eliminate a few orbits
+		int i, j;
+		int numSelected = 0;
+		double selectionProb = 0.5;
+		for (int trial = 0; trial < 10; ++trial)
+		{
+
+			// Loop over orbits
+			for (i = 0; i < pair.symmetry().orbits().length(); ++i)
+			{
+
+				// Check whether any atoms in the orbit are fixed
+				if (pair.symmetry().orbits()[i].anyAtomsFixed())
+					continue;
+
+				// Pick whether orbit will be changed
+				if (random.decimal(0, 1) < selectionProb)
+				{
+
+					// Set that all atoms in orbit will be assigned new positions
+					++numSelected;
+					for (j = 0; j < pair.symmetry().orbits()[i].atoms().length(); ++j)
+						pair.symmetry().orbits()[i].atoms()[j]->assigned(false);
+				}
+			}
+
+			// Break if any positions were selected
+			if (numSelected > 0)
+				break;
+		}
+	} while(! RandomStructure::generate(pair.iso(), random,
+			_wyckoffBias, &pair.symmetry()));
 	
 	// Turn off quiet
 	Output::quietOff();
