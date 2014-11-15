@@ -223,7 +223,6 @@ double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Di
  *
  * @param referencePattern [in] Pattern to refine against
  * @param toRefine [in] What parameters should be refined (besides background)
- * @return Optimized R Factor
  */
 void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine) {
 	if (!structureIsDefined()) {
@@ -289,6 +288,12 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 	Output::print(_W, 4);
 	Output::print(" degrees. Current R: ");
 	Output::print(curR, 4);
+	if (curR > 0.9) {
+		Output::newline();
+		Output::print("Very poor pattern match, not refining further.");
+		Output::decrease();
+		return;
+	}
 	
 	// Refine atomic positions, if desired
 	if (willRefine(RF_POSITIONS, toRefine)) {
