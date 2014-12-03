@@ -900,7 +900,7 @@ List of settings and brief descriptions (detailed descriptions follow):
 	 gaoptuserietveld	Whether to use full-pattern matching during GA
     gaoptscreenmethod   Screening method used during GA optimization
        gaoptscreennum   Number of trial structures to screen during GA
-	gaoptallowrestart   Allow optimization to be restarted (default = No)
+   gaoptallowrestarts   Allow optimization to be restarted (default = No)
           wyckoffbias   Biasing level for choosing random Wyckoff positions
           minimagedis   Minimum image distance when generating supercells
       maxjumpdistance   Maximum jump distance when generating jumps between sites
