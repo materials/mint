@@ -504,13 +504,12 @@ void GAPredict::mutateBasis(ISOSymmetryPair& pair, Random& random) {
 
 
 
-/* void GAPredict::mutatePositions(ISOSymmetryPair& pair, Random& random)
- *
- * Position mutation
+/**
+ * Mutate the positions of atoms in a structure
+ * @param pair [in/out] ISO and symmetry describing a structure. Will be mutated
+ * @param random [in/out] Random number generator
  */
-
-void GAPredict::mutatePositions(ISOSymmetryPair& pair, Random& random)
-{
+void GAPredict::mutatePositions(ISOSymmetryPair& pair, Random& random) {
 	Output::quietOn();
 	RandomStructure::perturbAtoms(pair.iso(), pair.symmetry(), .1, .5, random);
 	Output::quietOff();
@@ -520,7 +519,8 @@ void GAPredict::mutatePositions(ISOSymmetryPair& pair, Random& random)
 
 /**
  * Mutate which Wyckoff positions are occupied
- * 
+* @param pair [in/out] ISO and symmetry describing a structure. Will be mutated
+ * @param random [in/out] Random number generator
  */
 void GAPredict::mutateWyckoff(ISOSymmetryPair& pair, Random& random) {
 	

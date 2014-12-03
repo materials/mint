@@ -216,13 +216,16 @@ void RandomStructure::perturbBasis(ISO& iso, const Symmetry& symmetry, double mi
 
 
 
-/* void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, double min, double max, Random& random)
- *
+/**
  * Perturb atoms while preserving symmetry
+ * @param iso [in/out] ISO of structure being perturbed
+ * @param symmetry [in/out] Symmetry of structure being perturbed
+ * @param min [in] Minimum distance to move each atom
+ * @param max [in] Maximum distance to move each atom
+ * @param random [in/out] Random number generator
  */
-
-void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, double min, double max, Random& random)
-{
+void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, 
+        double min, double max, Random& random) {
 	
 	// Swap min and max if needed
 	if (max < min)
@@ -272,7 +275,7 @@ void RandomStructure::perturbAtoms(ISO& iso, const Symmetry& symmetry, double mi
 			continue;
 		
 		// Normalize vector and set new position
-		vector *= max / norm;
+		vector *= mag / norm;
 		symmetry.orbits()[i].atoms()[0]->cartesian(symmetry.orbits()[i].atoms()[0]->cartesian() + vector);
 		
 		// Output
@@ -371,6 +374,9 @@ void RandomStructure::generateWithoutSymmetry(ISO& iso, double targetVolume, Ran
 
 /**
  * Generate a random structure within a set space group
+ * 
+ * LW 2Dec14: Consider throwing an exception if random generation fails. A lot 
+ * more intuitive to handle.
  * 
  * @param iso [in/out] Structure object to be randomized.
  * @param targetVolume [in] Desired volume of structure
