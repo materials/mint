@@ -1070,7 +1070,8 @@ vector<double> CalculatedPattern::generateBackgroundSignal(vector<double>& twoTh
  * @param refIntensities Reference intensity value at those angles
  * @return Guess for background signal
  */
-vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta, vector<double>& refIntensities) {	
+vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoTheta,
+		vector<double>& refIntensities) {	
 	// Mark which entries to use in fitting
 	vector<double> fitAngles, fitIntensities;
 	fitAngles.reserve(twoTheta.size());
@@ -1085,6 +1086,13 @@ vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoT
 		while (twoTheta[pos] < _reflections[peak].getAngle() + 0.5) {
 			pos++;
 		}
+	}
+	
+	// If there are too many peaks, don't make any guesses
+	if (fitAngles.size() == 0) {
+		vector<double> output;
+		output.resize(_numBackground, 0.0);
+		return output;
 	}
 	
 	// Guess the terms using polynomial fitting
