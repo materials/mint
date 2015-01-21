@@ -77,6 +77,7 @@ class GAPredict
 	double _energyTolerance;
 	double _diffractionTolerance;
 	bool _userietveld;
+	bool _saveAllResults; // Whether to print out each candidate structure
 	GAPredictMetric _optMetric;
 	GAPredictMetric _screenMetric;
 	
@@ -108,6 +109,8 @@ class GAPredict
 	// Screen functions
 	double screen(ISOSymmetryPair& pair);
 	
+	void saveResult(int entry);
+	
 public:
 	
 	// Constructor
@@ -126,7 +129,12 @@ public:
 	void metricToScreen(GAPredictMetric input)		{ _screenMetric = input; }
 	void energyTolerance(double input)				{ _energyTolerance = input; }
 	void diffractionTolerance(double input)			{ _diffractionTolerance = input; }
-	void userietveld(bool input)					{ _userietveld = input; }
+	void useRietveld(bool input)					{ _userietveld = input; }
+	/**
+	 * Set whether to print each candidate structure
+     * @param input Desired setting
+     */
+	void setSaveAllResults(bool input)				{ _saveAllResults = input; }
 	
 	// GA settings functions
 	void populationSize(int input)	{ _ga.populationSize(input); }
@@ -138,7 +146,8 @@ public:
 	void selectionMethod(GASelectionMethod input)	{ _ga.selection().set(input); }
 	
 	// Run functions
-	void run(ISO& iso, Random& random, bool restartable = false, Potential* potential = 0, Diffraction* diffraction = 0);
+	void run(ISO& iso, Random& random, bool restartable = false,
+			Potential* potential = 0, Diffraction* diffraction = 0);
 	
 	// Used for restarting old runs
 	void writeRestartInformation();
@@ -155,9 +164,7 @@ public:
  *
  * Constructor for GAPredict object
  */
-
-inline GAPredict::GAPredict()
-{
+inline GAPredict::GAPredict() {
 	_numScreens = 0;
 	_numSimulations = 1;
 	_maxCrossoverLoops = 100;
@@ -170,17 +177,17 @@ inline GAPredict::GAPredict()
 	_screenMetric = GAPM_UNKNOWN;
 	_energyTolerance = 1e-3;
 	_diffractionTolerance = 1e-4;
+	_saveAllResults = false;
 }
 
 
 
-/* inline GAPredictMetric GAPredict::metric(const Word& input)
- *
+/**
  * Return metric from word
+ * @param input [in] Name of metric to be optimized
+ * @return Corresponding GAPredictMetric
  */
-
-inline GAPredictMetric GAPredict::metric(const Word& input)
-{
+inline GAPredictMetric GAPredict::metric(const Word& input) {
 	if ((input.equal("potential", false, 3)) || (input.equal("energy", false, 4)))
 		return GAPM_POTENTIAL;
 	if ((input.equal("diffraction", false, 4)) || (input.equal("xray", false)))
@@ -190,15 +197,13 @@ inline GAPredictMetric GAPredict::metric(const Word& input)
 
 
 
-/* inline Word GAPredict::metric(GAPredictMetric input)
- *
+/**
  * Return word from metric
+ * @param input [in] GAPredictMetric value
+ * @return Name of that metric
  */
-
-inline Word GAPredict::metric(GAPredictMetric input)
-{
-	switch (input)
-	{
+inline Word GAPredict::metric(GAPredictMetric input) {
+	switch (input) {
 		case GAPM_POTENTIAL:
 			return Word("Energy");
 		case GAPM_DIFFRACTION:

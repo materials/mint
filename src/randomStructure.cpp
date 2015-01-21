@@ -29,6 +29,9 @@
 
 // Maximum number of loops to make when trying to place atoms at random positions
 int RandomStructure::_maxTrialLoops = 100;
+// Controls the minimum distance between atoms allowed in a randomly generated
+//  structure as a fraction of the radii of each atoms (ex. can't be closer than
+//  50% of the sum of the atomic radii)
 double RandomStructure::_minBondFraction = 0.5;
 
 // Wyckoff site biasing weights

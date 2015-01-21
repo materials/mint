@@ -37,7 +37,7 @@
 #include "output.h"
 
 // Set == 1 to print out diffraction pattern at each stage
-#define DIFFRACTION_EXCESSIVE_PRINTING 0
+#define DIFFRACTION_EXCESSIVE_PRINTING 1
 
 // Diffraction pattern determination methods
 enum Method {DM_XRAY, DM_NEUTRON, DM_SIMPLE, DM_NONE};

@@ -3535,7 +3535,6 @@ void Launcher::perturb(Storage& data, const Function& function)
  *
  * Optimize structure
  */
-
 void Launcher::optimize(Storage& data, const Function& function)
 {
 	
@@ -3565,7 +3564,8 @@ void Launcher::optimize(Storage& data, const Function& function)
 	ga.selectionMethod(Settings::value<GASelectionMethod>(GAOPT_SELECTION));
 	ga.energyTolerance(Settings::value<double>(GAOPT_ENERGYTOL));
 	ga.diffractionTolerance(Settings::value<double>(GAOPT_DIFFRACTIONTOL));
-	ga.userietveld(Settings::value<bool>(GAOPT_USErietveld) == 1);
+	ga.useRietveld(Settings::value<bool>(GAOPT_USERIETVELD) == 1);
+	ga.setSaveAllResults(Settings::value<bool>(GAOPT_SAVEALLRESULTS));
 	
 	// Determine whether to write restart information, allow restarting
 	bool allow_restarts = Settings::value<bool>(GAOPT_ALLOWRESTART);

@@ -113,7 +113,10 @@ public:
 	T& bestIndividual()				{ return _bestIndividual; }
 	
 	// Convergence access functions
-	int numGenerations() const		{ return _numGenerations; }
+	/**
+     * @return Number of generations since GA was started
+     */
+	int numGenerations() const		{ return _numGenerations; } 
 	int gensSinceLastBest() const	{ return _gensSinceLastBest; }
 	int maxGenerations() const		{ return _maxGenerations; }
 	
@@ -158,6 +161,10 @@ public:
 	List<bool>& optLowest()		{ return _optLowest; }
 	OList<Word>& names()		{ return _names; }
 	OList<Word>& units()		{ return _units; }
+	/**
+     * @return Fitness values for each entry as 2D, where [m][k] is the value
+	 * of entry k for metric m.
+     */
 	List<double>::D2& values()	{ return _values; }
 	List<int>::D2& order()		{ return _order; }
 	List<int>& totalOrder()		{ return _totalOrder; }

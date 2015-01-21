@@ -418,11 +418,10 @@ int Output::addStream(const Word& input, int numBlankLinesAtStart, int numBlankL
 
 
 
-/* void Output::removeStream(int inID)
- *
- * Delete a stream
+/**
+ * Delete an output stream
+ * @param inID Index of stream to be removed
  */
-
 void Output::removeStream(int inID)
 {
 	int num = 0;
@@ -463,11 +462,10 @@ void Output::setPrimary(int inID)
 
 
 
-/* void Output::setStream(int inID)
- *
- * Set the current stream
+/**
+ * Define the stream to which output will be directed
+ * @param inID Desired output stream
  */
-
 void Output::setStream(int inID)
 {
 	for (int i = 0; i < _ids.length(); ++i)
@@ -707,11 +705,11 @@ void Output::print(double message, int prec)
 
 
 
-/* void Output::printSci(double message, int prec)
- *
+/**
  * Print double in scientific notation
+ * @param message Value to be printed
+ * @param prec Desired precision
  */
-
 void Output::printSci(double message, int prec)
 {
 	if (!_streams[_curStream].print())

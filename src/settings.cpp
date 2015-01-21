@@ -290,7 +290,7 @@ void Setting::error(const OList<Word>& input)
 
 // Static member values of Settings
 Word Settings::_globalFile;
-const int Settings::_numSettings = 37;
+const int Settings::_numSettings = 38;
 Setting* Settings::_settings = new Setting[Settings::_numSettings];
 
 
@@ -385,7 +385,7 @@ Settings::Helper::Helper()
 	Settings::_settings[(int)GAOPT_DIFFRACTIONTOL].setup(1e-4, "gaoptdifftol");
 	
 	// GAOPT_DIFFRACTIONMETHOD
-	Settings::_settings[(int)GAOPT_USErietveld].setup(false, "gaoptuserietveld");
+	Settings::_settings[(int)GAOPT_USERIETVELD].setup(false, "gaoptuserietveld");
 	
 	// GAOPT_SCREENMETHOD
 	Settings::_settings[(int)GAOPT_SCREENMETHOD].setup(GAPM_UNKNOWN, "gaoptscreenmethod");
@@ -395,6 +395,9 @@ Settings::Helper::Helper()
 	
 	// GAOPT_ALLOWRESTART
 	Settings::_settings[(int)GAOPT_ALLOWRESTART].setup(false, "gaoptallowrestarts");
+	
+	// GAOPT_SAVEALLRESULTS
+	Settings::_settings[(int)GAOPT_SAVEALLRESULTS].setup(false, "gaoptsavecandidates");
 	
 	// WYCKOFFBIAS
 	Settings::_settings[(int)WYCKOFFBIAS].setup(0.5, "wyckoffbias");

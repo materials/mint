@@ -901,6 +901,7 @@ List of settings and brief descriptions (detailed descriptions follow):
     gaoptscreenmethod   Screening method used during GA optimization
        gaoptscreennum   Number of trial structures to screen during GA
    gaoptallowrestarts   Allow optimization to be restarted (default = No)
+  gaoptsavecandidates   Print out all candidate structures and their metrics (default = No)
           wyckoffbias   Biasing level for choosing random Wyckoff positions
           minimagedis   Minimum image distance when generating supercells
       maxjumpdistance   Maximum jump distance when generating jumps between sites
