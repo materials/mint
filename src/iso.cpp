@@ -23,7 +23,7 @@
 #include "multi.h"
 #include "iso.h"
 #include "output.h"
-
+#include <xtalcomp.h>
 
 
 /* Basis& Basis::operator= (const Basis& rhs)
@@ -2547,13 +2547,16 @@ OList<Atom>::D2 ISO::shells(const Atom* atom, double maxDistance, double tol) co
 
 
 
-/* bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume, bool matchCellParams) const
- *
- * Return whether two structures are the same
+/**
+ * Determine whether two structures are identical
+ * @param compISO [in] Structure to be compared against
+ * @param tol [in] Comparison tolerance
+ * @param matchVolume [in] Whether to check whether volumes are identical
+ * @param matchCellParameters [in] Whether to check if lattice parameters are the same
+ * @return Whether the two structures are identical
  */
-
-bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume, bool matchCellParams) const
-{
+bool ISO::equivalent(const ISO& compISO, double tol, 
+		bool matchVolume, bool matchCellParams) const {
 	
 	// Output
 	Output::newline();
@@ -2562,441 +2565,48 @@ bool ISO::equivalent(const ISO& compISO, double tol, bool matchVolume, bool matc
 	
 	// Output
 	Output::newline();
-	Output::print("Checking equality of the elements in the structure");
+	Output::print("Converting structures to XtalComp format");
 	Output::increase();
 	
-	// Make sure that number of elements is the same in both structures
-	bool res = true;
-	if (_atoms.length() != compISO.atoms().length())
-	{
-		Output::newline();
-		Output::print("Number of elements in the structures are not the same");
-		res = false;
-	}
-	
-	// Only check structures if similar to this point
-	int i, j;
-	if (res)
-	{
-		
-		// Make sure that the elements are the same in both structures
-		for (i = 0; i < _atoms.length(); ++i)
-		{
-			for (j = 0; j < compISO.atoms().length(); ++j)
-			{
-				if (_atoms[i][0].element() == compISO.atoms()[j][0].element())
-					break;
-			}
-			if (j >= compISO.atoms().length())
-				break;
-		}
-		if (i < _atoms.length())
-		{
-			Output::newline();
-			Output::print("Elements are not the same in the structures");
-			res = false;
+	// Convert cell vectors
+	XcMatrix myCell(1.0), yourCell(1.0);
+	for (int i=0; i<3; i++) {
+		for (int j=0; j<3; j++) {
+			myCell(i,j) = this->basis().vectors()(i,j);
+			yourCell(i,j) = compISO.basis().vectors()(i,j);
 		}
 	}
 	
-	// Output
-	Output::decrease();
-	
-	// Only check structures if similar to this point
-	ISO thisPrim;
-	ISO compPrim;
-	Matrix3D thisToPrim = 0.0;
-	Matrix3D compToPrim = 0.0;
-	if (res)
-	{
-		
-		// Output
-		Output::newline();
-		Output::print("Converting structures to primitive form for further comparisons");
-		Output::increase();
-		
-		// Get current structure in primitive form
-		thisPrim = *this;
-		thisToPrim = thisPrim.primitiveTransformation(tol);
-		thisPrim.transform(thisToPrim, tol);
-	
-		// Get comparison structure in primitive form
-		compPrim = compISO;
-		compToPrim = compPrim.primitiveTransformation(tol);
-		compPrim.transform(compToPrim, tol);
-		
-		// Make sure that the number of atoms is the same
-		if (thisPrim.numAtoms() != compPrim.numAtoms())
-		{
-			Output::newline();
-			Output::print("Number of atoms in primitive cells are not the same");
-			res = false;
-		}
-		
-		// Output
-		Output::decrease();
-	}
-	
-	// Check that the number of atoms of each element is the same
-	if (res)
-	{
-		
-		// Output
-		Output::newline();
-		Output::print("Checking the number of atoms of each element");
-		Output::increase();
-		
-		// Check that the number of atoms are the same
-		bool found = true;
-		for (i = 0; i < thisPrim.atoms().length(); ++i)
-		{
-			found = false;
-			for (j = 0; j < compPrim.atoms().length(); ++j)
-			{
-				if (thisPrim.atoms()[i][0].element() == compPrim.atoms()[j][0].element())
-				{
-					if (thisPrim.atoms()[i].length() == compPrim.atoms()[j].length())
-						found = true;
-					break;
-				}
-			}
-			if (!found)
-				break;
-		}
-		if (!found)
-		{
-			Output::newline();
-			Output::print("Number of atoms of each element in the primitive cells do not match");
-			res = false;
-		}
-		
-		// Output
-		Output::decrease();
-	}
-	
-	// Check volume if needed
-	if ((res) && (matchVolume))
-	{
-		
-		// Output
-		Output::newline();
-		Output::print("Comparing the volumes of the primitive cells");
-		Output::increase();
-		
-		// Get the volume tolerance for current structure
-		double volTol = 0;
-		for (i = 0; i < 3; ++i)
-			volTol += pow(tol / thisPrim.basis().lengths()[0], 2);
-		volTol = thisPrim.basis().volume() * sqrt(volTol);
-		
-		// Check if volumes are the same
-		if (Num<double>::abs(thisPrim.basis().volume() - compPrim.basis().volume()) > volTol)
-		{
-			Output::newline();
-			Output::print("Volumes are not the same");
-			res = false;
-		}
-		
-		// Output
-		Output::decrease();
-	}
-	
-	// Check the cell parameters
-	Matrix3D thisPrimToRed = 0.0;
-	Matrix3D compPrimToRed = 0.0;
-	if (res)
-	{
-		
-		// Output
-		if (matchCellParams)
-		{
-			Output::newline();
-			Output::print("Comparing basis metrics");
-			Output::increase();
-		}
-		
-		// Output
-		Output::newline();
-		Output::print("Converting primitive cells to reduced form");
-		Output::increase();
-		
-		// Set the tolerances
-		double lenTol = tol / pow(thisPrim.basis().volume(), 1.0/3.0);
-		double angTol = atan(lenTol);
-		
-		// Make cells reduced
-		thisPrimToRed = Basis::reducedTransformation(thisPrim.basis().vectors());
-		thisPrim.transform(thisPrimToRed, tol);
-		compPrimToRed = Basis::reducedTransformation(compPrim.basis().vectors());
-		compPrim.transform(compPrimToRed, tol);
-		
-		// Output
-		Output::decrease();
-		
-		// Only run this section if comparing the cell parameters
-		if (matchCellParams)
-		{
-			
-			// Check the current angles
-			const Vector3D& thisAngles = thisPrim.basis().angles();
-			const Vector3D& compAngles = compPrim.basis().angles();
-			if ((Num<double>::abs(thisAngles[0] - compAngles[0]) > angTol) || \
-				(Num<double>::abs(thisAngles[1] - compAngles[1]) > angTol) || \
-				(Num<double>::abs(thisAngles[2] - compAngles[2]) > angTol))
-			{
-			
-				// Output
-				Output::newline();
-				Output::print("Attempting transformation between reduced cell types I and II");
-				Output::increase();
-			
-				// Try converting cell type for comparison cell
-				Matrix3D changeType (-1, 0, 0, 0, -1, 0, 0, 0, 1);
-				compPrim.transform(changeType, tol);
-				compPrimToRed *= changeType;
-			
-				// Output
-				Output::decrease();
-			
-				// Check new angles
-				if ((Num<double>::abs(thisAngles[0] - compAngles[0]) > angTol) || \
-					(Num<double>::abs(thisAngles[1] - compAngles[1]) > angTol) || \
-					(Num<double>::abs(thisAngles[2] - compAngles[2]) > angTol))
-				{
-					Output::newline();
-					Output::print("Angles in primitive cell do not match");
-					res = false;
-				}
-			}
-		
-			// Compare lattice parameter ratios
-			if (res)
-			{
-				const Vector3D& thisLengths = thisPrim.basis().lengths();
-				const Vector3D& compLengths = compPrim.basis().lengths();
-				if ((Num<double>::abs(thisLengths[0]/thisLengths[1] - compLengths[0]/compLengths[1]) > lenTol) || \
-					(Num<double>::abs(thisLengths[0]/thisLengths[2] - compLengths[0]/compLengths[2]) > lenTol) || \
-					(Num<double>::abs(thisLengths[1]/thisLengths[2] - compLengths[1]/compLengths[2]) > lenTol))
-				{
-					Output::newline();
-					Output::print("Ratios of primitive cell lattice vector lengths do not match");
-					res = false;
-				}
-			}
-		
-			// Output
-			Output::decrease();
+	// Get atoms 
+	std::vector<unsigned int> myTypes, yourTypes;
+	std::vector<XcVector> myPos, yourPos;
+	for (int t=0; t<this->atoms().length(); t++) {
+		OList<Atom> atoms = this->atoms()[t];
+		for (int a=0; a<atoms.length(); a++) {
+			Atom atom = atoms[a];
+			myTypes.push_back(atom.element().number());
+			Vector3D coor = atom.fractional();
+			myPos.push_back(XcVector(coor[0],coor[1],coor[2]));
 		}
 	}
-	
-	// Check atom positions
-	Vector3D curVec = 0.0;
-	Matrix3D compRedToThisRed = 0.0;
-	if (res)
-	{
-		
-		// Output
-		Output::newline();
-		Output::print("Comparing positions of atoms by searching for a rotation and vector that overlap structures");
-		Output::increase();
-		
-		// Make copy of comparison atoms and order the same as current atoms
-		Atoms compAtoms = compPrim.atoms();
-		for (i = 0; i < thisPrim.atoms().length(); ++i)
-		{
-			if (thisPrim.atoms()[i][0].element() != compAtoms[i][0].element())
-			{
-				for (j = i + 1; j < compAtoms.length(); ++j)
-				{
-					if (thisPrim.atoms()[i][0].element() == compAtoms[j][0].element())
-					{
-						compAtoms.swap(i, j);
-						break;
-					}
-				}
-			}
+	for (int t=0; t<compISO.atoms().length(); t++) {
+		OList<Atom> atoms = compISO.atoms()[t];
+		for (int a=0; a<atoms.length(); a++) {
+			Atom atom = atoms[a];
+			yourTypes.push_back(atom.element().number());
+			Vector3D coor = atom.fractional();
+			yourPos.push_back(XcVector(coor[0],coor[1],coor[2]));
 		}
-		
-		// Figure out which position permutations to test to account for lattice symmetry
-		Linked<Matrix3D> rotations1;
-		Linked<Matrix3D> rotations2;
-		Basis::getPossibleRotations(rotations1, thisPrim.basis().vectors(), tol);
-		Basis::getPossibleRotations(rotations2, compPrim.basis().vectors(), tol);
-		
-		// Build full list of rotations
-		Linked<Matrix3D> rotations;
-		fillRotations(rotations, (rotations1.length() > rotations2.length()) ? rotations1 : rotations2);
-		
-		// Output
-		Output::newline();
-		Output::print("Testing ");
-		Output::print(rotations.length());
-		Output::print(" possible rotation");
-		if (rotations.length() != 1)
-			Output::print("s");
-		Output::print(" based on the lattice symmetry");
-		
-		// Make a list of distances of all atoms from the origin
-		Vector3D origin = 0.0;
-		List<double>::D2 distances;
-		distances.length(thisPrim.atoms().length());
-		for (i = 0; i < thisPrim.atoms().length(); ++i)
-		{
-			distances[i].length(thisPrim.atoms()[i].length());
-			for (j = 0; j < thisPrim.atoms()[i].length(); ++j)
-				distances[i][j] = thisPrim.basis().distance(thisPrim.atoms()[i][j].fractional(), FRACTIONAL, \
-					origin, FRACTIONAL);
-		}
-		
-		// Figure out which element occurs least in the structure
-		int minElem = 0;
-		for (i = 1; i < thisPrim.atoms().length(); ++i)
-		{
-			if (thisPrim.atoms()[i].length() < thisPrim.atoms()[minElem].length())
-				minElem = i;
-		}
-		
-		// Loop over all conversions
-		int k;
-		Vector3D newPos = 0.0;
-		Atoms rotAtoms = compAtoms;
-		Atoms transAtoms = compAtoms;
-		Linked<Matrix3D>::iterator itRot = rotations.begin();
-		for (; itRot != rotations.end(); ++itRot)
-		{
-			
-			// Apply conversion to all positions
-			for (i = 0; i < compAtoms.length(); ++i)
-			{
-				for (j = 0; j < compAtoms[i].length(); ++j)
-				{
-					newPos  = compAtoms[i][j].fractional();
-					newPos *= *itRot;
-					ISO::moveIntoCell(newPos);
-					rotAtoms[i][j].fractional(newPos);
-				}
-			}
-			
-			// Loop over atoms and try translations
-			for (i = 0; i < rotAtoms[minElem].length(); ++i)
-			{
-			
-				// Get vector connecting atoms and translate all atoms
-				curVec = thisPrim.atoms()[minElem][0].fractional() - rotAtoms[minElem][i].fractional();
-				for (j = 0; j < rotAtoms.length(); ++j)
-				{
-					for (k = 0; k < rotAtoms[j].length(); ++k)
-					{
-						newPos  = rotAtoms[j][k].fractional();
-						newPos += curVec;
-						ISO::moveIntoCell(newPos);
-						transAtoms[j][k].fractional(newPos);
-					}
-				}
-			
-				// Check if atoms overlap
-				if (areSitesEqual(thisPrim.basis(), thisPrim.atoms(), transAtoms, tol, &curVec, &distances))
-					break;
-			}
-		
-			// Match was made
-			if (i < compAtoms[minElem].length())
-			{
-				compRedToThisRed = *itRot;
-				break;
-			}
-		}
-		if (itRot == rotations.end())
-		{
-			Output::newline();
-			Output::print("Could not find a rotation and vector to overlap atomic positions");
-			res = false;
-		}
-		
-		// Output
-		Output::decrease();
-	}
-	
-	// Output
-	Output::newline();
-	Output::print("Structures are");
-	if (!res)
-		Output::print(" not");
-	Output::print(" the same");
-	
-	// Print conversion if needed
-	if (res)
-	{
-		
-		// Create transformation
-		Matrix3D compToOrig = Matrix3D::identity();
-		compToOrig *= compToPrim;
-		compToOrig *= compPrimToRed;
-		compToOrig *= thisPrimToRed.inverse();
-		compToOrig *= thisToPrim.inverse();
-		
-		// Create rotation
-		Matrix3D rotation = compRedToThisRed;
-		rotation = thisPrimToRed.transpose() * rotation * thisPrimToRed.transpose().inverse();
-		rotation = thisToPrim.transpose() * rotation * thisToPrim.transpose().inverse();
-		
-		// Create translation
-		curVec *= thisPrimToRed.transpose();
-		curVec *= thisToPrim.transpose();
-		moveIntoCell(curVec);
-		
-		// Print transformation
-		Output::increase();
-		Output::newline();
-		Output::print("Transformation to take second cell to first");
-		Output::newline();
-		Output::print("    Transform: [");
-		for (i = 0; i < 3; ++i)
-		{
-			if (i)
-				Output::print(", ");
-			Output::print("(");
-			for (j = 0; j < 3; ++j)
-			{
-				if (j)
-					Output::print(", ");
-				Output::print(compToOrig(i, j));
-			}
-			Output::print(")");
-		}
-		Output::print("]");
-		Output::newline();
-		Output::print("       Rotate: [");
-		for (i = 0; i < 3; ++i)
-		{
-			if (i)
-				Output::print(", ");
-			Output::print("(");
-			for (j = 0; j < 3; ++j)
-			{
-				if (j)
-					Output::print(", ");
-				Output::print(rotation(i, j));
-			}
-			Output::print(")");
-		}
-		Output::print("]");
-		Output::newline();
-		Output::print("        Shift: (");
-		for (i = 0; i < 3; ++i)
-		{
-			if (i)
-				Output::print(", ");
-			Output::print(curVec[i]);
-		}
-		Output::print(")");
-		Output::decrease();
 	}
 	
 	// Output
 	Output::decrease();
+	Output::decrease();
 	
-	// Return the result
-	return res;
+	// Run it
+	return XtalComp::compare(myCell,myTypes,myPos,
+			yourCell, yourTypes, yourPos,
+			NULL, tol, 0.25);
 }
 
 
