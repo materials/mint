@@ -595,6 +595,8 @@ public:
 		Diffraction::clear();
 		_symmetry = 0;
 		_structure = 0;
+		_U = 0.0; _V = 0.0; _W = 0.3;
+		_eta0 = 0.5; _eta1 = 0.0; _eta2 = 0.0;
 		std::fill_n(_shiftParameters, 6, 0);
 		_backgroundParameters.clear();
 		_measurementAngles.clear();
