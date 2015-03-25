@@ -31,7 +31,6 @@
 #include "list.h"
 
 
-
 // Define fractional and cartesian coordinates
 enum CoordinateType {FRACTIONAL, CARTESIAN};
 
@@ -164,7 +163,7 @@ public:
 	const Matrix3D& unitToReduced() const			{ return _unitToReduced; }
 	const Matrix3D& reducedPointToUnit() const		{ return _reducedPointToUnit; }
 	const Matrix3D& unitPointToReduced() const		{ return _unitPointToReduced; }
-	
+		
 	// Static member functions
 	static double getAngle(const Vector3D& vec1, const Vector3D& vec2);
 	static Vector3D rotationAxis(const Matrix3D& matrix);

@@ -2928,6 +2928,7 @@ void Launcher::refine(Storage& data, const Function& function)
 			}
 
 			// Refine the structure
+            tempPattern.setMaxLatticeChange(Settings::value<double>(XRD_LATPARAM));
 			tempPattern.setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 			tempPattern.refine(data.iso()[i], data.symmetry()[i], data.diffraction(), rietveld);
 
@@ -3365,6 +3366,7 @@ void Launcher::diffraction(Storage& data, const Function& function)
 		patterns[i].setMaxTwoTheta(maxTwoTheta);
 		patterns[i].setResolution(resolution);
 		patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
+        patterns[i].setMaxLatticeChange(Settings::value<double>(XRD_LATPARAM));
 		patterns[i].setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 		
 		// Get match

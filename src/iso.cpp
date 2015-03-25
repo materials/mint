@@ -1368,11 +1368,10 @@ void ISO::basis(const Basis& basis, bool showOutput)
 
 
 
-/* void ISO::basis(const Matrix3D& vectors, bool showOutput)
- *
+/**
  * Set the basis for a structure
+ * @param vectors [in] Desired lattice vectors
  */
-
 void ISO::basis(const Matrix3D& vectors, bool showOutput)
 {
 	
@@ -1694,11 +1693,11 @@ Matrix3D ISO::makePrimitive(double tol, bool showOutput)
 
 
 
-/* void ISO::transform(const Matrix3D& transformation, double tol, bool showOutput)
- *
+/**
  * Transform a structure
+ * @param transoformation [in] Transformation matrixes
+ * @param 
  */
-
 void ISO::transform(const Matrix3D& transformation, double tol, bool showOutput)
 {
 	

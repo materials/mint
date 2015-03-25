@@ -42,7 +42,7 @@
  * @param structure [in] Structure to be used in calculations / refinements
  * @param symmetry [in] Symmetry information of that structure
  */
-void CalculatedPattern::defineStructure(const ISO& structure, const Symmetry& symmetry) {
+void CalculatedPattern::defineStructure(ISO& structure, const Symmetry& symmetry) {
     // Clear out any old data
     _symmetry = &symmetry;
     _structure = &structure;
@@ -50,6 +50,10 @@ void CalculatedPattern::defineStructure(const ISO& structure, const Symmetry& sy
     // Get the atomic parameters 
     setATFParams();
     calculatePeakLocations();
+    
+    // Store the lattice parameters and angles
+    _originalLengths = structure.basis().lengths();
+    _originalAngles = structure.basis().angles();
 
     // Initialize guesses for fitting parameters
     initializeRefinementParameters();
@@ -96,7 +100,8 @@ void CalculatedPattern::initializeRefinementParameters() {
  * @param toRefine Set of parameters that will be refined
  * @return Whether this parameter will be refined
  */
-bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<RefinementParameters> toRefine) {
+bool CalculatedPattern::willRefine(RefinementParameters parameter,
+        std::set<RefinementParameters> toRefine) {
     return toRefine.find(parameter) != toRefine.end();
 }
 
@@ -112,7 +117,7 @@ bool CalculatedPattern::willRefine(RefinementParameters parameter, std::set<Refi
  * @param fitBFactors [in] Whether to fit B factors (if pattern provided)
  * @return R factor (if pattern provided)
  */
-double CalculatedPattern::set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref, 
+double CalculatedPattern::set(ISO& iso, const Symmetry& symmetry, const Diffraction* ref, 
 		bool rietveld, bool fitBfactors) {
 	_type = PT_CALCULATED;
     // Clear space
@@ -233,6 +238,11 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 	
 	// Clear what parameters are currently being refined
 	_currentlyRefining.clear();
+    
+    // Create a list to store everything that can be refined at a certain point
+    //  This will allow us to, for instance, refine a new parameter by itself
+    //  and then refine with all other parameters considered so far
+    std::set<RefinementParameters> refinedSoFar;
 	
 	// Get reference and calculated intensities (used for guesses)
 	calculatePeakIntensities();
@@ -242,6 +252,7 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 	
 	// Refine the scale factor
 	_currentlyRefining.insert(RF_SCALE);
+    refinedSoFar.insert(RF_SCALE);
 	double scaleGuess = *max_element(refIntensities.begin(), refIntensities.end()) /
 			*max_element(thisIntensities.begin(), thisIntensities.end());
 	_optimalScale = scaleGuess;
@@ -256,14 +267,21 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 	Output::print(curR, 4);
 	
 	// Refine specimen displacement
+    _currentlyRefining.clear();
 	_currentlyRefining.insert(RF_SPECDISP);
+    refinedSoFar.insert(RF_SPECDISP);
 	curR = runRefinement(&referencePattern, true);
+    _currentlyRefining.insert(refinedSoFar.begin(), refinedSoFar.end());
+    curR = runRefinement(&referencePattern, true);
 	Output::newline();
 	Output::print("Refined specimen displacement. Current R: ");
 	Output::print(curR, 4);
 	
 	// Refine the background
+    _currentlyRefining.clear();
 	_currentlyRefining.insert(RF_BACKGROUND);
+    _currentlyRefining.insert(RF_SCALE);
+    refinedSoFar.insert(RF_BACKGROUND);
 	_backgroundParameters = guessBackgroundParameters(refAngles, refIntensities);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
@@ -271,6 +289,8 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 		savePattern("rietveld-background-guess.pattern", refAngles, refIntensities, thisIntensities);
 	}
 	curR = runRefinement(&referencePattern, true);
+    _currentlyRefining.insert(refinedSoFar.begin(), refinedSoFar.end());
+    curR = runRefinement(&referencePattern, true);
 	if (DIFFRACTION_EXCESSIVE_PRINTING) {
 		thisIntensities = getDiffractedIntensity(refAngles);
 		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
@@ -279,15 +299,38 @@ void CalculatedPattern::rietveldRefinement(const Diffraction& referencePattern, 
 	Output::newline();
 	Output::print("Refined background functions. Current R: ");
 	Output::print(curR, 4);
+    
+    // Refine lattice parameters, if desired
+    if (_maxLatChange > 0) {
+        std::set<RefinementParameters> oldParams;
+        oldParams.insert(_currentlyRefining.begin(), _currentlyRefining.end());
+        _currentlyRefining.clear();
+        _currentlyRefining.insert(RF_BASIS);
+        refinedSoFar.insert(RF_BASIS);
+        curR = runRefinement(&referencePattern, true);
+        _currentlyRefining.insert(oldParams.begin(), oldParams.end());
+        Output::newline();
+        Output::print("Refined lattice parameters. Current R: ");
+        Output::print(curR, 4);
+    }
 	
 	// Refine the peak broadening (W)
+    _W = guessPeakWidthParameter(refAngles, refIntensities);
 	_currentlyRefining.insert(RF_WFACTOR);
+    refinedSoFar.insert(RF_WFACTOR);
 	curR = runRefinement(&referencePattern, true);
+    _currentlyRefining.insert(refinedSoFar.begin(), refinedSoFar.end());
+    curR = runRefinement(&referencePattern, true);
 	Output::newline();
 	Output::print("Refined peak-broadening term to ");
 	Output::print(_W, 4);
 	Output::print(" degrees. Current R: ");
 	Output::print(curR, 4);
+    if (DIFFRACTION_EXCESSIVE_PRINTING) {
+		thisIntensities = getDiffractedIntensity(refAngles);
+		for (int i=0; i<thisIntensities.size(); i++) thisIntensities[i] *= _optimalScale;
+		savePattern("rietveld-width-fitted.pattern", refAngles, refIntensities, thisIntensities);
+	}
 	if (curR > 0.9) {
 		Output::newline();
 		Output::print("Very poor pattern match, not refining further.");
@@ -424,15 +467,15 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool rietv
     column_vector x_high = getRefinementParameterUpperBoundary();
     params = getRefinementParameters();
     RFactorFunctionModel f(this, reference, rietveld);
-    // Technical issue (as of 12Mar14): 
-    //  Derivatives calculated during getCurrentRFactor are wrong. That function 
-    //   sets the "optimal scale factor," but assumes it is constant as we adjust 
-    //   B factors and another parameters. We need the derivative of the scale factor
-    //   with respect to each refinement parameter, which would be tedious. Instead,
-    //   approximate derivatives are used, which seem to work well. 
-    // RFactorDerivativeFunctionalModel der(this);
+    // Technical issue (as of 12Mar15): 
+    //  Numerical derivatives are currently being used. Performance could be better
+    //   with analytical derivatives. One would create a functional very similar
+    //   to the version currently being used to pass the R function value in order
+    //   to make analytical derivatives work with this code. 
+    //      May the calculus be with you.
+    // RFactorDerivativeFunctionalModel der(this); // Analytical derivatives were once used
     dlib::find_min_box_constrained(dlib::bfgs_search_strategy(),
-            dlib::objective_delta_stop_strategy(1e-10, params.nr() * 30),
+            dlib::objective_delta_stop_strategy(1e-12, params.nr() * 30),
             f, dlib::derivative(f, 1e-6), params, x_low, x_high);
     setAccordingToParameters(params);
     calculatePeakIntensities();
@@ -450,6 +493,7 @@ double CalculatedPattern::runRefinement(const Diffraction* reference, bool rietv
  * <li>Scale factor</li>
  * <li>Specimen displacement parameter</li>
  * <li>Background parameters</li>
+ * <li>Lattice parameters (lengths, then angles)</li> 
  * <li>Angle-dependent peak broadening/shape terms (U,V,eta1,eta2) </li>
  * <li>Angle-independent peak broadening/shape term (W, eta0)</li>
  * <li>Atomic positions</li>
@@ -472,6 +516,16 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameters() {
 			params.push(_backgroundParameters[p]);
 		}
 	}
+    if (willRefine(RF_BASIS, _currentlyRefining)) {
+        Vector3D data = _structure->basis().lengths();
+        for (int i=0; i<3; i++) {
+            params.push(data[i]);
+        }
+        data = _structure->basis().angles();
+        for (int i=0; i<3; i++) {
+            params.push(data[i]);
+        }
+    }
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(_U); params.push(_V);
 		params.push(_eta1); params.push(_eta2);
@@ -527,6 +581,16 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterLowerB
 			params.push(-1e100);
 		}
 	}
+    if (willRefine(RF_BASIS, _currentlyRefining)) {
+        Vector3D data = _originalLengths;
+        for (int i=0; i<3; i++) {
+            params.push(data[i] * (1 - _maxLatChange));
+        }
+        data = _originalAngles;
+        for (int i=0; i<3; i++) {
+            params.push(data[i] * (1 - _maxLatChange));
+        }
+    }
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(-1e100); params.push(-1e100);
 		params.push(-1e100); params.push(-1e100);
@@ -576,6 +640,16 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
 			params.push(1e100);
 		}
 	}
+    if (willRefine(RF_BASIS, _currentlyRefining)) {
+        Vector3D data = _originalLengths;
+        for (int i=0; i<3; i++) {
+            params.push(data[i] * (1 + _maxLatChange));
+        }
+        data = _originalAngles;
+        for (int i=0; i<3; i++) {
+            params.push(data[i] * (1 + _maxLatChange));
+        }
+    }
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		params.push(1e100); params.push(1e100);
 		params.push(1e100); params.push(1e100);
@@ -612,7 +686,7 @@ CalculatedPattern::column_vector CalculatedPattern::getRefinementParameterUpperB
  *  The values in this vector depending on which parameters are _currentlyRefining. 
  *  Their order should be the same as defined in getCurrentParameters
  *  
- * @param params New values of parameters being refined
+ * @param params [in] New values of parameters being refined
  */
 void CalculatedPattern::setAccordingToParameters(column_vector params) {
     int position = 0;
@@ -627,6 +701,13 @@ void CalculatedPattern::setAccordingToParameters(column_vector params) {
 			_backgroundParameters[i] = params(position++);
 		}
 	}
+    if (willRefine(RF_BASIS, _currentlyRefining)) {
+        vector<double> newParams;
+        for (int i=0; i < 6; i++) {
+            newParams.push_back(params(position++));
+        }
+        setBasis(newParams);
+    }
 	if (willRefine(RF_UVFACTORS, _currentlyRefining)) {
 		_U = params(position++);
 		_V = params(position++);
@@ -890,6 +971,12 @@ void CalculatedPattern::calculatePeakLocations() {
 void CalculatedPattern::calculatePeakIntensities() {
 	double texturingParameter = _preferredOrientation.magnitude();
     for (int i = 0; i < _reflections.size(); i++) {
+        // Update peak positions if they are currently being refined
+        if (willRefine(RF_BASIS, _currentlyRefining)) {
+            _reflections[i].updatePeakPosition();
+        }
+        
+        // Update peak intensities
         _reflections[i].updateCalculatedIntensity(_BFactors, _atfParams, _preferredOrientation, texturingParameter);
     }
 }
@@ -1077,19 +1164,21 @@ vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoT
 	fitAngles.reserve(twoTheta.size());
 	fitIntensities.reserve(twoTheta.size());
 	int pos = 0;
+    double patternWidth = _reflections.back().getAngle() - 
+            _reflections.front().getAngle();
 	for (int peak=0; peak < _reflections.size(); peak++) {
-		while (twoTheta[pos] < _reflections[peak].getAngle() - 0.5) {
+		while (twoTheta[pos] < _reflections[peak].getAngle() - patternWidth / 100) {
 			fitAngles.push_back(twoTheta[pos]);
 			fitIntensities.push_back(refIntensities[pos]);
 			pos++;
 		}
-		while (twoTheta[pos] < _reflections[peak].getAngle() + 0.5) {
+		while (twoTheta[pos] < _reflections[peak].getAngle() + patternWidth / 100) {
 			pos++;
 		}
 	}
 	
 	// If there are too many peaks, don't make any guesses
-	if (fitAngles.size() == 0) {
+	if (fitAngles.size() < _numBackground * 100) {
 		vector<double> output;
 		output.resize(_numBackground, 0.0);
 		return output;
@@ -1126,6 +1215,50 @@ vector<double> CalculatedPattern::guessBackgroundParameters(vector<double>& twoT
 	}
 	return output;
 }
+
+/**
+ * Guess a starting value for the peak width parameter.
+ * @param twoTheta [in] Angles at which pattern was measured
+ * @param referenceIntensities [out] Measured intensities
+ * @return Guess for peak half width
+ */
+double CalculatedPattern::guessPeakWidthParameter(vector<double>& twoTheta, vector<double>& referenceIntensities) {
+    // Get the maximum value of the pattern
+    double halfMax = *std::max_element(referenceIntensities.begin(), 
+            referenceIntensities.end()) / 2.0;
+    
+    // Go until the pattern is below half the maximum value
+    int pos = 0;
+    while (referenceIntensities[pos] > halfMax) {
+        pos++;
+    }
+    
+    // Now, count each time it crosses halfway
+    vector<double> widths;
+    bool isAbove = false;
+    double startAngle = 0;
+    while (pos < twoTheta.size()) {
+        if (isAbove) {
+            if (referenceIntensities[pos] < halfMax) {
+                isAbove = false;
+                widths.push_back(twoTheta.at(pos) - startAngle);
+            }
+        } else {
+            if (referenceIntensities[pos] > halfMax) {
+                isAbove = true;
+                startAngle = twoTheta[pos];
+            }
+        }
+        pos++;
+    }
+    
+    // Compute mean width
+    double mean = std::accumulate(widths.begin(), widths.end(), 0.0);
+    mean /= widths.size();
+    
+    return mean > 1.0 ? 1.0 : mean;
+}
+
 
 /** 
  * Get combined / scaled peaks for prettier output.
@@ -1483,17 +1616,17 @@ double Diffraction::rFactor(const Diffraction& reference) {
  */
 void CalculatedPattern::setPositions(const Symmetry& symmetry, const Vector& positions) {
     int i, j, k;
-            Vector3D newPos;
+    Vector3D newPos;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
         for (j = 0; j < symmetry.orbits()[i].atoms().length(); ++j) {
 
             for (k = 0; k < 3; ++k)
-                    newPos[k] = positions[3 * i + k];
-                    newPos *= symmetry.orbits()[i].generators()[j].rotation();
-                    newPos += symmetry.orbits()[i].generators()[j].translations()[0];
-                    ISO::moveIntoCell(newPos);
-                    symmetry.orbits()[i].atoms()[j]->fractional(newPos);
-            }
+                newPos[k] = positions[3 * i + k];
+            newPos *= symmetry.orbits()[i].generators()[j].rotation();
+            newPos += symmetry.orbits()[i].generators()[j].translations()[0];
+            ISO::moveIntoCell(newPos);
+            symmetry.orbits()[i].atoms()[j]->fractional(newPos);
+        }
     }
 }
 
@@ -1505,18 +1638,37 @@ void CalculatedPattern::setPositions(const Symmetry& symmetry, const Vector& pos
  */
 void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position) {
     int i, j;
-	Vector3D tempPos;
+    Vector3D tempPos;
     for (i = 0; i < symmetry.orbits().length(); ++i) {
         for (j = 0; j < 3; ++j)
-                tempPos[j] = position[3 * i + j];
-                tempPos -= symmetry.orbits()[i].specialPositions()[0].translation();
-                tempPos *= symmetry.orbits()[i].specialPositions()[0].rotation();
-                tempPos += symmetry.orbits()[i].specialPositions()[0].translation();
+            tempPos[j] = position[3 * i + j];
+        tempPos -= symmetry.orbits()[i].specialPositions()[0].translation();
+        tempPos *= symmetry.orbits()[i].specialPositions()[0].rotation();
+        tempPos += symmetry.orbits()[i].specialPositions()[0].translation();
 
-            for (j = 0; j < 3; ++j)
-                    position[3 * i + j] = tempPos[j];
-            }
+        for (j = 0; j < 3; ++j)
+            position[3 * i + j] = tempPos[j];
+    }
 }
+
+/**
+ * Set new basis vectors to structure used to generate this pattern
+ * @param newParams New parameters: [0-2] lengths, [3-5] angles
+ */
+void CalculatedPattern::setBasis(vector<double> newParams) {
+    Vector3D lengths = Vector3D(newParams[0], newParams[1], newParams[2]);
+    Vector3D angles = Vector3D(newParams[3], newParams[4], newParams[5]);
+    
+    // Compute basis
+    Matrix3D basis = Basis::vectors(lengths, angles);
+    
+    // Refine the basis to match symmetry
+    _symmetry->refineBasis(basis);
+    
+    // Set the structure
+    _structure->basis(basis, false);
+}
+
 
 /**
  * Calculate a pattern match where the entire pattern
@@ -1525,7 +1677,7 @@ void CalculatedPattern::symPositions(const Symmetry& symmetry, Vector& position)
  * <ul>
  * <li><b>DR_ABS</b>: Is the R<sub>p</sub>, profile reliability factor
  * <li><b>DR_SQUARED</b>: Is the weighted profile residual
- * <li><b>DR_rietveld</b>: Unnormalzied, version of DR_SQUARED taken over whole pattern
+ * <li><b>DR_RIETVELD</b>: Unnormalzied, version of DR_SQUARED taken over whole pattern
  * </ul>
  * 
  * See doi:10.1107/S0021889893012348 for a good discussion of rietveld R factors

@@ -908,6 +908,7 @@ List of settings and brief descriptions (detailed descriptions follow):
       kmcjumpsperatom   Number of jumps in a KMC simulation per atom
           kmcconverge   Convergence for a KMC simulation to be complete
 	 xrdnumbackground	Number of background functions used during Rietveld refinement
+     xrdlatticerefine   Maximum fraction change in lattice parameters during Rietveld refinment (default = 0)
 
 
 

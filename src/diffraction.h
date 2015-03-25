@@ -147,21 +147,29 @@ public:
 		this->method = method;
 		this->structure = structure;
 		this->symmetry = symmetry;
-		this->_twoThetaRad = 2 * CalculatedPeak::getDiffractionAngle(structure->basis(),hkl,wavelength);
-		this->TwoThetaDeg = Num<double>::toDegrees(this->_twoThetaRad);
         this->wavelength = wavelength;
 		this->multiplicity = equivHKL.size();
         this->hkl = hkl;
         this->equivHKL = equivHKL;
-        this->lpFactor = getLPFactor(_twoThetaRad / 2.0);
-		this->recipLatVecs.clear(); this->recipLatVecs.reserve(equivHKL.size());
-		for (int i=0; i<equivHKL.size(); i++) {
-			recipLatVecs.push_back(structure->basis().inverse() * equivHKL[i]);
-		}
+		updatePeakPosition();
     }
 
     void updateCalculatedIntensity(vector<double>& BFactors, List<double>::D2& atfParams, 
 		Vector3D& preferredOrientation, double texturingFactor);
+	
+	/**
+	 * Update the peak positions, and all derived quantities. 
+     */
+	void updatePeakPosition() {
+		this->_twoThetaRad = 2 * CalculatedPeak::getDiffractionAngle(structure->basis(),hkl,wavelength);
+		this->TwoThetaDeg = Num<double>::toDegrees(this->_twoThetaRad);
+        this->lpFactor = getLPFactor(_twoThetaRad / 2.0);
+		this->recipLatVecs.clear(); 
+		this->recipLatVecs.reserve(equivHKL.size());
+		for (int i=0; i<equivHKL.size(); i++) {
+			recipLatVecs.push_back(structure->basis().inverse() * equivHKL[i]);
+		}
+	}
 	
 	static double getDiffractionAngle(const Basis& basis, const Vector3D& hkl, double wavelength);	
 	
@@ -470,10 +478,16 @@ private:
 	// Parameters/Operations used when generating a pattern
 	// =========================================
 	
+	// Original lattice parameters: Lengths
+	Vector3D _originalLengths; 
+	// Original lattice parameters: Angles
+	Vector3D _originalAngles;
+	// Maximum allowed fractional change of lattice parameters during refinement
+	double _maxLatChange;
 	// Holds the internal degrees of freedom (atomic positions)
     const Symmetry* _symmetry;
     // Holds information about basis vectors and such
-    const ISO* _structure;
+    ISO* _structure;
     // B factors of each symmetrically-unique set of atoms
     vector<double> _BFactors;
 	// Atomic form factor parameters for each symmetrically-unique set of atoms
@@ -511,6 +525,7 @@ private:
 	
 	// Parameters that can be refined
 	enum RefinementParameters { RF_SCALE, // Scale factor (only for full pattern)
+		RF_BASIS, // Refine basis vectors
 		RF_BACKGROUND, // Background signal (only for full pattern)
 		RF_SPECDISP, // Displacement of sample from goniometer axis (_shiftParameter[4])
 		RF_ZEROSHIFT, // Zero shift of Bragg peaks (_shiftParameter[5])
@@ -529,7 +544,7 @@ private:
 	// --> Operations used to define refinement problem
 	void defineReferencePattern(const Diffraction& reference);
     bool referencePatternIsDefined() const;
-    void defineStructure(const ISO& structure, const Symmetry& symmetry);
+    void defineStructure(ISO& structure, const Symmetry& symmetry);
     bool structureIsDefined();
     void initializeRefinementParameters();
     void setATFParams();
@@ -541,6 +556,7 @@ private:
 	void rietveldRefinement(const Diffraction& referencePattern, std::set<RefinementParameters> toRefine);
 	double getRietveldRFactor(const Diffraction& referencePattern, Rmethod rMethod = DR_ABS);
 	vector<double> guessBackgroundParameters(vector<double>& twoTheta, vector<double>& referenceIntensities);
+	double guessPeakWidthParameter(vector<double>& twoTheta, vector<double>& referenceIntensities);
 	
 	// --> Operations are used when calculating peak intensities
     void calculatePeakIntensities();
@@ -558,6 +574,7 @@ private:
 	// --> Utility operations used during refinement
     void setPositions(const Symmetry& symmetry, const Vector& positions);
     void symPositions(const Symmetry& Symmetry, Vector& positions);
+	void setBasis(vector<double> newParams);
 	
 public:
 	
@@ -608,6 +625,7 @@ public:
         _structure = 0;
 		_minBFactor = 0.1;
 		_maxBFactor = 4.0;
+		_maxLatChange = 0.05;
 		_U = 0.0; _V = 0.0; _W = 0.3;
 		_eta0 = 0.5; _eta1 = 0.0; _eta2 = 0.0;
 		std::fill_n(_shiftParameters, 6, 0);
@@ -642,7 +660,17 @@ public:
      */
 	void setNumBackground(int input)	{ _numBackground = input; }
 	
-	double set(const ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, 
+	/**
+	 * Set maximum allowed change in lattice parameters or angles during refinement.
+	 * 
+     * @param input Maximum allowed fractional change (set to &le;0 to hold
+	 * lattice parameters constant).
+     */
+	void setMaxLatticeChange(double input) {
+		_maxLatChange = input;
+	}
+	
+	double set(ISO& iso, const Symmetry& symmetry, const Diffraction* ref = 0, 
 			bool rietveld = false, bool fitBfactors = false);
 	
 	// Call refinement

@@ -290,7 +290,7 @@ void Setting::error(const OList<Word>& input)
 
 // Static member values of Settings
 Word Settings::_globalFile;
-const int Settings::_numSettings = 38;
+const int Settings::_numSettings = 39;
 Setting* Settings::_settings = new Setting[Settings::_numSettings];
 
 
@@ -416,6 +416,9 @@ Settings::Helper::Helper()
 	
 	// XRD_BACKGROUNDCOUNT
 	Settings::_settings[(int)XRD_BACKGROUNDCOUNT].setup(4, "xrdbackgroundcount");
+    
+    // XRD_LATPARAM
+    Settings::_settings[(int)XRD_LATPARAM].setup(-0.5, "xrdlatticerefine");
 }
 
 
