@@ -194,13 +194,16 @@ double CalculatedPattern::set(ISO& iso, const Symmetry& symmetry, const Diffract
     for (int i = 0; i < _reflections.size(); ++i) {
 		double angle = _reflections[i].getAngle();
 		double intensity = _reflections[i].getIntensity();
-        if (intensity < 0.05 * maxIntensity) 
+        if (intensity < 1e-6 * maxIntensity) 
             continue;
         Output::newline();
         Output::print("Two-theta and intensity of ");
         Output::print(angle);
         Output::print(" ");
         Output::print(intensity * 1000 / maxIntensity);
+        Output::print(" - ");
+        Vector3D hkl = _reflections[i].getHKL();
+        Output::print(hkl, 0, false);
     }
     Output::decrease();
 

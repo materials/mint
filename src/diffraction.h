@@ -187,6 +187,28 @@ public:
             return *this;
     }
 	
+	/**
+	 * Get the index of this peak. Out of all the equivalent HKLs finds the
+	 * one with the smallest, positive indices
+     * @return Plane index associated with this peak
+     */
+	Vector3D getHKL() {
+		Vector3D chosenHKL = equivHKL.front();
+		for (int i=1; i<equivHKL.size(); i++) {
+			Vector3D possibleHKL = equivHKL[i];
+			for (int d=0; d<3; d++) {
+				if (chosenHKL[d] < 0 && possibleHKL[d] >= 0) {
+					chosenHKL = possibleHKL;
+					break;
+				} else if (abs(chosenHKL[d]) > abs(possibleHKL[d])) {
+					chosenHKL = possibleHKL;
+					break;
+				}
+			}
+		}
+		return chosenHKL;
+	}
+	
 private:
 	
 	// Method used to compute diffraction intensity
