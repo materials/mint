@@ -1769,6 +1769,8 @@ bool Vasp::Settings::isSetting(const Word& name, IncarGroup* group, IncarTag* ta
 	    return true;
 	if (match(name, group, tag, "NSIM", IG_PERFORMANCE, IT_NSIM))
 	    return true;
+	if (match(name, group, tag, "NCORE", IG_PERFORMANCE, IT_NCORE))
+	    return true;
 	if (match(name, group, tag, "NBLK", IG_PERFORMANCE, IT_NBLK))
 	    return true;
 	if (match(name, group, tag, "LPLANE", IG_PERFORMANCE, IT_LPLANE))
