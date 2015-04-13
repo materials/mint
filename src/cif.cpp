@@ -515,11 +515,12 @@ bool CIF::checkTag(Tag tag, OList<Word>& curLine, Vector3D& lengths, Vector3D& a
 
 
 
-/* void CIF::write(const Word& file, const ISO& iso, double tol)
- *
+/**
  * Write CIF file
+ * @param file [in] Filename
+ * @param iso [in] Structure to be written
+ * @param tol [in] Tolerance used when computing symmetry of structure
  */
-
 void CIF::write(const Word& file, const ISO& iso, double tol)
 {
 	
@@ -528,6 +529,9 @@ void CIF::write(const Word& file, const ISO& iso, double tol)
 	
 	// Get symmetry of the structure
 	Symmetry symmetry(iso, tol);
+
+	// Get the space group of the structure
+	SpaceGroup spg(iso, tol);
 	
 	// Setup output if file was set
 	int origStream = Output::streamID();
@@ -602,6 +606,12 @@ void CIF::write(const Word& file, const ISO& iso, double tol)
 	Output::newline();
 	Output::print("_cell_angle_gamma ");
 	Output::print(Num<double>::toDegrees(iso.basis().angles()[2]), prec);
+
+	// Print space group
+	Output::newline();
+	Output::print("_space_group_name_Hall '");
+	Output::print(spg.hall());
+	Output::print("'");
 	
 	// Print symmetry operations
 	int j;
