@@ -533,11 +533,11 @@ inline void Atom::fractional(const double* input, bool moveIntoCell)
 
 
 
-/* inline void Atom::fractional(const Vector3D& input, bool moveIntoCell)
- *
+/**
  * Set position by fractional coordinate
+ * @param input [in] Fractional position of atoms
+ * @param moveIntoCell [in] Whether to adjust position such that 0 &le; x,y,z &gt; 1
  */
-
 inline void Atom::fractional(const Vector3D& input, bool moveIntoCell)
 {
 	_assigned = true;
@@ -550,17 +550,16 @@ inline void Atom::fractional(const Vector3D& input, bool moveIntoCell)
 
 
 
-/* inline void Atom::fractional(double x, double y, double z, bool moveIntoCell)
- *
+/**
  * Set position by fractional coordinate
+ * @param x [in] X coordinate
+ * @param y [in] Y coordinate
+ * @param z [in] Z coordinate
+ * @param moveIntoCell [in] Whether to adjust position such that 0 &le; x,y,z &gt; 1
  */
-
-inline void Atom::fractional(double x, double y, double z, bool moveIntoCell)
-{
+inline void Atom::fractional(double x, double y, double z, bool moveIntoCell) {
 	fractional(Vector3D(x, y, z), moveIntoCell);
 }
-
-
 
 /* inline void Atom::cartesian(const double* input, bool moveIntoCell)
  *

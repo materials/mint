@@ -126,6 +126,10 @@ public:
 	int length() const					{ return _length; }
 	char& operator[] (int index) const	{ return _word[index]; }
 	char& last() const					{ return _word[_length - 1]; }
+	/**
+	 * Convert Word to character array
+     * @return Pointer to character array
+     */
 	char* array() const					{ return _word; }
 };
 

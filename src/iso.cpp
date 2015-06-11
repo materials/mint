@@ -2144,13 +2144,12 @@ void ISO::shift(const Vector3D& vector, bool showOutput)
 
 
 
-/* Atom* ISO::addAtom(const Element& element)
- *
- * Add atom to the structure
+/**
+ * Add atom to the structure.
+ * @param element [in] Type of atom to add
+ * @return Pointer to that new atom
  */
-
-Atom* ISO::addAtom(const Element& element)
-{
+Atom* ISO::addAtom(const Element& element) {
 	
 	// Pointer to added atom
 	Atom* newAtom = 0;

@@ -28,6 +28,9 @@
 #include "output.h"
 #include "num.h"
 #include <cstdlib>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 
 
@@ -525,7 +528,7 @@ void CIF::write(const Word& file, const ISO& iso, double tol)
 {
 	
 	// Precision for printing numbers
-	int prec = 14;
+	int prec = 4;
 	
 	// Get symmetry of the structure
 	Symmetry symmetry(iso, tol);
@@ -558,27 +561,33 @@ void CIF::write(const Word& file, const ISO& iso, double tol)
 	for (i = 0; i < iso.atoms().length(); ++i)
 		composition[i] /= Z;
 	
+	// Get the chemical formula
+	vector<string> formula;
+	for (i = 0; i < iso.atoms().length(); ++i) {
+		char buf[32];
+		sprintf(buf, "%s%d", iso.atoms()[i][0].element().symbol().array(), 
+				composition[i]);
+		string temp = buf;
+		formula.push_back(temp);
+	}
+	std::sort(formula.begin(), formula.end());
+	
 	// Print top line
 	Output::newline();
 	Output::print("data_");
-	for (i = 0; i < iso.atoms().length(); ++i)
-	{
-		Output::print(iso.atoms()[i][0].element().symbol());
-		if (iso.atoms()[i].length() != 1)
-			Output::print(iso.atoms()[i].length());
+	for (i = 0; i < formula.size(); i++) {
+		Output::print(formula[i].c_str());
 	}
 	Output::print("_mint");
 	
 	// Print the chemical formula
 	Output::newline();
 	Output::print("_chemical_formula_sum \'");
-	for (i = 0; i < iso.atoms().length(); ++i)
-	{
-		Output::print(iso.atoms()[i][0].element().symbol());
-		if (composition[i] != 1)
-			Output::print(composition[i]);
-		if (i != iso.atoms().length() - 1)
+	for (i = 0; i < iso.atoms().length(); ++i) {
+		if (i != 0) {
 			Output::print(" ");
+		}
+		Output::print(formula[i].c_str());
 	}
 	Output::print("\'");
 	
@@ -607,11 +616,22 @@ void CIF::write(const Word& file, const ISO& iso, double tol)
 	Output::print("_cell_angle_gamma ");
 	Output::print(Num<double>::toDegrees(iso.basis().angles()[2]), prec);
 
-	// Print space group
+	// Print space group information
 	Output::newline();
 	Output::print("_space_group_name_Hall '");
 	Output::print(spg.hall());
 	Output::print("'");
+    
+    Output::newline();
+    Output::print("_symmetry_cell_setting ");
+    switch (spg.system()) {
+        case LS_CUBIC: Output::print("cubic"); break;
+        case LS_HEXAGONAL: Output::print("hexagonal"); break;
+        case LS_MONOCLINIC: Output::print("monoclinic"); break;
+        case LS_ORTHORHOMBIC: Output::print("orthorhombic"); break;
+        case LS_RHOMBOHEDRAL: LS_HEXAGONAL: Output::print("hexagonal"); break;
+        default: Output::print("triclinic");
+    }
 	
 	// Print symmetry operations
 	int j;
