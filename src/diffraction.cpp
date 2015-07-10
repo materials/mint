@@ -1093,7 +1093,7 @@ vector<double> CalculatedPattern::generatePeakSignal(vector<double>& twoTheta) c
 		if (minAngle >= maxTwoTheta()) continue;
 		
 		// Compute broadened pattern
-		int a = startAngle;
+		int a = lower_bound(twoTheta.begin(), twoTheta.end(), minAngle) - twoTheta.begin();
 		double intensity = _reflections[p].getIntensity();
 		while (twoTheta[++a] < minAngle) continue;
 		startAngle = a;
