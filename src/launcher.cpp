@@ -3360,20 +3360,30 @@ void Launcher::diffraction(Storage& data, const Function& function)
 			Output::increase();
 		}
 		
-		// Set pattern parameters
+		// Set global pattern / refinement parameters
 		patterns[i].setWavelength(wavelength);
-		patterns[i].setMinTwoTheta(minTwoTheta);
-		patterns[i].setMaxTwoTheta(maxTwoTheta);
-		patterns[i].setResolution(resolution);
-		patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
         patterns[i].setMaxLatticeChange(Settings::value<double>(XRD_LATPARAM));
 		patterns[i].setNumBackground(Settings::value<int>(XRD_BACKGROUNDCOUNT));
 		
 		// Get match
-		if (data.diffraction().isSet())
+		if (data.diffraction().isSet()) {
 			match[i] = patterns[i].set(data.iso()[i], data.symmetry()[i], &data.diffraction(), continuous, true);
-		else
+            
+            // If not continuous, set function parameters related to printing
+            //  (These are otherwise adopted from input pattern)
+            if (! continuous) {
+                patterns[i].setResolution(resolution);
+                patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
+            }
+		} else {            
 			patterns[i].set(data.iso()[i], data.symmetry()[i]);
+            
+            // Set functions printing functions
+            patterns[i].setMinTwoTheta(minTwoTheta);
+            patterns[i].setMaxTwoTheta(maxTwoTheta);
+            patterns[i].setResolution(resolution);
+            patterns[i].setPeakBroadeningParameters(0.0, 0.0, fwhm);
+        }
 		
 		// Output if there is more than one structure
 		if (data.iso().length() > 1)
