@@ -1213,11 +1213,9 @@ void Symmetry::print(bool useJonesFaithful) const
 
 
 
-/* void Symmetry::printSites() const
- *
+/**
  * Print unique sites in the structure
  */
-
 void Symmetry::printSites() const
 {
 	
@@ -1241,7 +1239,16 @@ void Symmetry::printSites() const
 				sites[i].add(_orbits[i].atoms()[j]->fractional()[k], 8);
 		}
 	}
-	
+
+    // Get the total number of DOFs
+    int nDOF = 0;
+    for (i = 0; i < wyckoff.length(); ++i) {
+        nDOF += _orbits[i].rank();
+    }
+    Output::newline();
+    Output::print("Total number of degrees of freedom: ");
+    Output::print(nDOF);
+
 	// Print sites
 	Output::newline();
 	Output::print("Number of unique atoms: ");
@@ -1255,10 +1262,13 @@ void Symmetry::printSites() const
 		Output::print(wyckoff[i], true, false);
 		Output::print(") with multiplicity ");
 		Output::print(_orbits[i].atoms().length());
+        Output::print(" and ");
+        Output::print(_orbits[i].rank());
+        Output::print(" degrees of freedom");
 		Output::newline();
 		Output::print(sites[i], RIGHT);
 	}
-	
+
 	// Reset output
 	Output::method(origMethod);
 }

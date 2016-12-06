@@ -2437,11 +2437,11 @@ void Launcher::unique(Storage& data, const Function& function)
 
 
 
-/* void Launcher::about(Storage& data, const Function& function)
- *
+/**
  * Print details about the structure or atoms in it
+ * @param data [in] Stores information about structures being assessed
+ * @param function [in] Options for the about function
  */
-
 void Launcher::about(Storage& data, const Function& function)
 {
 	
@@ -2476,11 +2476,10 @@ void Launcher::about(Storage& data, const Function& function)
 
 
 
-/* void Launcher::aboutStructure(Storage& data)
- *
+/**
  * Print details about the structure
+ * @param data [in] Structure being assessed
  */
-
 void Launcher::aboutStructure(Storage& data)
 {
 	
@@ -2592,11 +2591,11 @@ void Launcher::aboutStructure(Storage& data)
 
 
 
-/* void Launcher::aboutAtoms(Storage& data, const Function& function)
- *
+/**
  * Print information about the atoms in a structure
- */
+ * /function
 
+ */
 void Launcher::aboutAtoms(Storage& data, const Function& function)
 {
 	

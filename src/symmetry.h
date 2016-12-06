@@ -139,7 +139,14 @@ public:
 	Orbit& operator= (const Orbit& rhs);
 	
 	// Access functions
+    /** Get the rank of the rotation matrix for this site. Equivalent
+     * to the number of degrees of freedom
+     * @return Rank of site 
+     */
 	int rank() const										{ return _rank; }
+    /** Get all of the atoms in this Wyckoff site
+     * @return List of atoms 
+     */
 	const List<Atom*>& atoms() const						{ return _atoms; }
 	const OList<SymmetryOperation>& generators() const		{ return _generators; }
 	const OList<SpecialPosition>& specialPositions() const	{ return _specialPositions; }
