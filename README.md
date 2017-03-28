@@ -1,5 +1,6 @@
 # Mint (Materials Interface)
 
+[![DOI](https://zenodo.org/badge/17946289.svg)](https://zenodo.org/badge/latestdoi/17946289)
 
 ## Installation
 
